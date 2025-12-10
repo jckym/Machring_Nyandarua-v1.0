@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { mockFarmers } from '@/data/mockData';
-import { Search, Plus, MapPin, Phone, MoreVertical, Filter, Download } from 'lucide-react';
+import { Search, Plus, MapPin, Phone, MoreVertical, Filter, Download, Users } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,19 +32,19 @@ export function Farmers() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-foreground">Farmers</h1>
-          <p className="text-muted-foreground">Manage your registered farmers</p>
+          <h1 className="font-heading text-xl sm:text-2xl font-bold text-foreground">Farmers</h1>
+          <p className="text-sm text-muted-foreground">Manage your registered farmers</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" className="hidden sm:flex">
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
-          <Button variant="forest" size="sm">
+          <Button variant="forest" size="sm" className="hidden lg:flex">
             <Plus className="w-4 h-4 mr-2" />
             Add Farmer
           </Button>
@@ -53,18 +53,18 @@ export function Farmers() {
 
       {/* Search and Filter */}
       <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-4">
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search farmers by name or location..."
+                placeholder="Search farmers..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="pl-10 h-10"
               />
             </div>
-            <Button variant="outline">
+            <Button variant="outline" size="sm" className="w-full sm:w-auto">
               <Filter className="w-4 h-4 mr-2" />
               Filters
             </Button>
@@ -73,69 +73,102 @@ export function Farmers() {
       </Card>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <Card className="p-4">
-          <p className="text-2xl font-bold font-heading text-primary">{mockFarmers.length}</p>
-          <p className="text-sm text-muted-foreground">Total Farmers</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <Card className="p-3 sm:p-4">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Users className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-lg sm:text-2xl font-bold font-heading text-primary">{mockFarmers.length}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">Total</p>
+            </div>
+          </div>
         </Card>
-        <Card className="p-4">
-          <p className="text-2xl font-bold font-heading text-accent-foreground">
-            {mockFarmers.filter(f => f.farmerCategory === 'smallholder').length}
-          </p>
-          <p className="text-sm text-muted-foreground">Smallholders</p>
+        <Card className="p-3 sm:p-4">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-sage/30 flex items-center justify-center">
+              <Users className="w-4 h-4 sm:w-5 sm:h-5 text-sage" />
+            </div>
+            <div>
+              <p className="text-lg sm:text-2xl font-bold font-heading text-accent-foreground">
+                {mockFarmers.filter(f => f.farmerCategory === 'smallholder').length}
+              </p>
+              <p className="text-xs sm:text-sm text-muted-foreground">Smallholder</p>
+            </div>
+          </div>
         </Card>
-        <Card className="p-4">
-          <p className="text-2xl font-bold font-heading text-secondary">
-            {mockFarmers.filter(f => f.farmerCategory === 'commercial').length}
-          </p>
-          <p className="text-sm text-muted-foreground">Commercial</p>
+        <Card className="p-3 sm:p-4">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-accent/20 flex items-center justify-center">
+              <Users className="w-4 h-4 sm:w-5 sm:h-5 text-accent-foreground" />
+            </div>
+            <div>
+              <p className="text-lg sm:text-2xl font-bold font-heading text-secondary">
+                {mockFarmers.filter(f => f.farmerCategory === 'commercial').length}
+              </p>
+              <p className="text-xs sm:text-sm text-muted-foreground">Commercial</p>
+            </div>
+          </div>
         </Card>
-        <Card className="p-4">
-          <p className="text-2xl font-bold font-heading text-forest">
-            {mockFarmers.filter(f => f.farmerCategory === 'cooperative').length}
-          </p>
-          <p className="text-sm text-muted-foreground">Cooperatives</p>
+        <Card className="p-3 sm:p-4">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Users className="w-4 h-4 sm:w-5 sm:h-5 text-forest" />
+            </div>
+            <div>
+              <p className="text-lg sm:text-2xl font-bold font-heading text-forest">
+                {mockFarmers.filter(f => f.farmerCategory === 'cooperative').length}
+              </p>
+              <p className="text-xs sm:text-sm text-muted-foreground">Cooperative</p>
+            </div>
+          </div>
         </Card>
       </div>
 
       {/* Farmers List */}
       <Card variant="elevated">
-        <CardHeader>
-          <CardTitle className="text-lg">All Farmers ({filteredFarmers.length})</CardTitle>
+        <CardHeader className="pb-2 sm:pb-4">
+          <CardTitle className="text-base sm:text-lg">All Farmers ({filteredFarmers.length})</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
           <div className="space-y-3">
             {filteredFarmers.map((farmer, index) => (
               <div
                 key={farmer.id}
-                className="flex items-center justify-between p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors animate-fade-in"
+                className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors animate-fade-in gap-3 sm:gap-4"
                 style={{ animationDelay: `${index * 0.05}s` }}
               >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-semibold">
+                <div className="flex items-start sm:items-center gap-3 sm:gap-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-semibold flex-shrink-0 text-sm sm:text-base">
                     {farmer.name.split(' ').map(n => n[0]).join('')}
                   </div>
-                  <div>
-                    <p className="font-medium">{farmer.name}</p>
-                    <div className="flex items-center gap-4 mt-1">
-                      <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-medium text-sm sm:text-base">{farmer.name}</p>
+                      <Badge variant={getCategoryColor(farmer.farmerCategory) as any} className="text-xs">
+                        {farmer.farmerCategory}
+                      </Badge>
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 mt-1">
+                      <span className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
                         <MapPin className="w-3 h-3" />
                         {farmer.location.village}, {farmer.location.county}
                       </span>
-                      <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
                         <Phone className="w-3 h-3" />
                         {farmer.phone}
                       </span>
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <Badge variant={getCategoryColor(farmer.farmerCategory) as any}>
-                    {farmer.farmerCategory}
-                  </Badge>
+                <div className="flex items-center justify-end gap-2">
+                  <Button variant="outline" size="sm" className="text-xs h-8">
+                    View
+                  </Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon-sm">
+                      <Button variant="ghost" size="icon-sm" className="h-8 w-8">
                         <MoreVertical className="w-4 h-4" />
                       </Button>
                     </DropdownMenuTrigger>

@@ -37,6 +37,7 @@ const totNavItems = [
   { to: '/products', icon: Package, label: 'Products' },
   { to: '/reports', icon: FileText, label: 'Reports' },
   { to: '/support', icon: HelpCircle, label: 'Support' },
+  { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
 const managerNavItems = [
@@ -50,6 +51,7 @@ const managerNavItems = [
   { to: '/reports', icon: FileText, label: 'Reports' },
   { to: '/commission', icon: Calculator, label: 'Commission Calculator' },
   { to: '/support', icon: HelpCircle, label: 'Support' },
+  { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
 const adminNavItems = [

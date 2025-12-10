@@ -4,6 +4,7 @@ import { User, UserRole } from '@/types';
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
+  isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   switchRole: (role: UserRole) => void; // For demo purposes
@@ -47,41 +48,57 @@ const mockUsers: Record<UserRole, User> = {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     // Check for stored session
-    const storedRole = localStorage.getItem('demo_role') as UserRole | null;
-    if (storedRole && mockUsers[storedRole]) {
-      setUser(mockUsers[storedRole]);
-    } else {
-      // Default to TOT for demo
-      setUser(mockUsers.tot);
-      localStorage.setItem('demo_role', 'tot');
+    const storedAuth = localStorage.getItem('auth_session');
+    if (storedAuth) {
+      try {
+        const session = JSON.parse(storedAuth);
+        if (session.isAuthenticated && session.role && mockUsers[session.role as UserRole]) {
+          setUser(mockUsers[session.role as UserRole]);
+          setIsAuthenticated(true);
+        }
+      } catch (e) {
+        localStorage.removeItem('auth_session');
+      }
     }
     setIsLoading(false);
   }, []);
 
   const login = async (email: string, password: string) => {
-    // Mock login - in production, this would call the auth API
     setIsLoading(true);
+    // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
-    setUser(mockUsers.tot);
-    localStorage.setItem('demo_role', 'tot');
+    
+    // Demo login - determine role from email or default to TOT
+    let role: UserRole = 'tot';
+    if (email.includes('admin') || email.includes('david')) {
+      role = 'admin';
+    } else if (email.includes('manager') || email.includes('sarah')) {
+      role = 'manager';
+    }
+    
+    setUser(mockUsers[role]);
+    setIsAuthenticated(true);
+    localStorage.setItem('auth_session', JSON.stringify({ isAuthenticated: true, role }));
     setIsLoading(false);
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('demo_role');
+    setIsAuthenticated(false);
+    localStorage.removeItem('auth_session');
   };
 
   const switchRole = (role: UserRole) => {
     setUser(mockUsers[role]);
-    localStorage.setItem('demo_role', role);
+    localStorage.setItem('auth_session', JSON.stringify({ isAuthenticated: true, role }));
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, switchRole }}>
+    <AuthContext.Provider value={{ user, isLoading, isAuthenticated, login, logout, switchRole }}>
       {children}
     </AuthContext.Provider>
   );

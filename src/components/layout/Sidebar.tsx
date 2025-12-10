@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,9 @@ import {
   UserCog,
   Calculator,
   Shield,
+  Bell,
+  AlertCircle,
+  HelpCircle,
 } from 'lucide-react';
 
 const totNavItems = [
@@ -33,6 +36,7 @@ const totNavItems = [
   { to: '/trainings', icon: GraduationCap, label: 'Trainings' },
   { to: '/products', icon: Package, label: 'Products' },
   { to: '/reports', icon: FileText, label: 'Reports' },
+  { to: '/support', icon: HelpCircle, label: 'Support' },
 ];
 
 const managerNavItems = [
@@ -45,6 +49,7 @@ const managerNavItems = [
   { to: '/capacity-building', icon: GraduationCap, label: 'Capacity Building' },
   { to: '/reports', icon: FileText, label: 'Reports' },
   { to: '/commission', icon: Calculator, label: 'Commission Calculator' },
+  { to: '/support', icon: HelpCircle, label: 'Support' },
 ];
 
 const adminNavItems = [
@@ -56,6 +61,8 @@ const adminNavItems = [
   { to: '/sales', icon: ShoppingCart, label: 'All Sales' },
   { to: '/mechanisation', icon: Tractor, label: 'Mechanisation' },
   { to: '/reports', icon: FileText, label: 'Reports' },
+  { to: '/notifications', icon: Bell, label: 'Notifications', badge: 4 },
+  { to: '/system-logs', icon: AlertCircle, label: 'System Logs' },
   { to: '/audit', icon: Shield, label: 'Audit Logs' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ];
@@ -63,7 +70,6 @@ const adminNavItems = [
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const { user, logout, switchRole } = useAuth();
-  const location = useLocation();
 
   const getNavItems = () => {
     switch (user?.role) {
@@ -92,7 +98,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'h-screen bg-sidebar text-sidebar-foreground flex flex-col transition-all duration-300 ease-in-out relative',
+        'hidden lg:flex h-screen bg-sidebar text-sidebar-foreground flex-col transition-all duration-300 ease-in-out relative flex-shrink-0',
         collapsed ? 'w-20' : 'w-64'
       )}
     >
@@ -102,7 +108,7 @@ export function Sidebar() {
         collapsed ? 'justify-center' : 'justify-between'
       )}>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-sidebar-primary flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-sidebar-primary flex items-center justify-center flex-shrink-0">
             <Wheat className="w-6 h-6 text-sidebar-primary-foreground" />
           </div>
           {!collapsed && (
@@ -123,7 +129,7 @@ export function Sidebar() {
           'flex items-center gap-3',
           collapsed && 'flex-col'
         )}>
-          <div className="w-10 h-10 rounded-full bg-sidebar-accent flex items-center justify-center text-sm font-semibold">
+          <div className="w-10 h-10 rounded-full bg-sidebar-accent flex items-center justify-center text-sm font-semibold flex-shrink-0">
             {user?.name?.split(' ').map(n => n[0]).join('')}
           </div>
           {!collapsed && (
@@ -144,7 +150,7 @@ export function Sidebar() {
                 to={item.to}
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
+                    'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 relative',
                     collapsed && 'justify-center px-2',
                     isActive
                       ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-soft'
@@ -154,6 +160,14 @@ export function Sidebar() {
               >
                 <item.icon className="w-5 h-5 flex-shrink-0" />
                 {!collapsed && <span>{item.label}</span>}
+                {(item as any).badge && (
+                  <span className={cn(
+                    'bg-terracotta text-white text-xs rounded-full flex items-center justify-center',
+                    collapsed ? 'absolute -top-1 -right-1 w-4 h-4' : 'ml-auto w-5 h-5'
+                  )}>
+                    {(item as any).badge}
+                  </span>
+                )}
               </NavLink>
             </li>
           ))}

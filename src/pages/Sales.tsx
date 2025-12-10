@@ -41,19 +41,19 @@ export function Sales() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-foreground">Sales</h1>
-          <p className="text-muted-foreground">Track and manage product sales</p>
+          <h1 className="font-heading text-xl sm:text-2xl font-bold text-foreground">Sales</h1>
+          <p className="text-sm text-muted-foreground">Track and manage product sales</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" className="hidden sm:flex">
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
-          <Button variant="wheat" size="sm">
+          <Button variant="wheat" size="sm" className="hidden lg:flex">
             <Plus className="w-4 h-4 mr-2" />
             Record Sale
           </Button>
@@ -61,50 +61,50 @@ export function Sales() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <Card className="p-4" variant="forest">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary-foreground/20 flex items-center justify-center">
-              <TrendingUp className="w-5 h-5" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <Card className="p-3 sm:p-4" variant="forest">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-primary-foreground/20 flex items-center justify-center">
+              <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <p className="text-2xl font-bold font-heading">{formatCurrency(totalRevenue)}</p>
-              <p className="text-sm opacity-80">Total Revenue</p>
-            </div>
-          </div>
-        </Card>
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-accent/20 flex items-center justify-center">
-              <Package className="w-5 h-5 text-accent-foreground" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold font-heading text-accent-foreground">{mockSales.length}</p>
-              <p className="text-sm text-muted-foreground">Total Sales</p>
+            <div className="min-w-0">
+              <p className="text-lg sm:text-2xl font-bold font-heading truncate">{formatCurrency(totalRevenue)}</p>
+              <p className="text-xs sm:text-sm opacity-80">Total Revenue</p>
             </div>
           </div>
         </Card>
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-secondary/20 flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-secondary" />
+        <Card className="p-3 sm:p-4">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-accent/20 flex items-center justify-center">
+              <Package className="w-4 h-4 sm:w-5 sm:h-5 text-accent-foreground" />
             </div>
             <div>
-              <p className="text-2xl font-bold font-heading text-secondary">{formatCurrency(totalCommission)}</p>
-              <p className="text-sm text-muted-foreground">Commission Earned</p>
+              <p className="text-lg sm:text-2xl font-bold font-heading text-accent-foreground">{mockSales.length}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">Total Sales</p>
             </div>
           </div>
         </Card>
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
-              <Calendar className="w-5 h-5 text-emerald-700" />
+        <Card className="p-3 sm:p-4">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-secondary/20 flex items-center justify-center">
+              <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-secondary" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-lg sm:text-2xl font-bold font-heading text-secondary truncate">{formatCurrency(totalCommission)}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">Commission</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-3 sm:p-4">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
+              <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-700" />
             </div>
             <div>
-              <p className="text-2xl font-bold font-heading text-emerald-700">
+              <p className="text-lg sm:text-2xl font-bold font-heading text-emerald-700">
                 {mockSales.filter(s => s.status === 'completed').length}
               </p>
-              <p className="text-sm text-muted-foreground">Completed</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">Completed</p>
             </div>
           </div>
         </Card>

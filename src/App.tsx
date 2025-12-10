@@ -13,6 +13,8 @@ import { Products } from "@/pages/Products";
 import { Trainings } from "@/pages/Trainings";
 import { Reports } from "@/pages/Reports";
 import { Visits } from "@/pages/Visits";
+import { Login } from "@/pages/Login";
+import { Support } from "@/pages/Support";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +27,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            <Route path="/login" element={<Login />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route element={<DashboardLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
@@ -35,6 +38,7 @@ const App = () => (
               <Route path="/trainings" element={<Trainings />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/visits" element={<Visits />} />
+              <Route path="/support" element={<Support />} />
               {/* Manager specific routes */}
               <Route path="/tots" element={<Farmers />} />
               <Route path="/capacity-building" element={<Trainings />} />
@@ -42,6 +46,8 @@ const App = () => (
               {/* Admin specific routes */}
               <Route path="/users" element={<Farmers />} />
               <Route path="/branches" element={<Dashboard />} />
+              <Route path="/notifications" element={<Support />} />
+              <Route path="/system-logs" element={<Reports />} />
               <Route path="/audit" element={<Reports />} />
               <Route path="/settings" element={<Dashboard />} />
             </Route>

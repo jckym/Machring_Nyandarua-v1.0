@@ -22,12 +22,23 @@ export function Farmers() {
 
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case 'commercial':
+      case 'Pioneer':
         return 'wheat';
-      case 'cooperative':
+      case 'Existing':
         return 'forest';
       default:
         return 'sage';
+    }
+  };
+
+  const getRatingColor = (rating: string) => {
+    switch (rating) {
+      case 'High-Value':
+        return 'success';
+      case 'Active':
+        return 'forest';
+      default:
+        return 'warning';
     }
   };
 
@@ -92,9 +103,9 @@ export function Farmers() {
             </div>
             <div>
               <p className="text-lg sm:text-2xl font-bold font-heading text-accent-foreground">
-                {mockFarmers.filter(f => f.farmerCategory === 'smallholder').length}
+                {mockFarmers.filter(f => f.farmerCategory === 'New').length}
               </p>
-              <p className="text-xs sm:text-sm text-muted-foreground">Smallholder</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">New</p>
             </div>
           </div>
         </Card>
@@ -105,9 +116,9 @@ export function Farmers() {
             </div>
             <div>
               <p className="text-lg sm:text-2xl font-bold font-heading text-secondary">
-                {mockFarmers.filter(f => f.farmerCategory === 'commercial').length}
+                {mockFarmers.filter(f => f.farmerCategory === 'Existing').length}
               </p>
-              <p className="text-xs sm:text-sm text-muted-foreground">Commercial</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">Existing</p>
             </div>
           </div>
         </Card>
@@ -118,9 +129,9 @@ export function Farmers() {
             </div>
             <div>
               <p className="text-lg sm:text-2xl font-bold font-heading text-forest">
-                {mockFarmers.filter(f => f.farmerCategory === 'cooperative').length}
+                {mockFarmers.filter(f => f.farmerCategory === 'Pioneer').length}
               </p>
-              <p className="text-xs sm:text-sm text-muted-foreground">Cooperative</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">Pioneer</p>
             </div>
           </div>
         </Card>

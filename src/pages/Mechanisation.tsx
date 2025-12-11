@@ -23,10 +23,14 @@ export function Mechanisation() {
         return 'success';
       case 'in-progress':
         return 'info';
-      case 'pending':
+      case 'approved':
+        return 'forest';
+      case 'pending-approval':
         return 'warning';
-      default:
+      case 'rejected':
         return 'destructive';
+      default:
+        return 'warning';
     }
   };
 
@@ -93,7 +97,7 @@ export function Mechanisation() {
             </div>
             <div>
               <p className="text-lg sm:text-2xl font-bold font-heading text-accent-foreground">
-                {mockMechanisationJobs.filter(j => j.status === 'pending').length}
+                {mockMechanisationJobs.filter(j => j.status === 'pending-approval').length}
               </p>
               <p className="text-xs sm:text-sm text-muted-foreground">Pending</p>
             </div>
@@ -174,7 +178,7 @@ export function Mechanisation() {
               
               <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-border flex gap-2">
                 <Button variant="outline" size="sm" className="flex-1 text-xs h-8 sm:h-9">Details</Button>
-                {job.status === 'pending' && (
+                {job.status === 'approved' && (
                   <Button variant="forest" size="sm" className="flex-1 text-xs h-8 sm:h-9">Start</Button>
                 )}
                 {job.status === 'in-progress' && (

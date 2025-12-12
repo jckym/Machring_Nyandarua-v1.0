@@ -102,13 +102,14 @@ export interface Machinery {
   name: string;
   type: string;
   status: 'Available' | 'Booked' | 'Maintenance';
-  branchId: string;
-  branchName: string;
+  branchId?: string;
+  branchName?: string;
   pricePerAcre: number;
   description?: string;
   imageUrl?: string;
   currentBookingId?: string;
-  createdAt: Date;
+  nextAvailableDate?: Date;
+  createdAt?: Date;
 }
 
 export type SaleStatus = 'pending' | 'completed' | 'cancelled';
@@ -206,11 +207,17 @@ export interface Training {
 }
 
 export type NotificationType = 
+  | 'sale'
   | 'sale_completed'
+  | 'commission'
+  | 'mechanisation'
   | 'mechanisation_pending'
   | 'mechanisation_approved'
   | 'mechanisation_rejected'
   | 'mechanisation_completed'
+  | 'farmer'
+  | 'training'
+  | 'visit'
   | 'manager_message'
   | 'system'
   | 'training_reminder'
@@ -223,7 +230,7 @@ export interface Notification {
   message: string;
   read: boolean;
   createdAt: Date;
-  userId: string;
+  userId?: string;
   link?: string;
   metadata?: Record<string, any>;
 }

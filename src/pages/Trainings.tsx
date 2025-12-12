@@ -5,17 +5,39 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { mockTrainings } from '@/data/mockData';
 import { Search, Plus, GraduationCap, Calendar, MapPin, Users, Clock, Filter } from 'lucide-react';
+import { TrainingFormDialog } from '@/components/forms/TrainingFormDialog';
+import { useNotifications } from '@/contexts/NotificationContext';
+import { toast } from 'sonner';
+import { Training } from '@/types';
 
 export function Trainings() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [trainings, setTrainings] = useState(mockTrainings);
+  const { addNotification } = useNotifications();
 
-  const filteredTrainings = mockTrainings.filter(training =>
+  const filteredTrainings = trainings.filter(training =>
     training.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     training.type.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const totalAttendees = mockTrainings.reduce((acc, t) => acc + t.attendees.length, 0);
-  const totalHours = mockTrainings.reduce((acc, t) => acc + t.duration, 0);
+  const totalAttendees = trainings.reduce((acc, t) => acc + t.attendees.length, 0);
+  const totalHours = trainings.reduce((acc, t) => acc + t.duration, 0);
+
+  const handleAddTraining = (data: Partial<Training>) => {
+    const newTraining: Training = {
+      id: `training-${Date.now()}`,
+      ...data as any,
+      attendees: [],
+    };
+    setTrainings(prev => [...prev, newTraining]);
+    toast.success('Training scheduled successfully');
+    addNotification({
+      title: 'New Training Scheduled',
+      message: `${newTraining.title} scheduled for ${new Date(newTraining.date).toLocaleDateString()}`,
+      type: 'training',
+    });
+  };
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat('en-KE', {
@@ -46,7 +68,7 @@ export function Trainings() {
           <h1 className="font-heading text-xl sm:text-2xl font-bold text-foreground">Trainings</h1>
           <p className="text-sm text-muted-foreground">Manage capacity building sessions</p>
         </div>
-        <Button variant="forest" size="sm" className="hidden lg:flex">
+        <Button variant="forest" size="sm" onClick={() => setIsFormOpen(true)}>
           <Plus className="w-4 h-4 mr-2" />
           Schedule Training
         </Button>
@@ -188,6 +210,13 @@ export function Trainings() {
           </Card>
         ))}
       </div>
+
+      {/* Training Form Dialog */}
+      <TrainingFormDialog
+        open={isFormOpen}
+        onOpenChange={setIsFormOpen}
+        onSubmit={handleAddTraining}
+      />
     </div>
   );
 }

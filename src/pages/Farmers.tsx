@@ -3,22 +3,44 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { mockFarmers } from '@/data/mockData';
-import { Search, Plus, MapPin, Phone, MoreVertical, Filter, Download, Users } from 'lucide-react';
+import { mockFarmers, mockBranches } from '@/data/mockData';
+import { Search, Plus, MapPin, Phone, MoreVertical, Filter, Download, Users, FileSpreadsheet, Star } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { FarmerFormDialog } from '@/components/forms/FarmerFormDialog';
+import { useNotifications } from '@/contexts/NotificationContext';
+import { toast } from 'sonner';
+import { Farmer } from '@/types';
 
 export function Farmers() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [branchFilter, setBranchFilter] = useState('all');
+  const [valueChainFilter, setValueChainFilter] = useState('all');
+  const [ratingFilter, setRatingFilter] = useState('all');
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingFarmer, setEditingFarmer] = useState<Farmer | null>(null);
+  const [farmers, setFarmers] = useState(mockFarmers);
+  const { addNotification } = useNotifications();
 
-  const filteredFarmers = mockFarmers.filter(farmer =>
-    farmer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    farmer.location.village.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredFarmers = farmers.filter(farmer => {
+    const matchesSearch = farmer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      farmer.location.village.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesBranch = branchFilter === 'all' || farmer.branchId === branchFilter;
+    const matchesValueChain = valueChainFilter === 'all' || farmer.valueChain === valueChainFilter;
+    const matchesRating = ratingFilter === 'all' || farmer.farmerRating === ratingFilter;
+    return matchesSearch && matchesBranch && matchesValueChain && matchesRating;
+  });
 
   const getCategoryColor = (category: string) => {
     switch (category) {
@@ -42,6 +64,37 @@ export function Farmers() {
     }
   };
 
+  const handleAddFarmer = (data: Partial<Farmer>) => {
+    const newFarmer: Farmer = {
+      id: `farmer-${Date.now()}`,
+      ...data as any,
+      registrationDate: new Date(),
+      farmerRating: 'Active',
+      totalPurchases: 0,
+      mechanisationCount: 0,
+      trainingsAttended: 0,
+      visitsCount: 0,
+    };
+    setFarmers(prev => [...prev, newFarmer]);
+    toast.success('Farmer added successfully');
+    addNotification({
+      title: 'New Farmer Registered',
+      message: `${newFarmer.name} has been registered in the system`,
+      type: 'farmer',
+    });
+  };
+
+  const handleEditFarmer = (data: Partial<Farmer>) => {
+    if (!editingFarmer) return;
+    setFarmers(prev => prev.map(f => f.id === editingFarmer.id ? { ...f, ...data } : f));
+    setEditingFarmer(null);
+    toast.success('Farmer updated successfully');
+  };
+
+  const handleExport = (format: 'excel' | 'pdf') => {
+    toast.success(`Exporting ${filteredFarmers.length} farmers to ${format.toUpperCase()}`);
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Page Header */}
@@ -51,11 +104,25 @@ export function Farmers() {
           <p className="text-sm text-muted-foreground">Manage your registered farmers</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="hidden sm:flex">
-            <Download className="w-4 h-4 mr-2" />
-            Export
-          </Button>
-          <Button variant="forest" size="sm" className="hidden lg:flex">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="hidden sm:flex">
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => handleExport('excel')}>
+                <FileSpreadsheet className="w-4 h-4 mr-2" />
+                Export to Excel
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('pdf')}>
+                <Download className="w-4 h-4 mr-2" />
+                Export to PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button variant="forest" size="sm" onClick={() => setIsFormOpen(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Add Farmer
           </Button>
@@ -65,20 +132,55 @@ export function Farmers() {
       {/* Search and Filter */}
       <Card>
         <CardContent className="p-3 sm:p-4">
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search farmers..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 h-10"
-              />
+          <div className="flex flex-col gap-3 sm:gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search farmers..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 h-10"
+                />
+              </div>
             </div>
-            <Button variant="outline" size="sm" className="w-full sm:w-auto">
-              <Filter className="w-4 h-4 mr-2" />
-              Filters
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Select value={branchFilter} onValueChange={setBranchFilter}>
+                <SelectTrigger className="w-[140px] h-9">
+                  <SelectValue placeholder="Branch" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Branches</SelectItem>
+                  {mockBranches.map(branch => (
+                    <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={valueChainFilter} onValueChange={setValueChainFilter}>
+                <SelectTrigger className="w-[140px] h-9">
+                  <SelectValue placeholder="Value Chain" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Chains</SelectItem>
+                  <SelectItem value="Crops">Crops</SelectItem>
+                  <SelectItem value="Livestock">Livestock</SelectItem>
+                  <SelectItem value="Poultry">Poultry</SelectItem>
+                  <SelectItem value="Dairy">Dairy</SelectItem>
+                  <SelectItem value="Horticulture">Horticulture</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={ratingFilter} onValueChange={setRatingFilter}>
+                <SelectTrigger className="w-[140px] h-9">
+                  <SelectValue placeholder="Rating" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Ratings</SelectItem>
+                  <SelectItem value="High-Value">High-Value</SelectItem>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Dormant">Dormant</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -174,9 +276,10 @@ export function Farmers() {
                   </div>
                 </div>
                 <div className="flex items-center justify-end gap-2">
-                  <Button variant="outline" size="sm" className="text-xs h-8">
-                    View
-                  </Button>
+                  <Badge variant={getRatingColor(farmer.farmerRating) as any} className="text-xs flex items-center gap-1">
+                    <Star className="w-3 h-3" />
+                    {farmer.farmerRating}
+                  </Badge>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon-sm" className="h-8 w-8">
@@ -188,7 +291,9 @@ export function Farmers() {
                       <DropdownMenuItem>Record Sale</DropdownMenuItem>
                       <DropdownMenuItem>Book Service</DropdownMenuItem>
                       <DropdownMenuItem>Log Visit</DropdownMenuItem>
-                      <DropdownMenuItem>Edit</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { setEditingFarmer(farmer); setIsFormOpen(true); }}>
+                        Edit
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -197,6 +302,17 @@ export function Farmers() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Farmer Form Dialog */}
+      <FarmerFormDialog
+        open={isFormOpen}
+        onOpenChange={(open) => {
+          setIsFormOpen(open);
+          if (!open) setEditingFarmer(null);
+        }}
+        onSubmit={editingFarmer ? handleEditFarmer : handleAddFarmer}
+        farmer={editingFarmer || undefined}
+      />
     </div>
   );
 }

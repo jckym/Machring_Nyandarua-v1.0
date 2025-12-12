@@ -32,6 +32,7 @@ const totNavItems = [
   { to: '/farmers', icon: Users, label: 'Farmers' },
   { to: '/sales', icon: ShoppingCart, label: 'Sales' },
   { to: '/mechanisation', icon: Tractor, label: 'Mechanisation' },
+  { to: '/machinery', icon: Tractor, label: 'Machinery' },
   { to: '/visits', icon: MapPin, label: 'Visits' },
   { to: '/trainings', icon: GraduationCap, label: 'Trainings' },
   { to: '/products', icon: Package, label: 'Products' },

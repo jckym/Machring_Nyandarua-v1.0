@@ -4,18 +4,61 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { mockSales } from '@/data/mockData';
-import { Search, Plus, TrendingUp, Calendar, Filter, Download, Package } from 'lucide-react';
+import { Search, Plus, TrendingUp, Calendar, Filter, Download, Package, CheckCircle, MoreVertical } from 'lucide-react';
+import { SaleFormDialog } from '@/components/forms/SaleFormDialog';
+import { useNotifications } from '@/contexts/NotificationContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
+import { Sale } from '@/types';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export function Sales() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [sales, setSales] = useState(mockSales);
+  const { addNotification } = useNotifications();
+  const { user } = useAuth();
 
-  const filteredSales = mockSales.filter(sale =>
+  const filteredSales = sales.filter(sale =>
     sale.farmerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     sale.productName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const totalRevenue = mockSales.reduce((acc, sale) => acc + sale.total, 0);
-  const totalCommission = mockSales.reduce((acc, sale) => acc + sale.commissionAmount, 0);
+  const totalRevenue = sales.reduce((acc, sale) => acc + sale.total, 0);
+  const totalCommission = sales.filter(s => s.status === 'completed').reduce((acc, sale) => acc + sale.commissionAmount, 0);
+
+  const handleAddSale = (data: Partial<Sale>) => {
+    const newSale: Sale = {
+      id: `sale-${Date.now()}`,
+      ...data as any,
+      status: 'pending',
+    };
+    setSales(prev => [...prev, newSale]);
+    toast.success('Sale recorded successfully');
+    addNotification({
+      title: 'New Sale Recorded',
+      message: `Sale of ${newSale.productName} to ${newSale.farmerName} recorded`,
+      type: 'sale',
+    });
+  };
+
+  const handleCompleteSale = (saleId: string) => {
+    setSales(prev => prev.map(s => s.id === saleId ? { ...s, status: 'completed' as const } : s));
+    const sale = sales.find(s => s.id === saleId);
+    toast.success('Sale marked as completed');
+    addNotification({
+      title: 'Sale Completed',
+      message: `Commission of KES ${sale?.commissionAmount.toLocaleString()} awarded`,
+      type: 'commission',
+    });
+  };
+
+  const isManager = user?.role === 'manager' || user?.role === 'admin';
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -53,7 +96,7 @@ export function Sales() {
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
-          <Button variant="wheat" size="sm" className="hidden lg:flex">
+          <Button variant="wheat" size="sm" onClick={() => setIsFormOpen(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Record Sale
           </Button>
@@ -171,7 +214,24 @@ export function Sales() {
                     <td className="py-3 px-4 text-sm font-semibold text-primary">{formatCurrency(sale.total)}</td>
                     <td className="py-3 px-4 text-sm text-emerald-600 font-medium">{formatCurrency(sale.commissionAmount)}</td>
                     <td className="py-3 px-4">
-                      <Badge variant={getStatusColor(sale.status) as any}>{sale.status}</Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={getStatusColor(sale.status) as any}>{sale.status}</Badge>
+                        {isManager && sale.status === 'pending' && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon-sm" className="h-7 w-7">
+                                <MoreVertical className="w-3 h-3" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleCompleteSale(sale.id)}>
+                                <CheckCircle className="w-4 h-4 mr-2 text-emerald-600" />
+                                Mark Completed
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -180,6 +240,13 @@ export function Sales() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Sale Form Dialog */}
+      <SaleFormDialog
+        open={isFormOpen}
+        onOpenChange={setIsFormOpen}
+        onSubmit={handleAddSale}
+      />
     </div>
   );
 }

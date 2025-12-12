@@ -1,10 +1,11 @@
-import { Bell, Search, Cloud, CloudOff, Settings } from 'lucide-react';
+import { Search, Cloud, CloudOff, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { MobileNav } from './MobileNav';
 import { Link } from 'react-router-dom';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 export function Header() {
   const { user } = useAuth();
@@ -76,14 +77,7 @@ export function Header() {
         </div>
 
         {/* Notifications */}
-        <Link to={user?.role === 'admin' ? '/notifications' : '/support'}>
-          <Button variant="ghost" size="icon" className="relative h-9 w-9">
-            <Bell className="w-5 h-5" />
-            <span className="absolute -top-1 -right-1 w-5 h-5 bg-terracotta text-white text-xs rounded-full flex items-center justify-center">
-              4
-            </span>
-          </Button>
-        </Link>
+        <NotificationBell />
 
         {/* Settings - visible on larger screens */}
         <Link to="/settings" className="hidden sm:block">

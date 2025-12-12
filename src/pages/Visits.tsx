@@ -5,14 +5,35 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { mockVisits } from '@/data/mockData';
 import { Search, Plus, MapPin, Calendar, Filter, Camera, MessageSquare } from 'lucide-react';
+import { VisitFormDialog } from '@/components/forms/VisitFormDialog';
+import { useNotifications } from '@/contexts/NotificationContext';
+import { toast } from 'sonner';
+import { Visit } from '@/types';
 
 export function Visits() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [visits, setVisits] = useState(mockVisits);
+  const { addNotification } = useNotifications();
 
-  const filteredVisits = mockVisits.filter(visit =>
+  const filteredVisits = visits.filter(visit =>
     visit.farmerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     visit.purpose.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleAddVisit = (data: Partial<Visit>) => {
+    const newVisit: Visit = {
+      id: `visit-${Date.now()}`,
+      ...data as any,
+    };
+    setVisits(prev => [newVisit, ...prev]);
+    toast.success('Visit logged successfully');
+    addNotification({
+      title: 'Field Visit Logged',
+      message: `Visit to ${newVisit.farmerName} recorded`,
+      type: 'visit',
+    });
+  };
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat('en-KE', {
@@ -30,7 +51,7 @@ export function Visits() {
           <h1 className="font-heading text-xl sm:text-2xl font-bold text-foreground">Farm Visits</h1>
           <p className="text-sm text-muted-foreground">Track field visits and engagements</p>
         </div>
-        <Button variant="earth" size="sm" className="hidden lg:flex">
+        <Button variant="earth" size="sm" onClick={() => setIsFormOpen(true)}>
           <Plus className="w-4 h-4 mr-2" />
           Log Visit
         </Button>
@@ -157,6 +178,13 @@ export function Visits() {
           </Card>
         ))}
       </div>
+
+      {/* Visit Form Dialog */}
+      <VisitFormDialog
+        open={isFormOpen}
+        onOpenChange={setIsFormOpen}
+        onSubmit={handleAddVisit}
+      />
     </div>
   );
 }

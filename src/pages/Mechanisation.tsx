@@ -4,18 +4,77 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { mockMechanisationJobs } from '@/data/mockData';
-import { Search, Plus, Tractor, Calendar, Filter, Download, MapPin, Clock } from 'lucide-react';
+import { Search, Plus, Tractor, Calendar, Filter, Download, MapPin, Clock, CheckCircle, XCircle, MoreVertical } from 'lucide-react';
+import { MechanisationFormDialog } from '@/components/forms/MechanisationFormDialog';
+import { useNotifications } from '@/contexts/NotificationContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
+import { MechanisationJob } from '@/types';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export function Mechanisation() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [jobs, setJobs] = useState(mockMechanisationJobs);
+  const { addNotification } = useNotifications();
+  const { user } = useAuth();
 
-  const filteredJobs = mockMechanisationJobs.filter(job =>
+  const filteredJobs = jobs.filter(job =>
     job.farmerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     job.serviceType.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const totalRevenue = mockMechanisationJobs.reduce((acc, job) => acc + job.totalPrice, 0);
-  const totalAcreage = mockMechanisationJobs.reduce((acc, job) => acc + job.acreage, 0);
+  const totalRevenue = jobs.reduce((acc, job) => acc + job.totalPrice, 0);
+  const totalAcreage = jobs.reduce((acc, job) => acc + job.acreage, 0);
+
+  const handleAddJob = (data: Partial<MechanisationJob>) => {
+    const newJob: MechanisationJob = {
+      id: `mech-${Date.now()}`,
+      ...data as any,
+      status: 'pending-approval',
+    };
+    setJobs(prev => [...prev, newJob]);
+    toast.success('Booking submitted for approval');
+    addNotification({
+      title: 'New Mechanisation Booking',
+      message: `${newJob.serviceType} booking for ${newJob.farmerName} pending approval`,
+      type: 'mechanisation',
+    });
+  };
+
+  const handleApprove = (jobId: string) => {
+    setJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: 'approved' as const } : j));
+    const job = jobs.find(j => j.id === jobId);
+    toast.success('Booking approved');
+    addNotification({
+      title: 'Booking Approved',
+      message: `Mechanisation booking for ${job?.farmerName} has been approved`,
+      type: 'mechanisation',
+    });
+  };
+
+  const handleReject = (jobId: string) => {
+    setJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: 'rejected' as const } : j));
+    toast.info('Booking rejected');
+  };
+
+  const handleComplete = (jobId: string) => {
+    setJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: 'completed' as const } : j));
+    const job = jobs.find(j => j.id === jobId);
+    toast.success('Job marked as completed');
+    addNotification({
+      title: 'Mechanisation Completed',
+      message: `Job for ${job?.farmerName} completed. Commission awarded.`,
+      type: 'commission',
+    });
+  };
+
+  const isManager = user?.role === 'manager' || user?.role === 'admin';
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -59,7 +118,7 @@ export function Mechanisation() {
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
-          <Button variant="earth" size="sm" className="hidden lg:flex">
+          <Button variant="earth" size="sm" onClick={() => setIsFormOpen(true)}>
             <Plus className="w-4 h-4 mr-2" />
             New Booking
           </Button>
@@ -178,17 +237,42 @@ export function Mechanisation() {
               
               <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-border flex gap-2">
                 <Button variant="outline" size="sm" className="flex-1 text-xs h-8 sm:h-9">Details</Button>
-                {job.status === 'approved' && (
-                  <Button variant="forest" size="sm" className="flex-1 text-xs h-8 sm:h-9">Start</Button>
+                {job.status === 'pending-approval' && isManager && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="forest" size="sm" className="flex-1 text-xs h-8 sm:h-9">
+                        Actions
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onClick={() => handleApprove(job.id)}>
+                        <CheckCircle className="w-4 h-4 mr-2 text-emerald-600" />
+                        Approve
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleReject(job.id)}>
+                        <XCircle className="w-4 h-4 mr-2 text-red-600" />
+                        Reject
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
-                {job.status === 'in-progress' && (
-                  <Button variant="success" size="sm" className="flex-1 text-xs h-8 sm:h-9">Complete</Button>
+                {job.status === 'approved' && isManager && (
+                  <Button variant="forest" size="sm" className="flex-1 text-xs h-8 sm:h-9" onClick={() => handleComplete(job.id)}>
+                    Complete
+                  </Button>
                 )}
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
+
+      {/* Mechanisation Form Dialog */}
+      <MechanisationFormDialog
+        open={isFormOpen}
+        onOpenChange={setIsFormOpen}
+        onSubmit={handleAddJob}
+      />
     </div>
   );
 }

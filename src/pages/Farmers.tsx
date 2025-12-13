@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +26,7 @@ import { toast } from 'sonner';
 import { Farmer } from '@/types';
 
 export function Farmers() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [branchFilter, setBranchFilter] = useState('all');
   const [valueChainFilter, setValueChainFilter] = useState('all');
@@ -302,7 +304,7 @@ export function Farmers() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem>View Profile</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate(`/farmers/${farmer.id}`)}>View Profile</DropdownMenuItem>
                       <DropdownMenuItem>Record Sale</DropdownMenuItem>
                       <DropdownMenuItem>Book Service</DropdownMenuItem>
                       <DropdownMenuItem>Log Visit</DropdownMenuItem>

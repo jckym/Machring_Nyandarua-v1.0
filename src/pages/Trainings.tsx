@@ -4,7 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { mockTrainings } from '@/data/mockData';
-import { Search, Plus, GraduationCap, Calendar, MapPin, Users, Clock, Filter } from 'lucide-react';
+import { Search, Plus, GraduationCap, Calendar, MapPin, Users, Clock, Filter, Download, FileSpreadsheet, FileText } from 'lucide-react';
+import { exportTrainingsToExcel, exportTrainingsToPDF } from '@/lib/exportUtils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { TrainingFormDialog } from '@/components/forms/TrainingFormDialog';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { toast } from 'sonner';
@@ -68,10 +75,30 @@ export function Trainings() {
           <h1 className="font-heading text-xl sm:text-2xl font-bold text-foreground">Trainings</h1>
           <p className="text-sm text-muted-foreground">Manage capacity building sessions</p>
         </div>
-        <Button variant="forest" size="sm" onClick={() => setIsFormOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Schedule Training
-        </Button>
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="hidden sm:flex">
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => { exportTrainingsToExcel(filteredTrainings); toast.success('Exported to Excel'); }}>
+                <FileSpreadsheet className="w-4 h-4 mr-2" />
+                Export to Excel
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { exportTrainingsToPDF(filteredTrainings); toast.success('Exported to PDF'); }}>
+                <FileText className="w-4 h-4 mr-2" />
+                Export to PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button variant="forest" size="sm" onClick={() => setIsFormOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Schedule Training
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}

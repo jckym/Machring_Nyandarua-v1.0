@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { mockFarmers, mockBranches } from '@/data/mockData';
-import { Search, Plus, MapPin, Phone, MoreVertical, Filter, Download, Users, FileSpreadsheet, Star } from 'lucide-react';
+import { Search, Plus, MapPin, Phone, MoreVertical, Filter, Download, Users, FileSpreadsheet, Star, FileText } from 'lucide-react';
+import { exportFarmersToExcel, exportFarmersToPDF } from '@/lib/exportUtils';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -92,7 +93,21 @@ export function Farmers() {
   };
 
   const handleExport = (format: 'excel' | 'pdf') => {
-    toast.success(`Exporting ${filteredFarmers.length} farmers to ${format.toUpperCase()}`);
+    if (filteredFarmers.length === 0) {
+      toast.error('No farmers to export');
+      return;
+    }
+    
+    try {
+      if (format === 'excel') {
+        exportFarmersToExcel(filteredFarmers, 'farmers_export');
+      } else {
+        exportFarmersToPDF(filteredFarmers, 'farmers_export');
+      }
+      toast.success(`Exported ${filteredFarmers.length} farmers to ${format.toUpperCase()}`);
+    } catch (error) {
+      toast.error(`Failed to export: ${error}`);
+    }
   };
 
   return (
@@ -117,7 +132,7 @@ export function Farmers() {
                 Export to Excel
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleExport('pdf')}>
-                <Download className="w-4 h-4 mr-2" />
+                <FileText className="w-4 h-4 mr-2" />
                 Export to PDF
               </DropdownMenuItem>
             </DropdownMenuContent>

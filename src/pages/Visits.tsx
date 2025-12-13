@@ -4,7 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { mockVisits } from '@/data/mockData';
-import { Search, Plus, MapPin, Calendar, Filter, Camera, MessageSquare } from 'lucide-react';
+import { Search, Plus, MapPin, Calendar, Filter, Camera, MessageSquare, Download, FileSpreadsheet, FileText } from 'lucide-react';
+import { exportVisitsToExcel, exportVisitsToPDF } from '@/lib/exportUtils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { VisitFormDialog } from '@/components/forms/VisitFormDialog';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { toast } from 'sonner';
@@ -51,10 +58,30 @@ export function Visits() {
           <h1 className="font-heading text-xl sm:text-2xl font-bold text-foreground">Farm Visits</h1>
           <p className="text-sm text-muted-foreground">Track field visits and engagements</p>
         </div>
-        <Button variant="earth" size="sm" onClick={() => setIsFormOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Log Visit
-        </Button>
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="hidden sm:flex">
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => { exportVisitsToExcel(filteredVisits); toast.success('Exported to Excel'); }}>
+                <FileSpreadsheet className="w-4 h-4 mr-2" />
+                Export to Excel
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { exportVisitsToPDF(filteredVisits); toast.success('Exported to PDF'); }}>
+                <FileText className="w-4 h-4 mr-2" />
+                Export to PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button variant="earth" size="sm" onClick={() => setIsFormOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Log Visit
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}

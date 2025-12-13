@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { mockMechanisationJobs } from '@/data/mockData';
-import { Search, Plus, Tractor, Calendar, Filter, Download, MapPin, Clock, CheckCircle, XCircle, MoreVertical } from 'lucide-react';
+import { Search, Plus, Tractor, Calendar, Filter, Download, MapPin, Clock, CheckCircle, XCircle, MoreVertical, FileSpreadsheet, FileText } from 'lucide-react';
+import { exportMechanisationToExcel, exportMechanisationToPDF } from '@/lib/exportUtils';
 import { MechanisationFormDialog } from '@/components/forms/MechanisationFormDialog';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -114,10 +115,24 @@ export function Mechanisation() {
           <p className="text-sm text-muted-foreground">Track machinery service bookings</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="hidden sm:flex">
-            <Download className="w-4 h-4 mr-2" />
-            Export
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="hidden sm:flex">
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => { exportMechanisationToExcel(filteredJobs); toast.success('Exported to Excel'); }}>
+                <FileSpreadsheet className="w-4 h-4 mr-2" />
+                Export to Excel
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { exportMechanisationToPDF(filteredJobs); toast.success('Exported to PDF'); }}>
+                <FileText className="w-4 h-4 mr-2" />
+                Export to PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button variant="earth" size="sm" onClick={() => setIsFormOpen(true)}>
             <Plus className="w-4 h-4 mr-2" />
             New Booking

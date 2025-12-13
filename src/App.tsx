@@ -15,6 +15,7 @@ import { Products } from "@/pages/Products";
 import { Trainings } from "@/pages/Trainings";
 import { Reports } from "@/pages/Reports";
 import { Visits } from "@/pages/Visits";
+import { FarmerProfile } from "@/pages/FarmerProfile";
 import { Login } from "@/pages/Login";
 import { Support } from "@/pages/Support";
 import { Settings } from "@/pages/Settings";
@@ -36,6 +37,7 @@ const App = () => (
               <Route element={<DashboardLayout />}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/farmers" element={<Farmers />} />
+                <Route path="/farmers/:id" element={<FarmerProfile />} />
                 <Route path="/sales" element={<Sales />} />
                 <Route path="/mechanisation" element={<Mechanisation />} />
                 <Route path="/machinery" element={<Machinery />} />

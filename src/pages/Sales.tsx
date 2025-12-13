@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { mockSales } from '@/data/mockData';
-import { Search, Plus, TrendingUp, Calendar, Filter, Download, Package, CheckCircle, MoreVertical } from 'lucide-react';
+import { Search, Plus, TrendingUp, Calendar, Filter, Download, Package, CheckCircle, MoreVertical, FileSpreadsheet, FileText } from 'lucide-react';
+import { exportSalesToExcel, exportSalesToPDF } from '@/lib/exportUtils';
 import { SaleFormDialog } from '@/components/forms/SaleFormDialog';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -92,10 +93,24 @@ export function Sales() {
           <p className="text-sm text-muted-foreground">Track and manage product sales</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="hidden sm:flex">
-            <Download className="w-4 h-4 mr-2" />
-            Export
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="hidden sm:flex">
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => { exportSalesToExcel(filteredSales); toast.success('Exported to Excel'); }}>
+                <FileSpreadsheet className="w-4 h-4 mr-2" />
+                Export to Excel
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { exportSalesToPDF(filteredSales); toast.success('Exported to PDF'); }}>
+                <FileText className="w-4 h-4 mr-2" />
+                Export to PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button variant="wheat" size="sm" onClick={() => setIsFormOpen(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Record Sale

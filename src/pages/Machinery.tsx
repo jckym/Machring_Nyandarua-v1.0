@@ -117,7 +117,7 @@ export function Machinery() {
 
     setMachinery(prev => [...prev, newItem]);
     setIsAddDialogOpen(false);
-    setNewMachinery({ name: '', type: '', status: 'available', pricePerAcre: '', description: '' });
+    setNewMachinery({ name: '', type: '', status: 'Available', pricePerAcre: '', description: '' });
     
     toast.success('Machinery added successfully');
     addNotification({

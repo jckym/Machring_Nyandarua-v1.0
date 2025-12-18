@@ -1,11 +1,3 @@
-import { Users, ShoppingCart, Tractor, MapPin, GraduationCap, TrendingUp } from 'lucide-react';
-import { StatCard } from '@/components/dashboard/StatCard';
-import { QuickActions } from '@/components/dashboard/QuickActions';
-import { RecentActivity } from '@/components/dashboard/RecentActivity';
-import { SalesChart } from '@/components/dashboard/SalesChart';
-import { ProductChart } from '@/components/dashboard/ProductChart';
-import { getTotStats } from '@/data/mockData';
-
 export function TotDashboard() {
   const stats = getTotStats();
 
@@ -77,9 +69,14 @@ export function TotDashboard() {
         </div>
 
         {/* Side Column */}
-        <div className="space-y-6">
-          <QuickActions />
-          <ProductChart />
+        <div className="flex flex-col space-y-6">
+          {/* QuickActions and ProductChart will now stretch */}
+          <div className="w-full">
+            <QuickActions />
+          </div>
+          <div className="w-full">
+            <ProductChart />
+          </div>
         </div>
       </div>
 

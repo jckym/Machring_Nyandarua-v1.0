@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +27,8 @@ import { Farmer } from '@/types';
 
 export function Farmers() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [branchFilter, setBranchFilter] = useState('all');
   const [valueChainFilter, setValueChainFilter] = useState('all');
@@ -35,6 +37,16 @@ export function Farmers() {
   const [editingFarmer, setEditingFarmer] = useState<Farmer | null>(null);
   const [farmers, setFarmers] = useState(mockFarmers);
   const { addNotification } = useNotifications();
+
+  // Auto-open "Add Farmer" modal when URL has ?add=new (from Quick Actions)
+  useEffect(() => {
+    if (searchParams.get('add') === 'new') {
+      setIsFormOpen(true);
+      // Clean the URL after opening the modal
+      searchParams.delete('add');
+      setSearchParams(searchParams);
+    }
+  }, [searchParams, setSearchParams]);
 
   const filteredFarmers = farmers.filter(farmer => {
     const matchesSearch = farmer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -99,7 +111,7 @@ export function Farmers() {
       toast.error('No farmers to export');
       return;
     }
-    
+   
     try {
       if (format === 'excel') {
         exportFarmersToExcel(filteredFarmers, 'farmers_export');

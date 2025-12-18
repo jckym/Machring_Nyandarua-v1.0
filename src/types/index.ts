@@ -1,3 +1,8 @@
+// types.ts
+
+// -----------------------------
+// User Roles & Users
+// -----------------------------
 export type UserRole = 'admin' | 'manager' | 'tot';
 
 export interface User {
@@ -11,15 +16,11 @@ export interface User {
   avatar?: string;
   createdAt: Date;
   lastActivityDate?: Date;
-  // TOT-specific metrics
-  totalSales?: number;
-  totalCommission?: number;
-  mechanisationJobsCompleted?: number;
-  trainingsCondcuted?: number;
-  visitsLogged?: number;
 }
 
-// Local MR (formerly Branch) - exactly 10 in the system
+// -----------------------------
+// Local MR
+// -----------------------------
 export interface LocalMR {
   id: string;
   name: string;
@@ -32,23 +33,21 @@ export interface LocalMR {
   regionManagerId?: string;
   totalTots: number;
   totalFarmers: number;
-  createdAt?: Date;
-  createdBy?: string;
-  lastEditedAt?: Date;
-  lastEditedBy?: string;
 }
 
-// Alias for backward compatibility
+// Alias
 export type Branch = LocalMR;
 
-// New Value Chain Categories
+// -----------------------------
+// Value Chains & Farmer Categories
+// -----------------------------
 export type ValueChain = 
-  | 'Maize' 
-  | 'Wheat' 
-  | 'Dairy' 
-  | 'Poultry' 
-  | 'Horticulture' 
-  | 'Coffee' 
+  | 'Maize'
+  | 'Wheat'
+  | 'Dairy'
+  | 'Poultry'
+  | 'Horticulture'
+  | 'Coffee'
   | 'Tea'
   | 'Sugarcane'
   | 'Livestock'
@@ -57,6 +56,9 @@ export type ValueChain =
 export type FarmerCategory = 'New' | 'Existing' | 'Pioneer';
 export type FarmerRating = 'Active' | 'Dormant' | 'High-Value';
 
+// -----------------------------
+// Farmer
+// -----------------------------
 export interface Farmer {
   id: string;
   name: string;
@@ -69,37 +71,28 @@ export interface Farmer {
     subcounty: string;
     county: string;
   };
-  localMrId: string; // Local MR (required)
+  localMrId: string;
   localMrName: string;
   farmingActivity: string;
   valueChain: ValueChain;
   farmerCategory: FarmerCategory;
   farmerRating: FarmerRating;
-  registeredBy: string;
-  // Engagement metrics for rating calculation
+  registeredBy: string; // TOT id
   totalPurchases: number;
   mechanisationCount: number;
   trainingsAttended: number;
   visitsCount: number;
   lastActivityDate?: Date;
-  soilTests?: SoilTest[];
-  mechanisationHistory?: MechanisationJob[];
-  trainingAttendance?: Training[];
   createdAt: Date;
   createdBy?: string;
   lastEditedAt?: Date;
   lastEditedBy?: string;
 }
 
-export interface SoilTest {
-  id: string;
-  date: Date;
-  results: string;
-  recommendations: string;
-}
-
-// Product categories for sorting
-export type ProductCategory = 
+// -----------------------------
+// Products
+// -----------------------------
+export type ProductCategory =
   | 'Machineries'
   | 'Seeds'
   | 'Animal Feeds & Supplements'
@@ -115,7 +108,7 @@ export interface Product {
   inStock: number;
   unitPrice: number;
   description: string;
-  commission: number; // Commission in KES set by Admin
+  commission: number;
   category: ProductCategory;
   imageUrl?: string;
   createdAt?: Date;
@@ -124,25 +117,9 @@ export interface Product {
   lastEditedBy?: string;
 }
 
-export interface Machinery {
-  id: string;
-  name: string;
-  type: string;
-  category?: string;
-  status: 'Available' | 'Booked' | 'Maintenance';
-  localMrId?: string;
-  localMrName?: string;
-  pricePerAcre: number;
-  description?: string;
-  imageUrl?: string;
-  currentBookingId?: string;
-  nextAvailableDate?: Date;
-  createdAt?: Date;
-  createdBy?: string;
-  lastEditedAt?: Date;
-  lastEditedBy?: string;
-}
-
+// -----------------------------
+// Sales
+// -----------------------------
 export type SaleStatus = 'pending' | 'completed' | 'cancelled';
 
 export interface Sale {
@@ -152,13 +129,13 @@ export interface Sale {
   localMrId?: string;
   localMrName?: string;
   farmerId: string;
-  farmerName: string;
+  farmerName?: string;
   productId: string;
   productName: string;
   quantity: number;
   unitPrice: number;
   total: number;
-  commissionAmount: number; // Auto-calculated: quantity * product.commission
+  commissionAmount: number;
   date: Date;
   status: SaleStatus;
   proofImage?: string;
@@ -170,7 +147,10 @@ export interface Sale {
   lastEditedBy?: string;
 }
 
-export type MechanisationStatus = 
+// -----------------------------
+// Mechanisation Jobs
+// -----------------------------
+export type MechanisationStatus =
   | 'pending-approval'
   | 'approved'
   | 'rejected'
@@ -181,7 +161,7 @@ export type MechanisationStatus =
 export interface MechanisationJob {
   id: string;
   farmerId: string;
-  farmerName: string;
+  farmerName?: string;
   localMrId?: string;
   localMrName?: string;
   machineryId: string;
@@ -192,17 +172,10 @@ export interface MechanisationJob {
   totalPrice: number;
   commissionAmount: number;
   status: MechanisationStatus;
-  bookedBy: string;
+  bookedBy: string; // TOT id
   bookedByName?: string;
-  gpsLocation?: {
-    lat: number;
-    lng: number;
-  };
-  images?: string[];
-  notes?: string;
   scheduledDate: Date;
   completedDate?: Date;
-  // Approval workflow
   approvedBy?: string;
   approvedAt?: Date;
   rejectedBy?: string;
@@ -213,21 +186,24 @@ export interface MechanisationJob {
   createdBy?: string;
   lastEditedAt?: Date;
   lastEditedBy?: string;
+  gpsLocation?: { lat: number; lng: number };
+  images?: string[];
+  notes?: string;
 }
 
+// -----------------------------
+// Visits
+// -----------------------------
 export interface Visit {
   id: string;
   farmerId: string;
-  farmerName: string;
+  farmerName?: string;
   totId: string;
   totName?: string;
   localMrId?: string;
   localMrName?: string;
   date: Date;
-  gpsLocation?: {
-    lat: number;
-    lng: number;
-  };
+  gpsLocation?: { lat: number; lng: number };
   notes: string;
   images?: string[];
   purpose: string;
@@ -235,29 +211,35 @@ export interface Visit {
   createdBy?: string;
 }
 
+// -----------------------------
+// Trainings
+// -----------------------------
 export type TrainingStatus = 'Upcoming' | 'Completed';
 
 export interface Training {
   id: string;
-  type: string;
+  type?: string;
   title: string;
   date: Date;
   status: TrainingStatus;
-  attendees: string[];
+  attendees: string[]; // farmer ids
   attendeeNames?: string[];
-  trainerId: string;
-  trainerName: string;
+  trainerId: string; // TOT id
+  trainerName?: string;
   topics: string[];
   location: string;
   localMrId?: string;
   localMrName?: string;
-  duration: number; // in hours
+  duration: number; // hours
   images?: string[];
   createdAt?: Date;
   createdBy?: string;
 }
 
-export type NotificationType = 
+// -----------------------------
+// Notifications
+// -----------------------------
+export type NotificationType =
   | 'sale'
   | 'sale_completed'
   | 'commission'
@@ -284,7 +266,7 @@ export interface Notification {
   message: string;
   read: boolean;
   createdAt: Date;
-  userId?: string;
+  userId?: string; // TOT or admin
   localMrId?: string;
   localMrName?: string;
   reportedBy?: string;
@@ -294,6 +276,9 @@ export interface Notification {
   metadata?: Record<string, any>;
 }
 
+// -----------------------------
+// Dashboard & TOT Performance
+// -----------------------------
 export interface DashboardStats {
   totalFarmers: number;
   totalSales: number;
@@ -306,7 +291,6 @@ export interface DashboardStats {
   totalCommission?: number;
 }
 
-// TOT Performance data for commission calculation
 export interface TOTPerformance {
   totId: string;
   totName: string;
@@ -315,13 +299,12 @@ export interface TOTPerformance {
   status: 'active' | 'inactive';
   phone: string;
   email: string;
-  totalSales: number; // KES
-  totalCommission: number; // KES - auto-calculated from completed sales
+  totalSales: number;
+  totalCommission: number;
   mechanisationJobsCompleted: number;
   trainingsCondcuted: number;
   visitsLogged: number;
   lastActivityDate?: Date;
-  // Product-wise breakdown
   salesByProduct?: {
     productId: string;
     productName: string;

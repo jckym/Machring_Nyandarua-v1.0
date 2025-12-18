@@ -11,11 +11,11 @@ import {
 } from 'lucide-react';
 
 const actions = [
-  { icon: UserPlus, label: 'Add Farmer', path: '/farmers/new', color: 'bg-green-100 hover:bg-green-200 text-green-800 border-green-300' },
-  { icon: ShoppingCart, label: 'Record Sale', path: '/sales/new', color: 'bg-yellow-100 hover:bg-yellow-200 text-yellow-800 border-yellow-300' },
-  { icon: Tractor, label: 'New Booking', path: '/mechanisation/new', color: 'bg-amber-100 hover:bg-amber-200 text-amber-800 border-amber-300' },
-  { icon: GraduationCap, label: 'Add Training', path: '/trainings/new', color: 'bg-emerald-100 hover:bg-emerald-200 text-emerald-800 border-emerald-300' },
-  { icon: MapPin, label: 'Log Visit', path: '/visits/new', color: 'bg-orange-100 hover:bg-orange-200 text-orange-800 border-orange-300' },
+  { icon: UserPlus, label: 'Add Farmer', path: '/farmers?add=new', color: 'bg-green-100 hover:bg-green-200 text-green-800 border-green-300' },
+  { icon: ShoppingCart, label: 'Record Sale', path: '/sales?add=new', color: 'bg-yellow-100 hover:bg-yellow-200 text-yellow-800 border-yellow-300' },
+  { icon: Tractor, label: 'New Booking', path: '/mechanisation?add=new', color: 'bg-amber-100 hover:bg-amber-200 text-amber-800 border-amber-300' },
+  { icon: GraduationCap, label: 'Add Training', path: '/trainings?add=new', color: 'bg-emerald-100 hover:bg-emerald-200 text-emerald-800 border-emerald-300' },
+  { icon: MapPin, label: 'Log Visit', path: '/visits?add=new', color: 'bg-orange-100 hover:bg-orange-200 text-orange-800 border-orange-300' },
   { icon: FileText, label: 'Generate Report', path: '/reports', color: 'bg-amber-100 hover:bg-amber-200 text-amber-800 border-amber-300' },
 ];
 

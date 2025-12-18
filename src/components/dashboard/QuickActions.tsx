@@ -1,38 +1,48 @@
 import { useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { UserPlus, ShoppingCart, Tractor, GraduationCap, MapPin, FileText } from 'lucide-react';
+import {
+  UserPlus,
+  ShoppingCart,
+  Tractor,
+  GraduationCap,
+  MapPin,
+  FileText,
+} from 'lucide-react';
 
 const actions = [
-  { icon: UserPlus, label: 'Add Farmer', path: '/farmers/new', color: 'forest' },
-  { icon: ShoppingCart, label: 'Record Sale', path: '/sales/new', color: 'wheat' },
-  { icon: Tractor, label: 'New Booking', path: '/mechanisation/new', color: 'earth' },
-  { icon: GraduationCap, label: 'Add Training', path: '/trainings/new', color: 'forest' },
-  { icon: MapPin, label: 'Log Visit', path: '/visits/new', color: 'earth' },
-  { icon: FileText, label: 'Generate Report', path: '/reports', color: 'wheat' },
+  { icon: UserPlus, label: 'Add Farmer', path: '/farmers/new', color: 'bg-green-100 hover:bg-green-200 text-green-800 border-green-300' },
+  { icon: ShoppingCart, label: 'Record Sale', path: '/sales/new', color: 'bg-yellow-100 hover:bg-yellow-200 text-yellow-800 border-yellow-300' },
+  { icon: Tractor, label: 'New Booking', path: '/mechanisation/new', color: 'bg-amber-100 hover:bg-amber-200 text-amber-800 border-amber-300' },
+  { icon: GraduationCap, label: 'Add Training', path: '/trainings/new', color: 'bg-emerald-100 hover:bg-emerald-200 text-emerald-800 border-emerald-300' },
+  { icon: MapPin, label: 'Log Visit', path: '/visits/new', color: 'bg-orange-100 hover:bg-orange-200 text-orange-800 border-orange-300' },
+  { icon: FileText, label: 'Generate Report', path: '/reports', color: 'bg-amber-100 hover:bg-amber-200 text-amber-800 border-amber-300' },
 ];
 
 export function QuickActions() {
   const navigate = useNavigate();
 
   return (
-    <Card variant="elevated" className="animate-fade-in">
+    <Card className="w-full">
       <CardHeader>
-        <CardTitle className="text-lg">Quick Actions</CardTitle>
+        <CardTitle>Quick Actions</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {actions.map((action) => (
-            <Button
-              key={action.label}
-              variant={action.color as any}
-              className="flex flex-col items-center gap-2 h-auto py-4"
-              onClick={() => navigate(action.path)}
-            >
-              <action.icon className="w-5 h-5" />
-              <span className="text-xs font-medium">{action.label}</span>
-            </Button>
-          ))}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {actions.map((action) => {
+            const Icon = action.icon;
+            return (
+              <Button
+                key={action.label}
+                variant="outline"
+                className={`w-full justify-start h-auto py-4 px-6 text-left font-medium border-2 transition-all ${action.color}`}
+                onClick={() => navigate(action.path)}
+              >
+                {Icon && <Icon className="mr-3 h-6 w-6" />}
+                <span>{action.label}</span>
+              </Button>
+            );
+          })}
         </div>
       </CardContent>
     </Card>

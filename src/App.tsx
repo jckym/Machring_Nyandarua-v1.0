@@ -3,10 +3,9 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext"; // Assuming useAuth hook exists
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { NewFarmer } from "@/pages/farmers/NewFarmer";
 
 // Pages
 import { Dashboard } from "@/pages/Dashboard";
@@ -23,12 +22,11 @@ import { Login } from "@/pages/Login";
 import { Support } from "@/pages/Support";
 import { Settings } from "@/pages/Settings";
 
-// New form pages (create these if not exist)
+// Form pages
 import { NewFarmer } from "@/pages/farmers/NewFarmer";
-// import others as you create them
 
-// New dedicated pages
-import { CommissionPage } from "@/pages/Commission"; // We'll create this next
+// Admin pages
+import { CommissionCalculator } from "@/pages/Commission";
 import { Users } from "@/pages/admin/Users";
 import { Branches } from "@/pages/admin/Branches";
 import { SystemLogs } from "@/pages/admin/SystemLogs";
@@ -88,7 +86,7 @@ const App = () => (
                   path="/commission"
                   element={
                     <ProtectedRoute allowedRoles={["manager", "admin"]}>
-                      <CommissionPage />
+                      <CommissionCalculator />
                     </ProtectedRoute>
                   }
                 />

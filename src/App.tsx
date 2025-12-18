@@ -34,6 +34,7 @@ import { AuditLog } from "@/pages/admin/AuditLog";
 
 import NotFound from "./pages/NotFound";
 
+// QueryClient instance
 const queryClient = new QueryClient();
 
 // Protected Route Component (Role-Based)

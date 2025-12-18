@@ -275,7 +275,6 @@ export interface Notification {
   link?: string;
   metadata?: Record<string, any>;
 }
-
 // -----------------------------
 // Dashboard & TOT Performance
 // -----------------------------
@@ -302,7 +301,7 @@ export interface TOTPerformance {
   totalSales: number;
   totalCommission: number;
   mechanisationJobsCompleted: number;
-  trainingsCondcuted: number;
+  trainingsConducted: number; 
   visitsLogged: number;
   lastActivityDate?: Date;
   salesByProduct?: {
@@ -313,3 +312,4 @@ export interface TOTPerformance {
     commission: number;
   }[];
 }
+

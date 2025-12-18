@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext"; // Assuming useAuth hook exists
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { NewFarmer } from "@/pages/farmers/NewFarmer";
 
 // Pages
 import { Dashboard } from "@/pages/Dashboard";

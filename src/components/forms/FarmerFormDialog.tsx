@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Farmer, FarmerCategory, ValueChain } from '@/types';
-import { mockBranches, valueChains } from '@/data/mockData';
+import { mockLocalMRs, valueChains } from '@/data/mockData';
 
 interface FarmerFormDialogProps {
   open: boolean;
@@ -23,7 +23,7 @@ export function FarmerFormDialog({ open, onOpenChange, farmer, onSubmit }: Farme
     name: farmer?.name || '',
     phone: farmer?.phone || '',
     email: farmer?.email || '',
-    branchId: farmer?.branchId || '',
+    localMrId: farmer?.localMrId || '',
     subcounty: farmer?.location?.subcounty || '',
     village: farmer?.location?.village || '',
     ward: farmer?.location?.ward || '',
@@ -36,29 +36,29 @@ export function FarmerFormDialog({ open, onOpenChange, farmer, onSubmit }: Farme
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.phone || !formData.branchId || !formData.valueChain) {
+    if (!formData.name || !formData.phone || !formData.localMrId || !formData.valueChain || !formData.subcounty) {
       toast({
         title: 'Validation Error',
-        description: 'Please fill in all required fields',
+        description: 'Please fill in all required fields (Name, Phone, Local MR, Subcounty, Value Chain)',
         variant: 'destructive',
       });
       return;
     }
 
-    const selectedBranch = mockBranches.find(b => b.id === formData.branchId);
+    const selectedLocalMR = mockLocalMRs.find(mr => mr.id === formData.localMrId);
 
     onSubmit({
       ...(farmer || {}),
       name: formData.name,
       phone: formData.phone,
       email: formData.email || undefined,
-      branchId: formData.branchId,
-      branchName: selectedBranch?.name || '',
+      localMrId: formData.localMrId,
+      localMrName: selectedLocalMR?.name || '',
       location: {
         village: formData.village,
         ward: formData.ward,
-        subcounty: formData.subcounty || selectedBranch?.subcounty || '',
-        county: formData.county || selectedBranch?.county || '',
+        subcounty: formData.subcounty || selectedLocalMR?.subcounty || '',
+        county: formData.county || selectedLocalMR?.county || '',
       },
       farmingActivity: formData.farmingActivity,
       valueChain: formData.valueChain,
@@ -94,6 +94,26 @@ export function FarmerFormDialog({ open, onOpenChange, farmer, onSubmit }: Farme
             />
           </div>
 
+          {/* Local MR (Required) */}
+          <div className="space-y-2">
+            <Label>Local MR *</Label>
+            <Select
+              value={formData.localMrId}
+              onValueChange={(value) => setFormData({ ...formData, localMrId: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select Local MR" />
+              </SelectTrigger>
+              <SelectContent>
+                {mockLocalMRs.map((mr) => (
+                  <SelectItem key={mr.id} value={mr.id}>
+                    {mr.name} ({mr.code})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Phone */}
           <div className="space-y-2">
             <Label htmlFor="phone">Phone Number *</Label>
@@ -117,30 +137,10 @@ export function FarmerFormDialog({ open, onOpenChange, farmer, onSubmit }: Farme
             />
           </div>
 
-          {/* Local MR (Branch) */}
-          <div className="space-y-2">
-            <Label>Local MR (Branch) *</Label>
-            <Select
-              value={formData.branchId}
-              onValueChange={(value) => setFormData({ ...formData, branchId: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select branch" />
-              </SelectTrigger>
-              <SelectContent>
-                {mockBranches.map((branch) => (
-                  <SelectItem key={branch.id} value={branch.id}>
-                    {branch.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           {/* Location */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="subcounty">Subcounty</Label>
+              <Label htmlFor="subcounty">Subcounty *</Label>
               <Input
                 id="subcounty"
                 value={formData.subcounty}
@@ -192,13 +192,13 @@ export function FarmerFormDialog({ open, onOpenChange, farmer, onSubmit }: Farme
 
           {/* Farmer Category */}
           <div className="space-y-2">
-            <Label>Farmer Category *</Label>
+            <Label>Farmer Type *</Label>
             <Select
               value={formData.farmerCategory}
               onValueChange={(value) => setFormData({ ...formData, farmerCategory: value as FarmerCategory })}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select category" />
+                <SelectValue placeholder="Select type" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="New">New</SelectItem>

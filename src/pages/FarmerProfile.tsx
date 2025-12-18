@@ -3,7 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { mockFarmers, mockSales, mockMechanisationJobs, mockVisits, mockTrainings, mockBranches } from '@/data/mockData';
+import { mockFarmers, mockSales, mockMechanisationJobs, mockVisits, mockTrainings, mockLocalMRs } from '@/data/mockData';
 import { 
   ArrowLeft, Phone, Mail, MapPin, Calendar, ShoppingCart, Tractor, 
   GraduationCap, Users, Star, Edit, TrendingUp 
@@ -27,7 +27,7 @@ export function FarmerProfile() {
     );
   }
 
-  const branch = mockBranches.find(b => b.id === farmer.branchId);
+  const localMr = mockLocalMRs.find(mr => mr.id === farmer.localMrId);
   const farmerSales = mockSales.filter(s => s.farmerId === farmer.id);
   const farmerJobs = mockMechanisationJobs.filter(j => j.farmerId === farmer.id);
   const farmerVisits = mockVisits.filter(v => v.farmerId === farmer.id);
@@ -117,7 +117,7 @@ export function FarmerProfile() {
                   </div>
                 </div>
                 <div className="pt-2 border-t border-border">
-                  <p className="text-sm"><span className="text-muted-foreground">Branch:</span> {branch?.name || farmer.branchId}</p>
+                  <p className="text-sm"><span className="text-muted-foreground">Local MR:</span> {localMr?.name || farmer.localMrName}</p>
                   <p className="text-sm"><span className="text-muted-foreground">Activity:</span> {farmer.farmingActivity}</p>
                 </div>
               </div>

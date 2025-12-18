@@ -2,7 +2,7 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Farmer, Sale, MechanisationJob, Training, Visit } from '@/types';
-import { mockBranches } from '@/data/mockData';
+import { mockLocalMRs } from '@/data/mockData';
 
 // Generic Excel export
 const exportToExcel = <T extends Record<string, any>>(data: T[], filename: string, sheetName: string) => {
@@ -51,7 +51,7 @@ export const exportFarmersToExcel = (farmers: Farmer[], filename: string = 'farm
     'Name': farmer.name,
     'Phone': farmer.phone,
     'Email': farmer.email || '',
-    'Branch': mockBranches.find(b => b.id === farmer.branchId)?.name || farmer.branchId,
+    'Local MR': mockLocalMRs.find(mr => mr.id === farmer.localMrId)?.name || farmer.localMrName,
     'County': farmer.location.county,
     'Subcounty': farmer.location.subcounty,
     'Ward': farmer.location.ward,
@@ -70,11 +70,11 @@ export const exportFarmersToExcel = (farmers: Farmer[], filename: string = 'farm
 };
 
 export const exportFarmersToPDF = (farmers: Farmer[], filename: string = 'farmers') => {
-  const headers = ['Name', 'Phone', 'Branch', 'Location', 'Value Chain', 'Category', 'Rating', 'Purchases'];
+  const headers = ['Name', 'Phone', 'Local MR', 'Location', 'Value Chain', 'Category', 'Rating', 'Purchases'];
   const rows = farmers.map(farmer => [
     farmer.name,
     farmer.phone,
-    mockBranches.find(b => b.id === farmer.branchId)?.name || farmer.branchId,
+    mockLocalMRs.find(mr => mr.id === farmer.localMrId)?.name || farmer.localMrName || '',
     `${farmer.location.village}, ${farmer.location.county}`,
     farmer.valueChain,
     farmer.farmerCategory,
@@ -96,6 +96,7 @@ export const exportSalesToExcel = (sales: Sale[], filename: string = 'sales') =>
     'Commission (KES)': sale.commissionAmount,
     'Status': sale.status,
     'Recorded By': sale.totName || '',
+    'Local MR': sale.localMrName || '',
   }));
   exportToExcel(data, filename, 'Sales');
 };
@@ -127,6 +128,7 @@ export const exportMechanisationToExcel = (jobs: MechanisationJob[], filename: s
     'Scheduled Date': new Date(job.scheduledDate).toLocaleDateString(),
     'Status': job.status,
     'Booked By': job.bookedByName || '',
+    'Local MR': job.localMrName || '',
   }));
   exportToExcel(data, filename, 'Mechanisation');
 };
@@ -157,6 +159,7 @@ export const exportTrainingsToExcel = (trainings: Training[], filename: string =
     'Attendees': training.attendees.length,
     'Topics': training.topics.join(', '),
     'Status': training.status,
+    'Local MR': training.localMrName || '',
   }));
   exportToExcel(data, filename, 'Trainings');
 };
@@ -183,6 +186,7 @@ export const exportVisitsToExcel = (visits: Visit[], filename: string = 'visits'
     'Date': new Date(visit.date).toLocaleDateString(),
     'Notes': visit.notes,
     'Recorded By': visit.totName || '',
+    'Local MR': visit.localMrName || '',
     'GPS Lat': visit.gpsLocation?.lat || '',
     'GPS Lng': visit.gpsLocation?.lng || '',
     'Has Photos': visit.images?.length ? 'Yes' : 'No',

@@ -4,7 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { mockFarmers, mockBranches } from '@/data/mockData';
+import { mockFarmers, mockLocalMRs } from '@/data/mockData';
 import { Search, Plus, MapPin, Phone, MoreVertical, Filter, Download, Users, FileSpreadsheet, Star, FileText } from 'lucide-react';
 import { exportFarmersToExcel, exportFarmersToPDF } from '@/lib/exportUtils';
 import {
@@ -51,10 +51,10 @@ export function Farmers() {
   const filteredFarmers = farmers.filter(farmer => {
     const matchesSearch = farmer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       farmer.location.village.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesBranch = branchFilter === 'all' || farmer.branchId === branchFilter;
+    const matchesLocalMr = branchFilter === 'all' || farmer.localMrId === branchFilter;
     const matchesValueChain = valueChainFilter === 'all' || farmer.valueChain === valueChainFilter;
     const matchesRating = ratingFilter === 'all' || farmer.farmerRating === ratingFilter;
-    return matchesSearch && matchesBranch && matchesValueChain && matchesRating;
+    return matchesSearch && matchesLocalMr && matchesValueChain && matchesRating;
   });
 
   const getCategoryColor = (category: string) => {
@@ -176,12 +176,12 @@ export function Farmers() {
             <div className="flex flex-wrap gap-2">
               <Select value={branchFilter} onValueChange={setBranchFilter}>
                 <SelectTrigger className="w-[140px] h-9">
-                  <SelectValue placeholder="Branch" />
+                  <SelectValue placeholder="Local MR" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Branches</SelectItem>
-                  {mockBranches.map(branch => (
-                    <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>
+                  <SelectItem value="all">All Local MRs</SelectItem>
+                  {mockLocalMRs.map(mr => (
+                    <SelectItem key={mr.id} value={mr.id}>{mr.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

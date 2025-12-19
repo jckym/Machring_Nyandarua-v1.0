@@ -12,24 +12,25 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Predefined mock users with exact credentials (change password in real app!)
+// IDs now match mockData.ts for consistency
 const mockUsers: Record<string, User> = {
   'tot@machineryring.ke': {
-    id: 'tot-001',
-    name: 'John Kamau',
+    id: 'tot-1',
+    name: 'Samuel Mwangi',
     email: 'tot@machineryring.ke',
     role: 'tot' as UserRole,
-    phone: '+254712345678',
-    localMrId: 'lmr-001',
+    phone: '+254712345001',
+    localMrId: 'mr-1',
     status: 'active',
     createdAt: new Date('2024-01-15'),
   },
   'manager@machineryring.ke': {
-    id: 'manager-001',
-    name: 'Sarah Wanjiku',
+    id: 'mgr-1',
+    name: 'John Kamau',
     email: 'manager@machineryring.ke',
     role: 'manager' as UserRole,
     phone: '+254723456789',
-    localMrId: 'lmr-001',
+    localMrId: 'mr-1',
     status: 'active',
     createdAt: new Date('2023-06-20'),
   },

@@ -27,6 +27,7 @@ import { NewFarmer } from "@/pages/farmers/NewFarmer";
 
 // Admin pages
 import { CommissionCalculator } from "@/pages/Commission";
+import { TOTManagement } from "@/pages/TOTManagement";
 import { Users } from "@/pages/admin/Users";
 import { LocalMRs } from "@/pages/admin/LocalMRs";
 import { SystemLogs } from "@/pages/admin/SystemLogs";
@@ -91,7 +92,14 @@ const App = () => (
                     </ProtectedRoute>
                   }
                 />
-                <Route path="/tots" element={<Farmers />} /> {/* Or create dedicated TOTS page */}
+                <Route 
+                  path="/tots" 
+                  element={
+                    <ProtectedRoute allowedRoles={["manager", "admin"]}>
+                      <TOTManagement />
+                    </ProtectedRoute>
+                  } 
+                />
                 <Route path="/capacity-building" element={<Trainings />} />
 
                 {/* Admin Routes */}

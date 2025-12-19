@@ -46,7 +46,6 @@ const managerNavItems = [
   { to: '/sales', icon: ShoppingCart, label: 'Sales' },
   { to: '/mechanisation', icon: Tractor, label: 'Mechanisation' },
   { to: '/trainings', icon: GraduationCap, label: 'Trainings' },
-  { to: '/capacity-building', icon: GraduationCap, label: 'Capacity Building' },
   { to: '/reports', icon: FileText, label: 'Reports' },
   { to: '/commission', icon: Calculator, label: 'Commission Calculator' },
   { to: '/support', icon: HelpCircle, label: 'Support' },
@@ -55,7 +54,7 @@ const managerNavItems = [
 const adminNavItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/users', icon: UserCog, label: 'User Management' },
-  { to: '/branches', icon: Building2, label: 'Branches' },
+  { to: '/local-mrs', icon: Building2, label: 'Local MRs' },
   { to: '/products', icon: Package, label: 'Products' },
   { to: '/farmers', icon: Users, label: 'All Farmers' },
   { to: '/sales', icon: ShoppingCart, label: 'All Sales' },

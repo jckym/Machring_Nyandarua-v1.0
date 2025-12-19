@@ -30,6 +30,7 @@ import { AuditLog } from "@/pages/admin/AuditLog";
 import { SystemLogs } from "@/pages/admin/SystemLogs";
 import { Commission } from "@/pages/Commission";
 import { TOTManagement } from "@/pages/TOTManagement";
+import { Notifications } from "@/pages/Notifications";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -88,6 +89,7 @@ const App = () => (
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/support" element={<Support />} />
                   <Route path="/commission" element={<Commission />} />
+                  <Route path="/notifications" element={<Notifications />} />
                   
                   {/* Manager & Admin routes */}
                   <Route path="/tots" element={

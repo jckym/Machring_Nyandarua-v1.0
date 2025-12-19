@@ -118,7 +118,7 @@ export function FarmerProfile() {
                 </div>
                 <div className="pt-2 border-t border-border">
                   <p className="text-sm"><span className="text-muted-foreground">Local MR:</span> {localMr?.name || farmer.localMrName}</p>
-                  <p className="text-sm"><span className="text-muted-foreground">Activity:</span> {farmer.farmingActivity}</p>
+                  <p className="text-sm"><span className="text-muted-foreground">Value Chain:</span> {farmer.valueChain}</p>
                 </div>
               </div>
             </div>

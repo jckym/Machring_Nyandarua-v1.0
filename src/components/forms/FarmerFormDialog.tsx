@@ -46,7 +46,6 @@ export function FarmerFormDialog({
     village: '',
     ward: '',
     county: '',
-    farmingActivity: '',
     valueChain: '' as ValueChain,
     farmerCategory: 'New' as FarmerCategory,
   });
@@ -63,7 +62,6 @@ export function FarmerFormDialog({
         village: farmer.location?.village || '',
         ward: farmer.location?.ward || '',
         county: farmer.location?.county || '',
-        farmingActivity: farmer.farmingActivity || '',
         valueChain: farmer.valueChain,
         farmerCategory: farmer.farmerCategory,
       });
@@ -104,9 +102,8 @@ export function FarmerFormDialog({
         village: formData.village,
         ward: formData.ward,
         subcounty: formData.subcounty,
-        county: formData.county || selectedLocalMR?.county || '',
+        county: formData.county || selectedLocalMR?.subcounty || '',
       },
-      farmingActivity: formData.farmingActivity,
       valueChain: formData.valueChain,
       farmerCategory: formData.farmerCategory,
     });
@@ -218,21 +215,6 @@ export function FarmerFormDialog({
                 }
               />
             </div>
-          </div>
-
-          {/* Farming Activity */}
-          <div className="space-y-2">
-            <Label>Farming Activity</Label>
-            <Input
-              value={formData.farmingActivity}
-              disabled={isEditing}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  farmingActivity: e.target.value,
-                })
-              }
-            />
           </div>
 
           {/* Value Chain */}

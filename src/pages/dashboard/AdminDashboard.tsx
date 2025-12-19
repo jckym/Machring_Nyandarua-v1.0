@@ -4,7 +4,7 @@ import { RecentActivity } from '@/components/dashboard/RecentActivity';
 import { SalesChart } from '@/components/dashboard/SalesChart';
 import { ProductChart } from '@/components/dashboard/ProductChart';
 import { TopPerformers } from '@/components/dashboard/TopPerformers';
-import { getAdminStats, mockBranches } from '@/data/mockData';
+import { getAdminStats, mockLocalMRs, mockMechanisationJobs, mockTrainings } from '@/data/mockData';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +12,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 export function AdminDashboard() {
   const stats = getAdminStats();
+  const mechanisationJobs = mockMechanisationJobs.filter(j => j.status === 'completed').length;
+  const trainingsHeld = mockTrainings.length;
 
   const formatCurrency = (value: number) => {
     if (value >= 1000000) {
@@ -20,10 +22,10 @@ export function AdminDashboard() {
     return `KES ${(value / 1000).toFixed(0)}K`;
   };
 
-  const branchData = mockBranches.map(branch => ({
-    name: branch.name.split(' ')[0],
-    farmers: branch.totalFarmers,
-    tots: branch.totalTots * 10,
+  const localMrData = mockLocalMRs.slice(0, 5).map(mr => ({
+    name: mr.name.split(' ')[0],
+    farmers: mr.totalFarmers,
+    tots: mr.totalTots * 10,
   }));
 
   return (
@@ -37,7 +39,7 @@ export function AdminDashboard() {
         <div className="flex items-center gap-2">
           <Badge variant="terracotta" className="text-sm py-1 px-3">
             <Building2 className="w-4 h-4 mr-1" />
-            3 Active Branches
+            10 Local MRs
           </Badge>
         </div>
       </div>
@@ -47,7 +49,7 @@ export function AdminDashboard() {
         <StatCard
           title="Total Farmers"
           value={stats.totalFarmers.toLocaleString()}
-          subtitle="Across all branches"
+          subtitle="Across all Local MRs"
           icon={Users}
           trend={{ value: 25, isPositive: true }}
           variant="forest"
@@ -68,7 +70,7 @@ export function AdminDashboard() {
         />
         <StatCard
           title="Mechanisation"
-          value={stats.mechanisationJobs}
+          value={mechanisationJobs}
           subtitle="Jobs completed"
           icon={Tractor}
           variant="earth"
@@ -82,8 +84,8 @@ export function AdminDashboard() {
             <Building2 className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <p className="text-2xl font-bold font-heading">3</p>
-            <p className="text-sm text-muted-foreground">Branches</p>
+            <p className="text-2xl font-bold font-heading">{stats.totalMRs}</p>
+            <p className="text-sm text-muted-foreground">Local MRs</p>
           </div>
         </Card>
         <Card className="p-4 flex items-center gap-4">
@@ -91,7 +93,7 @@ export function AdminDashboard() {
             <UserCog className="w-6 h-6 text-accent-foreground" />
           </div>
           <div>
-            <p className="text-2xl font-bold font-heading">30</p>
+            <p className="text-2xl font-bold font-heading">{stats.totalTots}</p>
             <p className="text-sm text-muted-foreground">Total TOTs</p>
           </div>
         </Card>
@@ -100,7 +102,7 @@ export function AdminDashboard() {
             <GraduationCap className="w-6 h-6 text-secondary" />
           </div>
           <div>
-            <p className="text-2xl font-bold font-heading">{stats.trainingsHeld}</p>
+            <p className="text-2xl font-bold font-heading">{trainingsHeld}</p>
             <p className="text-sm text-muted-foreground">Trainings</p>
           </div>
         </Card>
@@ -121,16 +123,16 @@ export function AdminDashboard() {
         <div className="lg:col-span-2 space-y-6">
           <SalesChart />
           
-          {/* Branch Performance */}
+          {/* Local MR Performance */}
           <Card variant="elevated">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Branch Performance</CardTitle>
+              <CardTitle className="text-lg">Local MR Performance</CardTitle>
               <Button variant="outline" size="sm">View Details</Button>
             </CardHeader>
             <CardContent>
               <div className="h-[250px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={branchData}>
+                  <BarChart data={localMrData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(120, 15%, 85%)" />
                     <XAxis dataKey="name" stroke="hsl(150, 20%, 40%)" fontSize={12} />
                     <YAxis stroke="hsl(150, 20%, 40%)" fontSize={12} />
@@ -149,36 +151,36 @@ export function AdminDashboard() {
             </CardContent>
           </Card>
 
-          {/* Branches Overview */}
+          {/* Local MRs Overview */}
           <Card variant="elevated">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Branches Overview</CardTitle>
-              <Button variant="forest" size="sm">Add Branch</Button>
+              <CardTitle className="text-lg">Local MRs Overview</CardTitle>
+              <Button variant="forest" size="sm">Manage MRs</Button>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {mockBranches.map((branch, index) => (
+                {mockLocalMRs.slice(0, 5).map((mr, index) => (
                   <div 
-                    key={branch.id}
+                    key={mr.id}
                     className="flex items-center justify-between p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors animate-fade-in"
                     style={{ animationDelay: `${index * 0.1}s` }}
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center text-primary-foreground font-semibold">
-                        {branch.name.split(' ')[0][0]}{branch.name.split(' ')[1]?.[0] || ''}
+                        {mr.code}
                       </div>
                       <div>
-                        <p className="font-medium">{branch.name}</p>
-                        <p className="text-sm text-muted-foreground">{branch.county} County</p>
+                        <p className="font-medium">{mr.name}</p>
+                        <p className="text-sm text-muted-foreground">{mr.county} County • {mr.managerName}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-6">
                       <div className="text-center">
-                        <p className="font-semibold text-primary">{branch.totalTots}</p>
+                        <p className="font-semibold text-primary">{mr.totalTots}</p>
                         <p className="text-xs text-muted-foreground">TOTs</p>
                       </div>
                       <div className="text-center">
-                        <p className="font-semibold text-accent-foreground">{branch.totalFarmers}</p>
+                        <p className="font-semibold text-accent-foreground">{mr.totalFarmers}</p>
                         <p className="text-xs text-muted-foreground">Farmers</p>
                       </div>
                       <Badge variant="success">Active</Badge>

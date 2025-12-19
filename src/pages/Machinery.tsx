@@ -5,9 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { mockMachinery } from '@/data/mockData';
 import {
-  Search, Plus, Tractor, Filter, Settings,
-  CheckCircle, Clock, MoreVertical,
-  CalendarDays, Wrench
+  Plus, Tractor,
+  CheckCircle, Clock, MoreVertical, Wrench
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
@@ -31,35 +30,50 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Machinery as MachineryType } from '@/types';
+import { MachineryStatus } from '@/types';
+
+/* =======================
+   Local Types
+======================= */
+
+interface MachineryItem {
+  id: string;
+  name: string;
+  category: string;
+  type?: string;
+  status: MachineryStatus;
+  pricePerAcre: number;
+  localMrId?: string;
+  description?: string;
+  createdAt?: Date;
+}
 
 /* =======================
    Helpers
 ======================= */
 
-const getStatusColor = (status: MachineryType['status']) => {
+const getStatusColor = (status: MachineryStatus) => {
   switch (status) {
-    case 'Available':
+    case 'available':
       return 'success';
-    case 'Booked':
+    case 'booked':
       return 'warning';
-    case 'Maintenance':
+    case 'maintenance':
       return 'destructive';
     default:
       return 'secondary';
   }
 };
 
-const getStatusIcon = (status: MachineryType['status']) => {
+const getStatusIcon = (status: MachineryStatus) => {
   switch (status) {
-    case 'Available':
+    case 'available':
       return <CheckCircle className="w-4 h-4" />;
-    case 'Booked':
+    case 'booked':
       return <Clock className="w-4 h-4" />;
-    case 'Maintenance':
+    case 'maintenance':
       return <Wrench className="w-4 h-4" />;
     default:
       return null;
@@ -69,13 +83,6 @@ const getStatusIcon = (status: MachineryType['status']) => {
 const formatCurrency = (value: number) =>
   `KES ${value.toLocaleString()}`;
 
-const formatDate = (date: Date) =>
-  new Intl.DateTimeFormat('en-KE', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  }).format(date);
-
 /* =======================
    Component
 ======================= */
@@ -83,18 +90,18 @@ const formatDate = (date: Date) =>
 export function Machinery() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [machinery, setMachinery] = useState<MachineryType[]>(mockMachinery);
+  const [machinery, setMachinery] = useState<MachineryItem[]>(mockMachinery);
 
   const [newMachinery, setNewMachinery] = useState<{
     name: string;
-    type: string;
-    status: MachineryType['status'];
+    category: string;
+    status: MachineryStatus;
     pricePerAcre: string;
     description: string;
   }>({
     name: '',
-    type: '',
-    status: 'Available',
+    category: '',
+    status: 'available',
     pricePerAcre: '',
     description: '',
   });
@@ -106,23 +113,23 @@ export function Machinery() {
 
   const filteredMachinery = machinery.filter(m =>
     m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    m.type.toLowerCase().includes(searchQuery.toLowerCase())
+    m.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const availableCount = machinery.filter(m => m.status === 'Available').length;
-  const bookedCount = machinery.filter(m => m.status === 'Booked').length;
-  const maintenanceCount = machinery.filter(m => m.status === 'Maintenance').length;
+  const availableCount = machinery.filter(m => m.status === 'available').length;
+  const bookedCount = machinery.filter(m => m.status === 'booked').length;
+  const maintenanceCount = machinery.filter(m => m.status === 'maintenance').length;
 
   const handleAddMachinery = () => {
-    if (!newMachinery.name || !newMachinery.type || !newMachinery.pricePerAcre) {
+    if (!newMachinery.name || !newMachinery.category || !newMachinery.pricePerAcre) {
       toast.error('Please fill all required fields');
       return;
     }
 
-    const newItem: MachineryType = {
+    const newItem: MachineryItem = {
       id: `mach-${Date.now()}`,
       name: newMachinery.name,
-      type: newMachinery.type,
+      category: newMachinery.category,
       status: newMachinery.status,
       pricePerAcre: Number(newMachinery.pricePerAcre),
       description: newMachinery.description,
@@ -133,8 +140,8 @@ export function Machinery() {
 
     setNewMachinery({
       name: '',
-      type: '',
-      status: 'Available',
+      category: '',
+      status: 'available',
       pricePerAcre: '',
       description: '',
     });
@@ -150,7 +157,7 @@ export function Machinery() {
 
   const handleStatusChange = (
     machineryId: string,
-    newStatus: MachineryType['status']
+    newStatus: MachineryStatus
   ) => {
     setMachinery(prev =>
       prev.map(m =>
@@ -181,9 +188,33 @@ export function Machinery() {
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
-        <Card><CardContent className="p-4">Available: {availableCount}</CardContent></Card>
-        <Card><CardContent className="p-4">Booked: {bookedCount}</CardContent></Card>
-        <Card><CardContent className="p-4">Maintenance: {maintenanceCount}</CardContent></Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <CheckCircle className="w-5 h-5 text-green-600" />
+            <div>
+              <p className="text-2xl font-bold">{availableCount}</p>
+              <p className="text-sm text-muted-foreground">Available</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <Clock className="w-5 h-5 text-yellow-600" />
+            <div>
+              <p className="text-2xl font-bold">{bookedCount}</p>
+              <p className="text-sm text-muted-foreground">Booked</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <Wrench className="w-5 h-5 text-red-600" />
+            <div>
+              <p className="text-2xl font-bold">{maintenanceCount}</p>
+              <p className="text-sm text-muted-foreground">Maintenance</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Search */}
@@ -199,14 +230,17 @@ export function Machinery() {
           <Card key={machine.id}>
             <CardContent className="p-4 space-y-3">
               <div className="flex justify-between items-center">
-                <h3 className="font-semibold">{machine.name}</h3>
-                <Badge variant={getStatusColor(machine.status)}>
+                <div className="flex items-center gap-2">
+                  <Tractor className="w-5 h-5 text-primary" />
+                  <h3 className="font-semibold">{machine.name}</h3>
+                </div>
+                <Badge variant={getStatusColor(machine.status) as any}>
                   {getStatusIcon(machine.status)}
-                  <span className="ml-1">{machine.status}</span>
+                  <span className="ml-1 capitalize">{machine.status}</span>
                 </Badge>
               </div>
 
-              <p className="text-sm text-muted-foreground">{machine.type}</p>
+              <p className="text-sm text-muted-foreground">{machine.category}</p>
 
               <p className="font-semibold text-primary">
                 {formatCurrency(machine.pricePerAcre)} / acre
@@ -220,13 +254,13 @@ export function Machinery() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
-                    <DropdownMenuItem onClick={() => handleStatusChange(machine.id, 'Available')}>
+                    <DropdownMenuItem onClick={() => handleStatusChange(machine.id, 'available')}>
                       Set Available
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleStatusChange(machine.id, 'Booked')}>
+                    <DropdownMenuItem onClick={() => handleStatusChange(machine.id, 'booked')}>
                       Set Booked
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleStatusChange(machine.id, 'Maintenance')}>
+                    <DropdownMenuItem onClick={() => handleStatusChange(machine.id, 'maintenance')}>
                       Set Maintenance
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -252,14 +286,14 @@ export function Machinery() {
             />
 
             <Input
-              placeholder="Type"
-              value={newMachinery.type}
-              onChange={e => setNewMachinery(p => ({ ...p, type: e.target.value }))}
+              placeholder="Category (e.g., Tractor, Harvester)"
+              value={newMachinery.category}
+              onChange={e => setNewMachinery(p => ({ ...p, category: e.target.value }))}
             />
 
             <Input
               type="number"
-              placeholder="Price per acre"
+              placeholder="Price per acre (KES)"
               value={newMachinery.pricePerAcre}
               onChange={e => setNewMachinery(p => ({ ...p, pricePerAcre: e.target.value }))}
             />
@@ -267,20 +301,20 @@ export function Machinery() {
             <Select
               value={newMachinery.status}
               onValueChange={(value) =>
-                setNewMachinery(p => ({ ...p, status: value as MachineryType['status'] }))
+                setNewMachinery(p => ({ ...p, status: value as MachineryStatus }))
               }
             >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Available">Available</SelectItem>
-                <SelectItem value="Maintenance">Maintenance</SelectItem>
+                <SelectItem value="available">Available</SelectItem>
+                <SelectItem value="maintenance">Maintenance</SelectItem>
               </SelectContent>
             </Select>
 
             <Textarea
-              placeholder="Description"
+              placeholder="Description (optional)"
               value={newMachinery.description}
               onChange={e => setNewMachinery(p => ({ ...p, description: e.target.value }))}
             />

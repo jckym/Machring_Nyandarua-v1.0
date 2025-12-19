@@ -37,7 +37,7 @@ export function MechanisationFormDialog({ open, onOpenChange, onSubmit }: Mechan
     notes: '',
   });
 
-  const availableMachinery = mockMachinery.filter(m => m.status === 'Available');
+  const availableMachinery = mockMachinery.filter(m => m.status === 'available');
 
   const selectedMachinery = useMemo(
     () => mockMachinery.find(m => m.id === formData.machineryId),
@@ -98,9 +98,9 @@ export function MechanisationFormDialog({ open, onOpenChange, onSubmit }: Mechan
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Available': return 'success';
-      case 'Booked': return 'warning';
-      case 'Maintenance': return 'destructive';
+      case 'available': return 'success';
+      case 'booked': return 'warning';
+      case 'maintenance': return 'destructive';
       default: return 'outline';
     }
   };
@@ -148,12 +148,12 @@ export function MechanisationFormDialog({ open, onOpenChange, onSubmit }: Mechan
                   <SelectItem 
                     key={machine.id} 
                     value={machine.id}
-                    disabled={machine.status !== 'Available'}
+                    disabled={machine.status !== 'available'}
                   >
                     <div className="flex items-center gap-2">
                       <Tractor className="w-4 h-4" />
                       <span>{machine.name}</span>
-                      <Badge variant={getStatusColor(machine.status) as any} className="text-xs ml-auto">
+                      <Badge variant={getStatusColor(machine.status) as any} className="text-xs ml-auto capitalize">
                         {machine.status}
                       </Badge>
                     </div>

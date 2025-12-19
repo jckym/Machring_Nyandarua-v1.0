@@ -39,6 +39,23 @@ export interface LocalMR {
 export type Branch = LocalMR;
 
 // -----------------------------
+// Machinery
+// -----------------------------
+export type MachineryStatus = 'available' | 'booked' | 'maintenance';
+
+export interface Machinery {
+  id: string;
+  name: string;
+  category: string;
+  type?: string;
+  status: MachineryStatus;
+  pricePerAcre: number;
+  localMrId?: string;
+  description?: string;
+  createdAt?: Date;
+}
+
+// -----------------------------
 // Value Chains & Farmer Categories
 // -----------------------------
 export type ValueChain = 
@@ -312,4 +329,3 @@ export interface TOTPerformance {
     commission: number;
   }[];
 }
-

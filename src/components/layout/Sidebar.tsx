@@ -58,7 +58,7 @@ const managerNavItems = [
 const adminNavItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/users', icon: UserCog, label: 'User Management' },
-  { to: '/branches', icon: Building2, label: 'Branches' },
+  { to: '/local-mrs', icon: Building2, label: 'Local MRs' },
   { to: '/products', icon: Package, label: 'Products' },
   { to: '/farmers', icon: Users, label: 'All Farmers' },
   { to: '/sales', icon: ShoppingCart, label: 'All Sales' },

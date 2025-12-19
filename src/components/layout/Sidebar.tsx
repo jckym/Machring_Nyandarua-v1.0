@@ -72,7 +72,7 @@ const adminNavItems = [
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
-  const { user, logout, switchRole } = useAuth();
+  const { user, logout } = useAuth();
 
   const getNavItems = () => {
     switch (user?.role) {
@@ -177,53 +177,6 @@ export function Sidebar() {
         </ul>
       </nav>
 
-      {/* Demo Role Switcher */}
-      <div className={cn(
-        'p-3 border-t border-sidebar-border',
-        collapsed && 'px-2'
-      )}>
-        {!collapsed && (
-          <p className="text-xs text-sidebar-foreground/50 mb-2 px-3">Demo: Switch Role</p>
-        )}
-        <div className={cn(
-          'flex gap-1',
-          collapsed ? 'flex-col' : 'flex-row'
-        )}>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => switchRole('tot')}
-            className={cn(
-              'flex-1 text-xs',
-              user?.role === 'tot' && 'bg-sidebar-accent'
-            )}
-          >
-            {collapsed ? 'T' : 'TOT'}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => switchRole('manager')}
-            className={cn(
-              'flex-1 text-xs',
-              user?.role === 'manager' && 'bg-sidebar-accent'
-            )}
-          >
-            {collapsed ? 'M' : 'MGR'}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => switchRole('admin')}
-            className={cn(
-              'flex-1 text-xs',
-              user?.role === 'admin' && 'bg-sidebar-accent'
-            )}
-          >
-            {collapsed ? 'A' : 'ADM'}
-          </Button>
-        </div>
-      </div>
 
       {/* Logout */}
       <div className={cn(

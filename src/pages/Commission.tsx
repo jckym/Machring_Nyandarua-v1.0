@@ -433,3 +433,5 @@ export function CommissionCalculator() {
     </div>
   );
 }
+
+export { CommissionCalculator as Commission };

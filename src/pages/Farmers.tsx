@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { mockFarmers, mockBranches } from '@/data/mockData';
+import { mockFarmers, mockLocalMRs } from '@/data/mockData';
 import { exportFarmersToExcel, exportFarmersToPDF } from '@/lib/exportUtils';
 import { FarmerFormDialog } from '@/components/forms/FarmerFormDialog';
 import { Farmer } from '@/types';
@@ -87,7 +87,7 @@ export function Farmers() {
   const filteredFarmers = farmers.filter(farmer => {
     const matchesSearch = farmer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       farmer.location.village.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesBranch = branchFilter === 'all' || farmer.branchId === branchFilter;
+    const matchesBranch = branchFilter === 'all' || farmer.localMrId === branchFilter;
     const matchesValueChain = valueChainFilter === 'all' || farmer.valueChain === valueChainFilter;
     const matchesRating = ratingFilter === 'all' || farmer.farmerRating === ratingFilter;
     return matchesSearch && matchesBranch && matchesValueChain && matchesRating;
@@ -148,7 +148,7 @@ export function Farmers() {
       addNotification({
         title: 'Pending Farmer Registration',
         message: `${user?.name} submitted ${data.name} for approval`,
-        type: 'approval',
+        type: 'farmer',
       });
     }
   };
@@ -176,7 +176,7 @@ export function Farmers() {
       addNotification({
         title: 'Farmer Edit Request',
         message: `${user?.name} requested changes to ${editingFarmer.name}`,
-        type: 'approval',
+        type: 'farmer',
       });
     }
   };
@@ -301,12 +301,12 @@ export function Farmers() {
             <div className="flex flex-wrap gap-2">
               <Select value={branchFilter} onValueChange={setBranchFilter}>
                 <SelectTrigger className="w-[140px] h-9">
-                  <SelectValue placeholder="Branch" />
+                  <SelectValue placeholder="Local MR" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Branches</SelectItem>
-                  {mockBranches.map(branch => (
-                    <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>
+                  <SelectItem value="all">All Local MRs</SelectItem>
+                  {mockLocalMRs.map(lmr => (
+                    <SelectItem key={lmr.id} value={lmr.id}>{lmr.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

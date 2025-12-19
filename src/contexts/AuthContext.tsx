@@ -7,98 +7,91 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  switchRole: (role: UserRole) => void; // For demo purposes
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock users for demo
-const mockUsers: Record<UserRole, User> = {
-  tot: {
+// Predefined mock users with exact credentials (change password in real app!)
+const mockUsers: Record<string, User> = {
+  'tot@machineryring.ke': {
     id: 'tot-001',
     name: 'John Kamau',
-    email: 'john.kamau@machineryring.ke',
-    role: 'tot',
+    email: 'tot@machineryring.ke',
+    role: 'tots' as UserRole, // assuming your role is 'tots' not 'tot'
     phone: '+254712345678',
-    localMrId: 'lmr-001',
+    branchId: 'branch-001',
     status: 'active',
     createdAt: new Date('2024-01-15'),
   },
-  manager: {
+  'manager@machineryring.ke': {
     id: 'manager-001',
     name: 'Sarah Wanjiku',
-    email: 'sarah.wanjiku@machineryring.ke',
-    role: 'manager',
+    email: 'manager@machineryring.ke',
+    role: 'manager' as UserRole,
     phone: '+254723456789',
-    localMrId: 'lmr-001',
+    branchId: 'branch-001',
     status: 'active',
     createdAt: new Date('2023-06-20'),
   },
-  admin: {
+  'admin@machineryring.ke': {
     id: 'admin-001',
     name: 'David Ochieng',
-    email: 'david.ochieng@machineryring.ke',
-    role: 'admin',
+    email: 'admin@machineryring.ke',
+    role: 'admin' as UserRole,
     phone: '+254734567890',
     status: 'active',
     createdAt: new Date('2023-01-01'),
   },
 };
 
+const PASSWORD = 'password123'; // Same for all in demo - change per user in real app
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    // Check for stored session
-    const storedAuth = localStorage.getItem('auth_session');
-    if (storedAuth) {
+    const stored = localStorage.getItem('auth_session');
+    if (stored) {
       try {
-        const session = JSON.parse(storedAuth);
-        if (session.isAuthenticated && session.role && mockUsers[session.role as UserRole]) {
-          setUser(mockUsers[session.role as UserRole]);
-          setIsAuthenticated(true);
+        const { email } = JSON.parse(stored);
+        if (mockUsers[email]) {
+          setUser(mockUsers[email]);
         }
-      } catch (e) {
-        localStorage.removeItem('auth_session');
-      }
+      } catch {}
     }
     setIsLoading(false);
   }, []);
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Demo login - determine role from email or default to TOT
-    let role: UserRole = 'tot';
-    if (email.includes('admin') || email.includes('david')) {
-      role = 'admin';
-    } else if (email.includes('manager') || email.includes('sarah')) {
-      role = 'manager';
+    await new Promise(resolve => setTimeout(resolve, 800)); // Simulate API
+
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = mockUsers[normalizedEmail];
+
+    if (user && password === PASSWORD) {
+      setUser(user);
+      localStorage.setItem('auth_session', JSON.stringify({ email: normalizedEmail }));
+    } else {
+      throw new Error('Invalid email or password');
     }
-    
-    setUser(mockUsers[role]);
-    setIsAuthenticated(true);
-    localStorage.setItem('auth_session', JSON.stringify({ isAuthenticated: true, role }));
     setIsLoading(false);
   };
 
   const logout = () => {
     setUser(null);
-    setIsAuthenticated(false);
     localStorage.removeItem('auth_session');
   };
 
-  const switchRole = (role: UserRole) => {
-    setUser(mockUsers[role]);
-    localStorage.setItem('auth_session', JSON.stringify({ isAuthenticated: true, role }));
-  };
-
   return (
-    <AuthContext.Provider value={{ user, isLoading, isAuthenticated, login, logout, switchRole }}>
+    <AuthContext.Provider value={{
+      user,
+      isLoading,
+      isAuthenticated: !!user,
+      login,
+      logout,
+    }}>
       {children}
     </AuthContext.Provider>
   );
@@ -106,8 +99,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within AuthProvider');
   return context;
 }

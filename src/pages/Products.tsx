@@ -3,21 +3,71 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { mockProducts } from '@/data/mockData';
-import { Search, Plus, Package, Filter, AlertTriangle, TrendingUp } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { mockProducts as initialProducts, productCategories } from '@/data/mockData';
+import { Search, Plus, Package, Filter, AlertTriangle, TrendingUp, Edit, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { toast } from 'sonner';
+import { Product, ProductCategory } from '@/types';
 
 export function Products() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isStockDialogOpen, setIsStockDialogOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [stockUpdate, setStockUpdate] = useState({ quantity: 0, type: 'add' as 'add' | 'subtract' });
   const { user } = useAuth();
 
-  const filteredProducts = mockProducts.filter(product =>
-    product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    product.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const [formData, setFormData] = useState({
+    name: '',
+    sku: '',
+    category: 'Seeds' as ProductCategory,
+    unitPrice: 0,
+    commission: 0,
+    inStock: 0,
+    description: '',
+  });
 
-  const lowStockProducts = mockProducts.filter(p => p.inStock < 100);
-  const totalValue = mockProducts.reduce((acc, p) => acc + (p.inStock * p.unitPrice), 0);
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.category.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
+
+  const lowStockProducts = products.filter(p => p.inStock < 100);
+  const totalValue = products.reduce((acc, p) => acc + (p.inStock * p.unitPrice), 0);
+  const categories = [...new Set(products.map(p => p.category))];
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      sku: '',
+      category: 'Seeds',
+      unitPrice: 0,
+      commission: 0,
+      inStock: 0,
+      description: '',
+    });
+  };
 
   const formatCurrency = (value: number) => {
     if (value >= 1000000) {
@@ -35,6 +85,79 @@ export function Products() {
     return { variant: 'success' as const, label: 'In Stock' };
   };
 
+  const handleAddProduct = () => {
+    if (!formData.name || !formData.sku || !formData.unitPrice) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    const newProduct: Product = {
+      id: `prod-${Date.now()}`,
+      ...formData,
+      createdAt: new Date(),
+    };
+
+    setProducts(prev => [...prev, newProduct]);
+    toast.success('Product added successfully');
+    setIsAddDialogOpen(false);
+    resetForm();
+  };
+
+  const handleEditProduct = (product: Product) => {
+    setSelectedProduct(product);
+    setFormData({
+      name: product.name,
+      sku: product.sku,
+      category: product.category,
+      unitPrice: product.unitPrice,
+      commission: product.commission,
+      inStock: product.inStock,
+      description: product.description,
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateProduct = () => {
+    if (!selectedProduct) return;
+
+    setProducts(prev => prev.map(p => 
+      p.id === selectedProduct.id 
+        ? { ...p, ...formData, lastEditedAt: new Date() }
+        : p
+    ));
+    toast.success('Product updated successfully');
+    setIsEditDialogOpen(false);
+    setSelectedProduct(null);
+    resetForm();
+  };
+
+  const handleOpenStockDialog = (product: Product) => {
+    setSelectedProduct(product);
+    setStockUpdate({ quantity: 0, type: 'add' });
+    setIsStockDialogOpen(true);
+  };
+
+  const handleUpdateStock = () => {
+    if (!selectedProduct || stockUpdate.quantity <= 0) {
+      toast.error('Please enter a valid quantity');
+      return;
+    }
+
+    setProducts(prev => prev.map(p => {
+      if (p.id === selectedProduct.id) {
+        const newStock = stockUpdate.type === 'add' 
+          ? p.inStock + stockUpdate.quantity 
+          : Math.max(0, p.inStock - stockUpdate.quantity);
+        return { ...p, inStock: newStock, lastEditedAt: new Date() };
+      }
+      return p;
+    }));
+
+    toast.success(`Stock ${stockUpdate.type === 'add' ? 'added' : 'removed'} successfully`);
+    setIsStockDialogOpen(false);
+    setSelectedProduct(null);
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Page Header */}
@@ -46,7 +169,7 @@ export function Products() {
           </p>
         </div>
         {user?.role === 'admin' && (
-          <Button variant="forest" size="sm" className="hidden lg:flex">
+          <Button variant="forest" size="sm" onClick={() => setIsAddDialogOpen(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Add Product
           </Button>
@@ -61,7 +184,7 @@ export function Products() {
               <Package className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
-              <p className="text-lg sm:text-2xl font-bold font-heading">{mockProducts.length}</p>
+              <p className="text-lg sm:text-2xl font-bold font-heading">{products.length}</p>
               <p className="text-xs sm:text-sm opacity-80">Products</p>
             </div>
           </div>
@@ -94,7 +217,7 @@ export function Products() {
               <Package className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-700" />
             </div>
             <div>
-              <p className="text-lg sm:text-2xl font-bold font-heading text-emerald-700">4</p>
+              <p className="text-lg sm:text-2xl font-bold font-heading text-emerald-700">{categories.length}</p>
               <p className="text-xs sm:text-sm text-muted-foreground">Categories</p>
             </div>
           </div>
@@ -114,10 +237,18 @@ export function Products() {
                 className="pl-10 h-10"
               />
             </div>
-            <Button variant="outline" size="sm" className="w-full sm:w-auto">
-              <Filter className="w-4 h-4 mr-2" />
-              Filters
-            </Button>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <Filter className="w-4 h-4 mr-2" />
+                <SelectValue placeholder="Filter by Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {productCategories.map(cat => (
+                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
@@ -165,8 +296,14 @@ export function Products() {
                 
                 {user?.role === 'admin' && (
                   <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-border flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1 text-xs h-8 sm:h-9">Edit</Button>
-                    <Button variant="forest" size="sm" className="flex-1 text-xs h-8 sm:h-9">Stock</Button>
+                    <Button variant="outline" size="sm" className="flex-1 text-xs h-8 sm:h-9" onClick={() => handleEditProduct(product)}>
+                      <Edit className="w-3 h-3 mr-1" />
+                      Edit
+                    </Button>
+                    <Button variant="forest" size="sm" className="flex-1 text-xs h-8 sm:h-9" onClick={() => handleOpenStockDialog(product)}>
+                      <RefreshCw className="w-3 h-3 mr-1" />
+                      Update Stock
+                    </Button>
                   </div>
                 )}
               </CardContent>
@@ -174,6 +311,219 @@ export function Products() {
           );
         })}
       </div>
+
+      {/* Add Product Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Product</DialogTitle>
+            <DialogDescription>Add a new product to the catalog.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Product Name *</Label>
+              <Input
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="e.g., Maize Seeds (10kg)"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>SKU *</Label>
+                <Input
+                  value={formData.sku}
+                  onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                  placeholder="e.g., MS-001"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Category *</Label>
+                <Select
+                  value={formData.category}
+                  onValueChange={(value: ProductCategory) => setFormData({ ...formData, category: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {productCategories.map(cat => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Unit Price (KES) *</Label>
+                <Input
+                  type="number"
+                  value={formData.unitPrice}
+                  onChange={(e) => setFormData({ ...formData, unitPrice: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Commission (KES)</Label>
+                <Input
+                  type="number"
+                  value={formData.commission}
+                  onChange={(e) => setFormData({ ...formData, commission: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Initial Stock</Label>
+              <Input
+                type="number"
+                value={formData.inStock}
+                onChange={(e) => setFormData({ ...formData, inStock: parseInt(e.target.value) || 0 })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Product description..."
+                rows={3}
+              />
+            </div>
+            <div className="flex gap-3 pt-4">
+              <Button variant="outline" className="flex-1" onClick={() => { setIsAddDialogOpen(false); resetForm(); }}>
+                Cancel
+              </Button>
+              <Button className="flex-1" onClick={handleAddProduct}>
+                Add Product
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Product Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Product</DialogTitle>
+            <DialogDescription>Update product details.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Product Name *</Label>
+              <Input
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>SKU *</Label>
+                <Input
+                  value={formData.sku}
+                  onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Category *</Label>
+                <Select
+                  value={formData.category}
+                  onValueChange={(value: ProductCategory) => setFormData({ ...formData, category: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {productCategories.map(cat => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Unit Price (KES) *</Label>
+                <Input
+                  type="number"
+                  value={formData.unitPrice}
+                  onChange={(e) => setFormData({ ...formData, unitPrice: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Commission (KES)</Label>
+                <Input
+                  type="number"
+                  value={formData.commission}
+                  onChange={(e) => setFormData({ ...formData, commission: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={3}
+              />
+            </div>
+            <div className="flex gap-3 pt-4">
+              <Button variant="outline" className="flex-1" onClick={() => { setIsEditDialogOpen(false); setSelectedProduct(null); resetForm(); }}>
+                Cancel
+              </Button>
+              <Button className="flex-1" onClick={handleUpdateProduct}>
+                Update Product
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Update Stock Dialog */}
+      <Dialog open={isStockDialogOpen} onOpenChange={setIsStockDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Update Stock</DialogTitle>
+            <DialogDescription>
+              {selectedProduct?.name} - Current stock: {selectedProduct?.inStock} units
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Action</Label>
+              <Select
+                value={stockUpdate.type}
+                onValueChange={(value: 'add' | 'subtract') => setStockUpdate({ ...stockUpdate, type: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="add">Add Stock</SelectItem>
+                  <SelectItem value="subtract">Remove Stock</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Quantity</Label>
+              <Input
+                type="number"
+                min="1"
+                value={stockUpdate.quantity}
+                onChange={(e) => setStockUpdate({ ...stockUpdate, quantity: parseInt(e.target.value) || 0 })}
+              />
+            </div>
+            <div className="flex gap-3 pt-4">
+              <Button variant="outline" className="flex-1" onClick={() => { setIsStockDialogOpen(false); setSelectedProduct(null); }}>
+                Cancel
+              </Button>
+              <Button className="flex-1" onClick={handleUpdateStock}>
+                Update Stock
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -25,9 +25,8 @@ export interface LocalMR {
   id: string;
   name: string;
   code: string;
-  county: string;
   subcounty: string;
-  location: string;
+  ward: string;
   managerId: string;
   managerName: string;
   regionManagerId?: string;
@@ -90,7 +89,6 @@ export interface Farmer {
   };
   localMrId: string;
   localMrName: string;
-  farmingActivity: string;
   valueChain: ValueChain;
   farmerCategory: FarmerCategory;
   farmerRating: FarmerRating;
@@ -104,19 +102,21 @@ export interface Farmer {
   createdBy?: string;
   lastEditedAt?: Date;
   lastEditedBy?: string;
+  approvalStatus?: 'pending' | 'approved' | 'rejected';
+  approvalRequestedBy?: string;
 }
 
 // -----------------------------
 // Products
 // -----------------------------
 export type ProductCategory =
-  | 'Machineries'
   | 'Seeds'
-  | 'Animal Feeds & Supplements'
-  | 'Services'
   | 'Fertilizers'
   | 'Agrochemicals'
-  | 'Equipment';
+  | 'Animal Feeds & Supplements'
+  | 'Services'
+  | 'Equipment'
+  | 'Others';
 
 export interface Product {
   id: string;
@@ -155,7 +155,6 @@ export interface Sale {
   commissionAmount: number;
   date: Date;
   status: SaleStatus;
-  proofImage?: string;
   approvedBy?: string;
   approvedAt?: Date;
   createdAt?: Date;
@@ -204,8 +203,13 @@ export interface MechanisationJob {
   lastEditedAt?: Date;
   lastEditedBy?: string;
   gpsLocation?: { lat: number; lng: number };
-  images?: string[];
   notes?: string;
+  completionReport?: {
+    summary: string;
+    duration: string;
+    outcome: string;
+    completedAt: Date;
+  };
 }
 
 // -----------------------------
@@ -266,6 +270,7 @@ export type NotificationType =
   | 'mechanisation_rejected'
   | 'mechanisation_completed'
   | 'farmer'
+  | 'farmer_approval'
   | 'training'
   | 'visit'
   | 'manager_message'
@@ -292,6 +297,30 @@ export interface Notification {
   link?: string;
   metadata?: Record<string, any>;
 }
+
+// -----------------------------
+// Farmer Approval Request
+// -----------------------------
+export type ApprovalType = 'add' | 'edit';
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
+
+export interface FarmerApprovalRequest {
+  id: string;
+  farmerId?: string; // Existing farmer ID if editing
+  farmerData: Partial<Farmer>;
+  type: ApprovalType;
+  status: ApprovalStatus;
+  requestedBy: string; // TOT ID
+  requestedByName: string;
+  localMrId: string;
+  localMrName: string;
+  createdAt: Date;
+  reviewedBy?: string;
+  reviewedByName?: string;
+  reviewedAt?: Date;
+  rejectionReason?: string;
+}
+
 // -----------------------------
 // Dashboard & TOT Performance
 // -----------------------------

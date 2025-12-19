@@ -1,20 +1,18 @@
-// src/lib/getTotStats.ts
-
 import {
-  farmers,
-  sales,
-  mechanisationJobs,
-  visits,
-  trainings,
+  mockFarmers,
+  mockSales,
+  mockMechanisationJobs,
+  mockVisits,
+  mockTrainings,
 } from '@/data/mockData';
-import { DashboardStats } from '@/data/types';
+import { DashboardStats } from '@/types';
 
 export function getTotStats(totId: string): DashboardStats {
-  const totalFarmers = farmers.filter(
+  const totalFarmers = mockFarmers.filter(
     farmer => farmer.registeredBy === totId
   ).length;
 
-  const totSales = sales.filter(sale => sale.totId === totId);
+  const totSales = mockSales.filter(sale => sale.totId === totId);
   const totalSales = totSales.length;
 
   const totalRevenue = totSales.reduce(
@@ -22,17 +20,21 @@ export function getTotStats(totId: string): DashboardStats {
     0
   );
 
-  const mechanisationJobsCompleted = mechanisationJobs.filter(
+  const mechanisationJobsCompleted = mockMechanisationJobs.filter(
     job => job.bookedBy === totId && job.status === 'completed'
   ).length;
 
-  const visitsCompleted = visits.filter(
+  const visitsCompleted = mockVisits.filter(
     visit => visit.totId === totId
   ).length;
 
-  const trainingsHeld = trainings.filter(
+  const trainingsHeld = mockTrainings.filter(
     training => training.trainerId === totId
   ).length;
+
+  const totalCommission = totSales
+    .filter(s => s.status === 'completed')
+    .reduce((sum, sale) => sum + sale.commissionAmount, 0);
 
   return {
     totalFarmers,
@@ -41,5 +43,6 @@ export function getTotStats(totId: string): DashboardStats {
     mechanisationJobs: mechanisationJobsCompleted,
     visitsCompleted,
     trainingsHeld,
+    totalCommission,
   };
 }

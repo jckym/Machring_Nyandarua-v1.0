@@ -69,7 +69,7 @@ const adminNavItems = [
 
 export function MobileNav() {
   const [open, setOpen] = useState(false);
-  const { user, logout, switchRole } = useAuth();
+  const { user, logout } = useAuth();
 
   const getNavItems = () => {
     switch (user?.role) {
@@ -156,45 +156,6 @@ export function MobileNav() {
           </ul>
         </nav>
 
-        {/* Demo Role Switcher */}
-        <div className="p-3 border-t border-sidebar-border">
-          <p className="text-xs text-sidebar-foreground/50 mb-2 px-3">Demo: Switch Role</p>
-          <div className="flex gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => switchRole('tot')}
-              className={cn(
-                'flex-1 text-xs text-sidebar-foreground',
-                user?.role === 'tot' && 'bg-sidebar-accent'
-              )}
-            >
-              TOT
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => switchRole('manager')}
-              className={cn(
-                'flex-1 text-xs text-sidebar-foreground',
-                user?.role === 'manager' && 'bg-sidebar-accent'
-              )}
-            >
-              MGR
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => switchRole('admin')}
-              className={cn(
-                'flex-1 text-xs text-sidebar-foreground',
-                user?.role === 'admin' && 'bg-sidebar-accent'
-              )}
-            >
-              ADM
-            </Button>
-          </div>
-        </div>
 
         {/* Logout */}
         <div className="p-3 border-t border-sidebar-border">

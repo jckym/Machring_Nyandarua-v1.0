@@ -1,12 +1,25 @@
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useState, useEffect } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Farmer, FarmerCategory, ValueChain } from '@/types';
 import { mockLocalMRs, valueChains } from '@/data/mockData';
+import { AlertTriangle, Send } from 'lucide-react';
 
 interface FarmerFormDialogProps {
   open: boolean;
@@ -15,37 +28,70 @@ interface FarmerFormDialogProps {
   onSubmit: (farmer: Partial<Farmer>) => void;
 }
 
-export function FarmerFormDialog({ open, onOpenChange, farmer, onSubmit }: FarmerFormDialogProps) {
+export function FarmerFormDialog({
+  open,
+  onOpenChange,
+  farmer,
+  onSubmit,
+}: FarmerFormDialogProps) {
   const { toast } = useToast();
   const isEditing = !!farmer;
 
   const [formData, setFormData] = useState({
-    name: farmer?.name || '',
-    phone: farmer?.phone || '',
-    email: farmer?.email || '',
-    localMrId: farmer?.localMrId || '',
-    subcounty: farmer?.location?.subcounty || '',
-    village: farmer?.location?.village || '',
-    ward: farmer?.location?.ward || '',
-    county: farmer?.location?.county || '',
-    farmingActivity: farmer?.farmingActivity || '',
-    valueChain: farmer?.valueChain || '' as ValueChain,
-    farmerCategory: farmer?.farmerCategory || 'New' as FarmerCategory,
+    name: '',
+    phone: '',
+    email: '',
+    localMrId: '',
+    subcounty: '',
+    village: '',
+    ward: '',
+    county: '',
+    farmingActivity: '',
+    valueChain: '' as ValueChain,
+    farmerCategory: 'New' as FarmerCategory,
   });
+
+  // ✅ Sync form when farmer changes
+  useEffect(() => {
+    if (farmer) {
+      setFormData({
+        name: farmer.name || '',
+        phone: farmer.phone || '',
+        email: farmer.email || '',
+        localMrId: farmer.localMrId || '',
+        subcounty: farmer.location?.subcounty || '',
+        village: farmer.location?.village || '',
+        ward: farmer.location?.ward || '',
+        county: farmer.location?.county || '',
+        farmingActivity: farmer.farmingActivity || '',
+        valueChain: farmer.valueChain,
+        farmerCategory: farmer.farmerCategory,
+      });
+    }
+  }, [farmer]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.phone || !formData.localMrId || !formData.valueChain || !formData.subcounty) {
+    if (
+      !formData.name ||
+      !formData.phone ||
+      !formData.localMrId ||
+      !formData.valueChain ||
+      !formData.subcounty
+    ) {
       toast({
         title: 'Validation Error',
-        description: 'Please fill in all required fields (Name, Phone, Local MR, Subcounty, Value Chain)',
+        description:
+          'Please fill all required fields (Name, Phone, Local MR, Subcounty, Value Chain)',
         variant: 'destructive',
       });
       return;
     }
 
-    const selectedLocalMR = mockLocalMRs.find(mr => mr.id === formData.localMrId);
+    const selectedLocalMR = mockLocalMRs.find(
+      (mr) => mr.id === formData.localMrId
+    );
 
     onSubmit({
       ...(farmer || {}),
@@ -57,7 +103,7 @@ export function FarmerFormDialog({ open, onOpenChange, farmer, onSubmit }: Farme
       location: {
         village: formData.village,
         ward: formData.ward,
-        subcounty: formData.subcounty || selectedLocalMR?.subcounty || '',
+        subcounty: formData.subcounty,
         county: formData.county || selectedLocalMR?.county || '',
       },
       farmingActivity: formData.farmingActivity,
@@ -66,8 +112,9 @@ export function FarmerFormDialog({ open, onOpenChange, farmer, onSubmit }: Farme
     });
 
     toast({
-      title: isEditing ? 'Farmer Updated' : 'Farmer Added',
-      description: `${formData.name} has been ${isEditing ? 'updated' : 'registered'} successfully`,
+      title: 'Request Sent',
+      description:
+        'Your edit request has been sent to Admin for approval.',
     });
 
     onOpenChange(false);
@@ -75,31 +122,42 @@ export function FarmerFormDialog({ open, onOpenChange, farmer, onSubmit }: Farme
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto pb-safe">
         <DialogHeader>
           <DialogTitle className="font-heading">
-            {isEditing ? 'Edit Farmer' : 'Add New Farmer'}
+            {isEditing ? 'Farmer Details' : 'Add New Farmer'}
           </DialogTitle>
+
+          {isEditing && (
+            <DialogDescription className="flex items-start gap-2 text-warning">
+              <AlertTriangle className="w-4 h-4 mt-0.5" />
+              Editing farmer details requires Admin approval.
+            </DialogDescription>
+          )}
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Full Name */}
+          {/* Name */}
           <div className="space-y-2">
-            <Label htmlFor="name">Full Name *</Label>
+            <Label>Full Name *</Label>
             <Input
-              id="name"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="Enter farmer's full name"
+              disabled={isEditing}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
             />
           </div>
 
-          {/* Local MR (Required) */}
+          {/* Local MR */}
           <div className="space-y-2">
             <Label>Local MR *</Label>
             <Select
               value={formData.localMrId}
-              onValueChange={(value) => setFormData({ ...formData, localMrId: value })}
+              disabled={isEditing}
+              onValueChange={(value) =>
+                setFormData({ ...formData, localMrId: value })
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select Local MR" />
@@ -107,7 +165,7 @@ export function FarmerFormDialog({ open, onOpenChange, farmer, onSubmit }: Farme
               <SelectContent>
                 {mockLocalMRs.map((mr) => (
                   <SelectItem key={mr.id} value={mr.id}>
-                    {mr.name} ({mr.code})
+                    {mr.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -116,57 +174,64 @@ export function FarmerFormDialog({ open, onOpenChange, farmer, onSubmit }: Farme
 
           {/* Phone */}
           <div className="space-y-2">
-            <Label htmlFor="phone">Phone Number *</Label>
+            <Label>Phone *</Label>
             <Input
-              id="phone"
               value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              placeholder="+254..."
+              disabled={isEditing}
+              onChange={(e) =>
+                setFormData({ ...formData, phone: e.target.value })
+              }
             />
           </div>
 
           {/* Email */}
           <div className="space-y-2">
-            <Label htmlFor="email">Email (Optional)</Label>
+            <Label>Email (Optional)</Label>
             <Input
-              id="email"
-              type="email"
               value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              placeholder="farmer@email.com"
+              disabled={isEditing}
+              onChange={(e) =>
+                setFormData({ ...formData, email: e.target.value })
+              }
             />
           </div>
 
           {/* Location */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="subcounty">Subcounty *</Label>
+              <Label>Subcounty *</Label>
               <Input
-                id="subcounty"
                 value={formData.subcounty}
-                onChange={(e) => setFormData({ ...formData, subcounty: e.target.value })}
-                placeholder="Subcounty"
+                disabled={isEditing}
+                onChange={(e) =>
+                  setFormData({ ...formData, subcounty: e.target.value })
+                }
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="village">Village</Label>
+              <Label>Village</Label>
               <Input
-                id="village"
                 value={formData.village}
-                onChange={(e) => setFormData({ ...formData, village: e.target.value })}
-                placeholder="Village"
+                disabled={isEditing}
+                onChange={(e) =>
+                  setFormData({ ...formData, village: e.target.value })
+                }
               />
             </div>
           </div>
 
           {/* Farming Activity */}
           <div className="space-y-2">
-            <Label htmlFor="farmingActivity">Farming Activity</Label>
+            <Label>Farming Activity</Label>
             <Input
-              id="farmingActivity"
               value={formData.farmingActivity}
-              onChange={(e) => setFormData({ ...formData, farmingActivity: e.target.value })}
-              placeholder="e.g., Crop Production, Mixed Farming"
+              disabled={isEditing}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  farmingActivity: e.target.value,
+                })
+              }
             />
           </div>
 
@@ -175,7 +240,10 @@ export function FarmerFormDialog({ open, onOpenChange, farmer, onSubmit }: Farme
             <Label>Value Chain *</Label>
             <Select
               value={formData.valueChain}
-              onValueChange={(value) => setFormData({ ...formData, valueChain: value as ValueChain })}
+              disabled={isEditing}
+              onValueChange={(value) =>
+                setFormData({ ...formData, valueChain: value as ValueChain })
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select value chain" />
@@ -190,32 +258,27 @@ export function FarmerFormDialog({ open, onOpenChange, farmer, onSubmit }: Farme
             </Select>
           </div>
 
-          {/* Farmer Category */}
-          <div className="space-y-2">
-            <Label>Farmer Type *</Label>
-            <Select
-              value={formData.farmerCategory}
-              onValueChange={(value) => setFormData({ ...formData, farmerCategory: value as FarmerCategory })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="New">New</SelectItem>
-                <SelectItem value="Existing">Existing</SelectItem>
-                <SelectItem value="Pioneer">Pioneer</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
           {/* Actions */}
           <div className="flex gap-3 pt-4">
-            <Button type="button" variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
-              Cancel
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={() => onOpenChange(false)}
+            >
+              Close
             </Button>
-            <Button type="submit" variant="forest" className="flex-1">
-              {isEditing ? 'Update Farmer' : 'Add Farmer'}
-            </Button>
+
+            {isEditing ? (
+              <Button type="submit" className="flex-1">
+                <Send className="w-4 h-4 mr-2" />
+                Request Edit Approval
+              </Button>
+            ) : (
+              <Button type="submit" variant="forest" className="flex-1">
+                Add Farmer
+              </Button>
+            )}
           </div>
         </form>
       </DialogContent>

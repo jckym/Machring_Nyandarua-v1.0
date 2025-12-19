@@ -28,7 +28,7 @@ import { NewFarmer } from "@/pages/farmers/NewFarmer";
 // Admin pages
 import { CommissionCalculator } from "@/pages/Commission";
 import { Users } from "@/pages/admin/Users";
-import { Branches } from "@/pages/admin/Branches";
+import { LocalMRs } from "@/pages/admin/LocalMRs";
 import { SystemLogs } from "@/pages/admin/SystemLogs";
 import { AuditLog } from "@/pages/admin/AuditLog";
 
@@ -104,10 +104,10 @@ const App = () => (
                   }
                 />
                 <Route
-                  path="/branches"
+                  path="/local-mrs"
                   element={
                     <ProtectedRoute allowedRoles={["admin"]}>
-                      <Branches />
+                      <LocalMRs />
                     </ProtectedRoute>
                   }
                 />

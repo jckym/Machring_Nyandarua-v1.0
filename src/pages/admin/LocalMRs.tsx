@@ -17,63 +17,46 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Search, Plus, MoreHorizontal, Building2, Users, MapPin } from 'lucide-react';
+import { Search, Plus, MoreHorizontal, Building2, Users, MapPin, UserCog } from 'lucide-react';
 import { toast } from 'sonner';
+import { mockLocalMRs } from '@/data/mockData';
 
-interface Branch {
-  id: string;
-  name: string;
-  location: string;
-  region: string;
-  managerId: string;
-  managerName: string;
-  totCount: number;
-  farmerCount: number;
-  status: 'Active' | 'Inactive';
-}
-
-const mockBranches: Branch[] = [
-  { id: '1', name: 'Nairobi Central', location: 'Nairobi CBD', region: 'Central', managerId: '1', managerName: 'Jane Manager', totCount: 12, farmerCount: 450, status: 'Active' },
-  { id: '2', name: 'Nakuru Branch', location: 'Nakuru Town', region: 'Rift Valley', managerId: '2', managerName: 'Peter Manager', totCount: 8, farmerCount: 320, status: 'Active' },
-  { id: '3', name: 'Eldoret Branch', location: 'Eldoret Town', region: 'Rift Valley', managerId: '3', managerName: 'Mary Manager', totCount: 6, farmerCount: 280, status: 'Active' },
-  { id: '4', name: 'Kisumu Branch', location: 'Kisumu City', region: 'Western', managerId: '4', managerName: 'John Manager', totCount: 10, farmerCount: 380, status: 'Active' },
-  { id: '5', name: 'Mombasa Branch', location: 'Mombasa Island', region: 'Coast', managerId: '5', managerName: 'Sarah Manager', totCount: 5, farmerCount: 150, status: 'Inactive' },
-];
-
-export function Branches() {
+export function LocalMRs() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [branches] = useState<Branch[]>(mockBranches);
 
-  const filteredBranches = branches.filter(branch =>
-    branch.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    branch.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    branch.region.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredMRs = mockLocalMRs.filter(mr =>
+    mr.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    mr.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    mr.county.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleAddBranch = () => {
-    toast.info('Add branch functionality coming soon');
+  const handleAddMR = () => {
+    toast.info('Add Local MR functionality coming soon');
   };
 
-  const handleEditBranch = (branchId: string) => {
-    toast.info(`Edit branch ${branchId}`);
+  const handleEditMR = (mrId: string) => {
+    toast.info(`Edit Local MR ${mrId}`);
+  };
+
+  const handleViewDetails = (mrId: string) => {
+    toast.info(`View details for Local MR ${mrId}`);
   };
 
   // Stats
-  const totalBranches = branches.length;
-  const activeBranches = branches.filter(b => b.status === 'Active').length;
-  const totalFarmers = branches.reduce((sum, b) => sum + b.farmerCount, 0);
-  const totalTOTs = branches.reduce((sum, b) => sum + b.totCount, 0);
+  const totalMRs = mockLocalMRs.length;
+  const totalFarmers = mockLocalMRs.reduce((sum, mr) => sum + mr.totalFarmers, 0);
+  const totalTOTs = mockLocalMRs.reduce((sum, mr) => sum + mr.totalTots, 0);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-foreground">Branch Management</h1>
-          <p className="text-muted-foreground">Manage company branches and locations</p>
+          <h1 className="font-heading text-2xl font-bold text-foreground">Local MR Management</h1>
+          <p className="text-muted-foreground">Manage the 10 Local Machinery Rings across Kenya</p>
         </div>
-        <Button onClick={handleAddBranch}>
+        <Button onClick={handleAddMR}>
           <Plus className="mr-2 h-4 w-4" />
-          Add Branch
+          Add Local MR
         </Button>
       </div>
 
@@ -85,8 +68,8 @@ export function Branches() {
               <Building2 className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Total Branches</p>
-              <p className="text-2xl font-bold">{totalBranches}</p>
+              <p className="text-sm text-muted-foreground">Total Local MRs</p>
+              <p className="text-2xl font-bold">{totalMRs}</p>
             </div>
           </CardContent>
         </Card>
@@ -96,15 +79,15 @@ export function Branches() {
               <MapPin className="h-6 w-6 text-green-500" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Active Branches</p>
-              <p className="text-2xl font-bold">{activeBranches}</p>
+              <p className="text-sm text-muted-foreground">Counties Covered</p>
+              <p className="text-2xl font-bold">{totalMRs}</p>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="flex items-center gap-4 p-4">
             <div className="rounded-full bg-blue-500/10 p-3">
-              <Users className="h-6 w-6 text-blue-500" />
+              <UserCog className="h-6 w-6 text-blue-500" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Total TOTs</p>
@@ -131,7 +114,7 @@ export function Branches() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search branches..."
+              placeholder="Search Local MRs by name, location, or county..."
               className="pl-10"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -140,18 +123,19 @@ export function Branches() {
         </CardContent>
       </Card>
 
-      {/* Branches Table */}
+      {/* Local MRs Table */}
       <Card>
         <CardHeader>
-          <CardTitle>All Branches ({filteredBranches.length})</CardTitle>
+          <CardTitle>All Local MRs ({filteredMRs.length})</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Branch Name</TableHead>
+                <TableHead>Code</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>County</TableHead>
                 <TableHead>Location</TableHead>
-                <TableHead>Region</TableHead>
                 <TableHead>Manager</TableHead>
                 <TableHead>TOTs</TableHead>
                 <TableHead>Farmers</TableHead>
@@ -160,18 +144,21 @@ export function Branches() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredBranches.map((branch) => (
-                <TableRow key={branch.id}>
-                  <TableCell className="font-medium">{branch.name}</TableCell>
-                  <TableCell>{branch.location}</TableCell>
-                  <TableCell>{branch.region}</TableCell>
-                  <TableCell>{branch.managerName}</TableCell>
-                  <TableCell>{branch.totCount}</TableCell>
-                  <TableCell>{branch.farmerCount}</TableCell>
+              {filteredMRs.map((mr) => (
+                <TableRow key={mr.id}>
                   <TableCell>
-                    <Badge variant={branch.status === 'Active' ? 'default' : 'secondary'} className={branch.status === 'Active' ? 'bg-green-500' : ''}>
-                      {branch.status}
+                    <Badge variant="outline" className="font-mono">
+                      {mr.code}
                     </Badge>
+                  </TableCell>
+                  <TableCell className="font-medium">{mr.name}</TableCell>
+                  <TableCell>{mr.county}</TableCell>
+                  <TableCell>{mr.location}</TableCell>
+                  <TableCell>{mr.managerName}</TableCell>
+                  <TableCell>{mr.totalTots}</TableCell>
+                  <TableCell>{mr.totalFarmers}</TableCell>
+                  <TableCell>
+                    <Badge variant="success">Active</Badge>
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
@@ -181,10 +168,13 @@ export function Branches() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEditBranch(branch.id)}>
-                          Edit Branch
+                        <DropdownMenuItem onClick={() => handleViewDetails(mr.id)}>
+                          View Details
                         </DropdownMenuItem>
-                        <DropdownMenuItem>View Details</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEditMR(mr.id)}>
+                          Edit Local MR
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>Manage TOTs</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

@@ -1,6 +1,14 @@
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { getProductPerformance } from '@/data/mockData';
+
+// Embedded fallback data
+const productPerformance = [
+  { name: 'Maize Seeds', value: 35 },
+  { name: 'DAP Fertilizer', value: 25 },
+  { name: 'Tractor Services', value: 20 },
+  { name: 'Herbicide', value: 12 },
+  { name: 'Dairy Meal', value: 8 },
+];
 
 const COLORS = [
   'hsl(160, 55%, 20%)',
@@ -11,8 +19,6 @@ const COLORS = [
 ];
 
 export function ProductChart() {
-  const data = getProductPerformance();
-
   return (
     <Card variant="elevated" className="animate-fade-in">
       <CardHeader>
@@ -23,7 +29,7 @@ export function ProductChart() {
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
-                data={data}
+                data={productPerformance}
                 cx="50%"
                 cy="50%"
                 innerRadius={60}
@@ -31,7 +37,7 @@ export function ProductChart() {
                 paddingAngle={3}
                 dataKey="value"
               >
-                {data.map((entry, index) => (
+                {productPerformance.map((entry, index) => (
                   <Cell 
                     key={`cell-${index}`} 
                     fill={COLORS[index % COLORS.length]}

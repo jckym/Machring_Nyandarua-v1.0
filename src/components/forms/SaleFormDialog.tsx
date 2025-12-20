@@ -5,9 +5,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Sale } from '@/types';
-import { mockFarmers, mockProducts } from '@/data/mockData';
+import { Sale, Farmer, Product } from '@/types';
+import { useFarmers, useProducts, useApiWithFallback } from '@/hooks/api';
 import { Upload } from 'lucide-react';
+
+// Fallback data
+const fallbackFarmers: Farmer[] = [
+  { id: 'farmer-1', name: 'Peter Kamau', phone: '+254711100001', location: { village: 'Bahati', ward: 'Bahati', subcounty: 'Nakuru East', county: 'Nakuru' }, localMrId: 'mr-1', localMrName: 'Nakuru Central MR', valueChain: 'Maize', farmerCategory: 'Pioneer', farmerRating: 'High-Value', registeredBy: 'tot-1', totalPurchases: 25, mechanisationCount: 8, trainingsAttended: 12, visitsCount: 6, createdAt: new Date('2023-06-15'), lastActivityDate: new Date('2025-06-15'), approvalStatus: 'approved' },
+  { id: 'farmer-2', name: 'Mary Njeri', phone: '+254711100002', location: { village: 'Subukia', ward: 'Subukia', subcounty: 'Nakuru East', county: 'Nakuru' }, localMrId: 'mr-1', localMrName: 'Nakuru Central MR', valueChain: 'Dairy', farmerCategory: 'Existing', farmerRating: 'Active', registeredBy: 'tot-1', totalPurchases: 15, mechanisationCount: 5, trainingsAttended: 8, visitsCount: 4, createdAt: new Date('2023-08-20'), lastActivityDate: new Date('2025-06-10'), approvalStatus: 'approved' },
+];
+
+const fallbackProducts: Product[] = [
+  { id: 'prod-1', name: 'Maize Seeds (10kg)', sku: 'MS-001', inStock: 500, unitPrice: 3500, description: 'High-yield hybrid maize seeds', commission: 175, category: 'Seeds', createdAt: new Date('2024-01-01') },
+  { id: 'prod-2', name: 'DAP Fertilizer (50kg)', sku: 'DF-001', inStock: 300, unitPrice: 4500, description: 'Di-ammonium phosphate fertilizer', commission: 225, category: 'Fertilizers', createdAt: new Date('2024-01-01') },
+];
 
 interface SaleFormDialogProps {
   open: boolean;
@@ -18,6 +29,13 @@ interface SaleFormDialogProps {
 export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogProps) {
   const { toast } = useToast();
 
+  // Fetch data with fallback
+  const farmersQuery = useFarmers();
+  const { data: farmers } = useApiWithFallback(farmersQuery, fallbackFarmers);
+  
+  const productsQuery = useProducts();
+  const { data: products } = useApiWithFallback(productsQuery, fallbackProducts);
+
   const [formData, setFormData] = useState({
     farmerId: '',
     productId: '',
@@ -26,13 +44,13 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
   });
 
   const selectedProduct = useMemo(
-    () => mockProducts.find(p => p.id === formData.productId),
-    [formData.productId]
+    () => products.find((p: Product) => p.id === formData.productId),
+    [formData.productId, products]
   );
 
   const selectedFarmer = useMemo(
-    () => mockFarmers.find(f => f.id === formData.farmerId),
-    [formData.farmerId]
+    () => farmers.find((f: Farmer) => f.id === formData.farmerId),
+    [formData.farmerId, farmers]
   );
 
   const total = selectedProduct ? selectedProduct.unitPrice * formData.quantity : 0;
@@ -97,7 +115,7 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
                 <SelectValue placeholder="Choose a farmer" />
               </SelectTrigger>
               <SelectContent>
-                {mockFarmers.map((farmer) => (
+                {farmers.map((farmer: Farmer) => (
                   <SelectItem key={farmer.id} value={farmer.id}>
                     {farmer.name} - {farmer.phone}
                   </SelectItem>
@@ -117,7 +135,7 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
                 <SelectValue placeholder="Choose a product" />
               </SelectTrigger>
               <SelectContent>
-                {mockProducts.map((product) => (
+                {products.map((product: Product) => (
                   <SelectItem key={product.id} value={product.id}>
                     {product.name} - {formatCurrency(product.unitPrice)}
                   </SelectItem>

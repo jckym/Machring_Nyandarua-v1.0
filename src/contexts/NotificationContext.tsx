@@ -1,6 +1,13 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { Notification, NotificationType } from '@/types';
-import { mockNotifications } from '@/data/mockData';
+import { Notification } from '@/types';
+
+// Embedded fallback notifications data
+const fallbackNotifications: Notification[] = [
+  { id: 'notif-1', type: 'mechanisation_pending', title: 'Mechanisation Approval Required', message: 'Grace Wangui has requested harvesting service', read: false, createdAt: new Date('2025-06-15'), localMrId: 'mr-3', localMrName: 'Eldoret Valley MR' },
+  { id: 'notif-2', type: 'sale_completed', title: 'Sale Completed', message: 'Peter Kamau purchased Maize Seeds', read: false, createdAt: new Date('2025-06-15'), localMrId: 'mr-1', localMrName: 'Nakuru Central MR' },
+  { id: 'notif-3', type: 'training_reminder', title: 'Training Tomorrow', message: 'Soil Health Management training scheduled', read: true, createdAt: new Date('2025-06-19'), localMrId: 'mr-1', localMrName: 'Nakuru Central MR' },
+  { id: 'notif-4', type: 'support_request', title: 'Support Request', message: 'TOT Samuel Mwangi reported login issue', read: false, createdAt: new Date('2025-06-14'), reportedBy: 'tot-1', issueType: 'Technical', resolutionStatus: 'pending' },
+];
 
 interface NotificationContextType {
   notifications: Notification[];
@@ -14,7 +21,7 @@ interface NotificationContextType {
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
+  const [notifications, setNotifications] = useState<Notification[]>(fallbackNotifications);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 

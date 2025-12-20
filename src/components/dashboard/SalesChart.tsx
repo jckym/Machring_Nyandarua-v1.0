@@ -1,10 +1,17 @@
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { getMonthlyData } from '@/data/mockData';
+
+// Embedded fallback data
+const monthlyData = [
+  { month: 'Jan', sales: 45000, mechanisation: 25000 },
+  { month: 'Feb', sales: 62000, mechanisation: 32000 },
+  { month: 'Mar', sales: 78000, mechanisation: 45000 },
+  { month: 'Apr', sales: 55000, mechanisation: 28000 },
+  { month: 'May', sales: 89000, mechanisation: 52000 },
+  { month: 'Jun', sales: 72000, mechanisation: 38000 },
+];
 
 export function SalesChart() {
-  const data = getMonthlyData();
-
   const formatCurrency = (value: number) => {
     return `KES ${(value / 1000).toFixed(0)}K`;
   };
@@ -17,7 +24,7 @@ export function SalesChart() {
       <CardContent>
         <div className="h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data}>
+            <AreaChart data={monthlyData}>
               <defs>
                 <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="hsl(160, 55%, 20%)" stopOpacity={0.3} />

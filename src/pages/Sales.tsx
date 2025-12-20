@@ -1,16 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { mockSales, mockProducts } from '@/data/mockData';
-import { Search, Plus, TrendingUp, Calendar, Download, Package, CheckCircle, MoreVertical, FileSpreadsheet, FileText } from 'lucide-react';
+import { Search, Plus, TrendingUp, Calendar, Download, Package, CheckCircle, MoreVertical, FileSpreadsheet, FileText, WifiOff } from 'lucide-react';
 import { exportSalesToExcel, exportSalesToPDF } from '@/lib/exportUtils';
 import { SaleFormDialog } from '@/components/forms/SaleFormDialog';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Sale } from '@/types';
+import { useSales, useCreateSale, useApiWithFallback } from '@/hooks/api';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,13 +30,24 @@ import {
 export function Sales() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [sales, setSales] = useState(mockSales);
+  const [localSales, setLocalSales] = useState<Sale[]>([]);
   const [productFilter, setProductFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const { addNotification } = useNotifications();
   const { user } = useAuth();
 
-  const filteredSales = sales.filter(sale => {
+  // API hooks with fallback
+  const salesQuery = useSales();
+  const { data: sales, isLoading, isUsingFallback } = useApiWithFallback(salesQuery, mockSales);
+  const createSale = useCreateSale();
+
+  useEffect(() => {
+    if (sales && Array.isArray(sales)) {
+      setLocalSales(sales);
+    }
+  }, [sales]);
+
+  const filteredSales = localSales.filter(sale => {
     const matchesSearch = sale.farmerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       sale.productName.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesProduct = productFilter === 'all' || sale.productId === productFilter;
@@ -42,27 +55,31 @@ export function Sales() {
     return matchesSearch && matchesProduct && matchesStatus;
   });
 
-  const totalRevenue = sales.reduce((acc, sale) => acc + sale.total, 0);
-  const totalCommission = sales.filter(s => s.status === 'completed').reduce((acc, sale) => acc + sale.commissionAmount, 0);
+  const totalRevenue = localSales.reduce((acc, sale) => acc + sale.total, 0);
+  const totalCommission = localSales.filter(s => s.status === 'completed').reduce((acc, sale) => acc + sale.commissionAmount, 0);
 
   const handleAddSale = (data: Partial<Sale>) => {
-    const newSale: Sale = {
-      id: `sale-${Date.now()}`,
-      ...data as any,
-      status: 'pending',
-    };
-    setSales(prev => [...prev, newSale]);
-    toast.success('Sale recorded successfully');
+    if (!isUsingFallback) {
+      createSale.mutate(data as any);
+    } else {
+      const newSale: Sale = {
+        id: `sale-${Date.now()}`,
+        ...data as any,
+        status: 'pending',
+      };
+      setLocalSales(prev => [...prev, newSale]);
+      toast.success('Sale recorded successfully (offline mode)');
+    }
     addNotification({
       title: 'New Sale Recorded',
-      message: `Sale of ${newSale.productName} to ${newSale.farmerName} recorded`,
+      message: `Sale recorded`,
       type: 'sale',
     });
   };
 
   const handleCompleteSale = (saleId: string) => {
-    setSales(prev => prev.map(s => s.id === saleId ? { ...s, status: 'completed' as const } : s));
-    const sale = sales.find(s => s.id === saleId);
+    setLocalSales(prev => prev.map(s => s.id === saleId ? { ...s, status: 'completed' as const } : s));
+    const sale = localSales.find(s => s.id === saleId);
     toast.success('Sale marked as completed');
     addNotification({
       title: 'Sale Completed',
@@ -75,29 +92,47 @@ export function Sales() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed':
-        return 'success';
-      case 'pending':
-        return 'warning';
-      default:
-        return 'destructive';
+      case 'completed': return 'success';
+      case 'pending': return 'warning';
+      default: return 'destructive';
     }
   };
 
-  const formatCurrency = (value: number) => {
-    return `KES ${value.toLocaleString()}`;
-  };
+  const formatCurrency = (value: number) => `KES ${value.toLocaleString()}`;
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat('en-KE', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
-    }).format(date);
+    }).format(new Date(date));
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24" />)}
+        </div>
+        <Skeleton className="h-64" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      {/* Offline Banner */}
+      {isUsingFallback && (
+        <div className="bg-warning/10 border border-warning/20 rounded-lg p-3 flex items-center gap-2 text-warning">
+          <WifiOff className="w-4 h-4" />
+          <span className="text-sm">Using offline data. Changes will sync when connection is restored.</span>
+        </div>
+      )}
+
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
@@ -149,7 +184,7 @@ export function Sales() {
               <Package className="w-4 h-4 sm:w-5 sm:h-5 text-accent-foreground" />
             </div>
             <div>
-              <p className="text-lg sm:text-2xl font-bold font-heading text-accent-foreground">{mockSales.length}</p>
+              <p className="text-lg sm:text-2xl font-bold font-heading text-accent-foreground">{localSales.length}</p>
               <p className="text-xs sm:text-sm text-muted-foreground">Total Sales</p>
             </div>
           </div>
@@ -172,7 +207,7 @@ export function Sales() {
             </div>
             <div>
               <p className="text-lg sm:text-2xl font-bold font-heading text-emerald-700">
-                {mockSales.filter(s => s.status === 'completed').length}
+                {localSales.filter(s => s.status === 'completed').length}
               </p>
               <p className="text-xs sm:text-sm text-muted-foreground">Completed</p>
             </div>

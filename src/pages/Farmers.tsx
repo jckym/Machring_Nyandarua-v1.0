@@ -6,17 +6,18 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { mockFarmers, mockLocalMRs } from '@/data/mockData';
 import { exportFarmersToExcel, exportFarmersToPDF } from '@/lib/exportUtils';
 import { FarmerFormDialog } from '@/components/forms/FarmerFormDialog';
 import { Farmer } from '@/types';
+import { useFarmers, useCreateFarmer, useUpdateFarmer, useApiWithFallback } from '@/hooks/api';
 import {
   Search,
   Plus,
   MapPin,
   Phone,
-  MoreVertical,
   Download,
   Users,
   FileSpreadsheet,
@@ -26,6 +27,7 @@ import {
   Eye,
   CheckCircle,
   XCircle,
+  WifiOff,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -50,7 +52,7 @@ import {
 interface PendingRequest {
   id: string;
   type: 'add' | 'edit';
-  farmerId?: string; // for edits
+  farmerId?: string;
   data: Partial<Farmer>;
   requestedBy: string;
   requestedAt: Date;
@@ -71,9 +73,25 @@ export function Farmers() {
   const [ratingFilter, setRatingFilter] = useState('all');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingFarmer, setEditingFarmer] = useState<Farmer | null>(null);
-  const [farmers, setFarmers] = useState(mockFarmers);
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
   const [previewRequest, setPreviewRequest] = useState<PendingRequest | null>(null);
+  const [localFarmers, setLocalFarmers] = useState<Farmer[]>([]);
+
+  // API hooks with fallback
+  const farmersQuery = useFarmers({ search: searchQuery, localMrId: localMrFilter !== 'all' ? localMrFilter : undefined });
+  const { data: farmers, isLoading, isUsingFallback } = useApiWithFallback(
+    farmersQuery,
+    mockFarmers
+  );
+  const createFarmer = useCreateFarmer();
+  const updateFarmer = useUpdateFarmer();
+
+  // Sync API data or fallback to local state
+  useEffect(() => {
+    if (farmers && Array.isArray(farmers)) {
+      setLocalFarmers(farmers);
+    }
+  }, [farmers]);
 
   // Auto-open add modal from Quick Actions
   useEffect(() => {
@@ -84,7 +102,7 @@ export function Farmers() {
     }
   }, [searchParams, setSearchParams]);
 
-  const filteredFarmers = farmers.filter(farmer => {
+  const filteredFarmers = localFarmers.filter(farmer => {
     const matchesSearch = farmer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       farmer.location.village.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesLocalMr = localMrFilter === 'all' || farmer.localMrId === localMrFilter;
@@ -109,28 +127,34 @@ export function Farmers() {
     }
   };
 
-  // Unified handler for both add and edit (with approval)
   const handleSubmitRequest = (data: Partial<Farmer>, type: 'add' | 'edit', originalFarmer?: Farmer) => {
     if (user?.role === 'manager' || user?.role === 'admin') {
       if (type === 'add') {
-        const newFarmer: Farmer = {
-          id: `farmer-${Date.now()}`,
-          ...data as any,
-          createdAt: new Date(),
-          farmerRating: 'Active',
-          totalPurchases: 0,
-          mechanisationCount: 0,
-          trainingsAttended: 0,
-          visitsCount: 0,
-        };
-        setFarmers(prev => [...prev, newFarmer]);
-        toast.success('Farmer added successfully');
+        if (!isUsingFallback) {
+          createFarmer.mutate(data as any);
+        } else {
+          const newFarmer: Farmer = {
+            id: `farmer-${Date.now()}`,
+            ...data as any,
+            createdAt: new Date(),
+            farmerRating: 'Active',
+            totalPurchases: 0,
+            mechanisationCount: 0,
+            trainingsAttended: 0,
+            visitsCount: 0,
+          };
+          setLocalFarmers(prev => [...prev, newFarmer]);
+          toast.success('Farmer added successfully (offline mode)');
+        }
       } else if (type === 'edit' && originalFarmer) {
-        setFarmers(prev => prev.map(f => f.id === originalFarmer.id ? { ...f, ...data } : f));
-        toast.success('Farmer updated successfully');
+        if (!isUsingFallback) {
+          updateFarmer.mutate({ id: originalFarmer.id, data: data as any });
+        } else {
+          setLocalFarmers(prev => prev.map(f => f.id === originalFarmer.id ? { ...f, ...data } : f));
+          toast.success('Farmer updated successfully (offline mode)');
+        }
       }
     } else {
-      // TOT: Create pending request
       const request: PendingRequest = {
         id: `req-${Date.now()}`,
         type,
@@ -141,11 +165,8 @@ export function Farmers() {
         status: 'pending',
       };
       setPendingRequests(prev => [...prev, request]);
-
       const action = type === 'add' ? 'New farmer registration' : 'Edit request';
       toast.success(`${action} sent for approval`);
-
-      // Notify managers/admins
       addNotification({
         title: 'Pending Approval Required',
         message: `${user?.name} submitted a ${type === 'add' ? 'new farmer' : 'farmer edit'} request`,
@@ -154,7 +175,6 @@ export function Farmers() {
     }
   };
 
-  // Approval actions
   const approveRequest = (reqId: string) => {
     const req = pendingRequests.find(r => r.id === reqId);
     if (!req) return;
@@ -170,9 +190,9 @@ export function Farmers() {
         trainingsAttended: 0,
         visitsCount: 0,
       };
-      setFarmers(prev => [...prev, newFarmer]);
+      setLocalFarmers(prev => [...prev, newFarmer]);
     } else if (req.type === 'edit' && req.farmerId) {
-      setFarmers(prev => prev.map(f => f.id === req.farmerId ? { ...f, ...req.data } : f));
+      setLocalFarmers(prev => prev.map(f => f.id === req.farmerId ? { ...f, ...req.data } : f));
     }
 
     setPendingRequests(prev => prev.map(r =>
@@ -212,8 +232,31 @@ export function Farmers() {
     }).format(new Date(date));
   };
 
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24" />)}
+        </div>
+        <Skeleton className="h-64" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 sm:space-y-6">
+      {/* Offline Banner */}
+      {isUsingFallback && (
+        <div className="bg-warning/10 border border-warning/20 rounded-lg p-3 flex items-center gap-2 text-warning">
+          <WifiOff className="w-4 h-4" />
+          <span className="text-sm">Using offline data. Changes will sync when connection is restored.</span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
@@ -306,7 +349,7 @@ export function Farmers() {
                   {pendingToReview.map(req => {
                     const farmerName = req.type === 'add'
                       ? (req.data as any).name || 'New Farmer'
-                      : farmers.find(f => f.id === req.farmerId)?.name || 'Unknown';
+                      : localFarmers.find(f => f.id === req.farmerId)?.name || 'Unknown';
 
                     return (
                       <tr key={req.id} className="border-b hover:bg-orange-50">
@@ -436,96 +479,67 @@ export function Farmers() {
                     <td className="py-3 px-4 hidden md:table-cell">
                       <div className="flex items-center gap-1 text-sm text-muted-foreground">
                         <MapPin className="w-3 h-3" />
-                        {farmer.location.village}, {farmer.location.county}
+                        {farmer.location.village}, {farmer.location.subcounty}
                       </div>
                     </td>
-                    <td className="py-3 px-4 hidden lg:table-cell">
-                      <Badge variant="outline">{farmer.valueChain}</Badge>
-                    </td>
+                    <td className="py-3 px-4 hidden lg:table-cell text-sm">{farmer.valueChain}</td>
                     <td className="py-3 px-4">
-                      <Badge variant={getCategoryColor(farmer.farmerCategory) as any}>
+                      <Badge variant={getCategoryColor(farmer.farmerCategory) as any} className="text-xs">
                         {farmer.farmerCategory}
                       </Badge>
                     </td>
                     <td className="py-3 px-4 hidden sm:table-cell">
-                      <Badge variant={getRatingColor(farmer.farmerRating) as any} className="flex items-center gap-1 w-fit">
-                        <Star className="w-3 h-3" />
+                      <Badge variant={getRatingColor(farmer.farmerRating) as any} className="text-xs">
                         {farmer.farmerRating}
                       </Badge>
                     </td>
                     <td className="py-3 px-4">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="icon-sm">
-                            <MoreVertical className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/farmers/${farmer.id}`); }}>
-                            <Eye className="w-4 h-4 mr-2" /> View Profile
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={(e) => { 
-                            e.stopPropagation(); 
-                            setEditingFarmer(farmer); 
-                            setIsFormOpen(true); 
-                          }}>
-                            Edit Farmer
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/farmers/${farmer.id}`); }}>
+                        View
+                      </Button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            {filteredFarmers.length === 0 && (
-              <div className="text-center py-12">
-                <Users className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
-                <p className="text-muted-foreground">No farmers found matching your criteria</p>
-              </div>
-            )}
           </div>
         </CardContent>
       </Card>
 
-      {/* Form Dialogs */}
+      {/* Farmer Form Dialog */}
       <FarmerFormDialog
         open={isFormOpen}
-        onOpenChange={(open) => {
-          setIsFormOpen(open);
-          if (!open) setEditingFarmer(null);
-        }}
-        onSubmit={(data) => {
-          if (editingFarmer) {
-            handleSubmitRequest(data, 'edit', editingFarmer);
-          } else {
-            handleSubmitRequest(data, 'add');
-          }
-          setIsFormOpen(false);
-        }}
-        farmer={editingFarmer || undefined}
+        onOpenChange={setIsFormOpen}
+        onSubmit={(data) => handleSubmitRequest(data, editingFarmer ? 'edit' : 'add', editingFarmer || undefined)}
       />
 
-      {/* Preview Dialog */}
+      {/* Preview Request Dialog */}
       <Dialog open={!!previewRequest} onOpenChange={() => setPreviewRequest(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              Preview {previewRequest?.type === 'add' ? 'New Registration' : 'Edit Request'}
-            </DialogTitle>
+            <DialogTitle>Request Details</DialogTitle>
           </DialogHeader>
           {previewRequest && (
             <div className="space-y-4">
-              <p><strong>Requested by:</strong> {previewRequest.requestedBy}</p>
-              <p><strong>Date:</strong> {formatDate(previewRequest.requestedAt)}</p>
-              {previewRequest.type === 'edit' && previewRequest.farmerId && (
-                <p><strong>Affected Farmer:</strong> {farmers.find(f => f.id === previewRequest.farmerId)?.name}</p>
-              )}
-              <div className="border-t pt-4">
-                <h4 className="font-medium mb-3">Submitted Data:</h4>
-                <pre className="text-sm bg-muted p-4 rounded-lg overflow-x-auto">
-                  {JSON.stringify(previewRequest.data, null, 2)}
-                </pre>
+              <div>
+                <p className="text-sm text-muted-foreground">Type</p>
+                <p className="font-medium">{previewRequest.type === 'add' ? 'New Registration' : 'Edit'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Farmer Name</p>
+                <p className="font-medium">{(previewRequest.data as any).name || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Requested By</p>
+                <p className="font-medium">{previewRequest.requestedBy}</p>
+              </div>
+              <div className="flex gap-2 pt-4">
+                <Button variant="destructive" className="flex-1" onClick={() => { rejectRequest(previewRequest.id); setPreviewRequest(null); }}>
+                  Reject
+                </Button>
+                <Button className="flex-1" onClick={() => { approveRequest(previewRequest.id); setPreviewRequest(null); }}>
+                  Approve
+                </Button>
               </div>
             </div>
           )}

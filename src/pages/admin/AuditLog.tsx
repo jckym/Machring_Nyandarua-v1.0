@@ -12,8 +12,17 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Search, Download, Eye, Edit, Trash2, Plus, FileText } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Search, Download, Eye, Edit, Trash2, Plus, FileText, FileSpreadsheet } from 'lucide-react';
 import { toast } from 'sonner';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface AuditEntry {
   id: string;
@@ -74,8 +83,53 @@ export function AuditLog() {
     return <Badge className={colors[action]}>{action.toUpperCase()}</Badge>;
   };
 
-  const handleExportAudit = () => {
-    toast.success('Audit log exported successfully');
+  const exportToExcel = () => {
+    const data = filteredLogs.map(log => ({
+      'Timestamp': log.timestamp,
+      'Action': log.action.toUpperCase(),
+      'Entity': log.entity,
+      'Entity ID': log.entityId,
+      'Description': log.description,
+      'User': log.userName,
+      'IP Address': log.ipAddress,
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Audit Logs');
+    XLSX.writeFile(workbook, `audit_logs_${new Date().toISOString().split('T')[0]}.xlsx`);
+    toast.success('Audit logs exported to Excel');
+  };
+
+  const exportToPDF = () => {
+    const doc = new jsPDF('landscape');
+    doc.setFontSize(18);
+    doc.setTextColor(34, 139, 34);
+    doc.text('Audit Log Report', 14, 20);
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Generated: ${new Date().toLocaleDateString()} | Total: ${filteredLogs.length} entries`, 14, 28);
+
+    const headers = ['Timestamp', 'Action', 'Entity', 'Description', 'User', 'IP Address'];
+    const rows = filteredLogs.map(log => [
+      log.timestamp,
+      log.action.toUpperCase(),
+      log.entity,
+      log.description.substring(0, 40) + (log.description.length > 40 ? '...' : ''),
+      log.userName,
+      log.ipAddress,
+    ]);
+
+    autoTable(doc, {
+      head: [headers],
+      body: rows,
+      startY: 35,
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [34, 139, 34], textColor: 255 },
+      alternateRowStyles: { fillColor: [245, 245, 245] },
+    });
+
+    doc.save(`audit_logs_${new Date().toISOString().split('T')[0]}.pdf`);
+    toast.success('Audit logs exported to PDF');
   };
 
   const entities = [...new Set(auditLogs.map(l => l.entity))];
@@ -92,10 +146,24 @@ export function AuditLog() {
           <h1 className="font-heading text-2xl font-bold text-foreground">Audit Log</h1>
           <p className="text-muted-foreground">Track all user actions and changes</p>
         </div>
-        <Button variant="outline" onClick={handleExportAudit}>
-          <Download className="mr-2 h-4 w-4" />
-          Export Audit Log
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline">
+              <Download className="mr-2 h-4 w-4" />
+              Export Audit Log
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem onClick={exportToExcel}>
+              <FileSpreadsheet className="w-4 h-4 mr-2" />
+              Export to Excel
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={exportToPDF}>
+              <FileText className="w-4 h-4 mr-2" />
+              Export to PDF
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Stats */}

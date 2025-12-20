@@ -12,8 +12,17 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Search, Download, AlertTriangle, Info, AlertCircle, CheckCircle } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Search, Download, AlertTriangle, Info, AlertCircle, CheckCircle, FileSpreadsheet, FileText } from 'lucide-react';
 import { toast } from 'sonner';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface SystemLog {
   id: string;
@@ -70,8 +79,50 @@ export function SystemLogs() {
     return <Badge className={colors[level]}>{level.toUpperCase()}</Badge>;
   };
 
-  const handleExportLogs = () => {
-    toast.success('Logs exported successfully');
+  const exportToExcel = () => {
+    const data = filteredLogs.map(log => ({
+      'Timestamp': log.timestamp,
+      'Level': log.level.toUpperCase(),
+      'Module': log.module,
+      'Message': log.message,
+      'User': log.userName || '-',
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'System Logs');
+    XLSX.writeFile(workbook, `system_logs_${new Date().toISOString().split('T')[0]}.xlsx`);
+    toast.success('System logs exported to Excel');
+  };
+
+  const exportToPDF = () => {
+    const doc = new jsPDF('landscape');
+    doc.setFontSize(18);
+    doc.setTextColor(34, 139, 34);
+    doc.text('System Logs Report', 14, 20);
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Generated: ${new Date().toLocaleDateString()} | Total: ${filteredLogs.length} logs`, 14, 28);
+
+    const headers = ['Timestamp', 'Level', 'Module', 'Message', 'User'];
+    const rows = filteredLogs.map(log => [
+      log.timestamp,
+      log.level.toUpperCase(),
+      log.module,
+      log.message,
+      log.userName || '-',
+    ]);
+
+    autoTable(doc, {
+      head: [headers],
+      body: rows,
+      startY: 35,
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [34, 139, 34], textColor: 255 },
+      alternateRowStyles: { fillColor: [245, 245, 245] },
+    });
+
+    doc.save(`system_logs_${new Date().toISOString().split('T')[0]}.pdf`);
+    toast.success('System logs exported to PDF');
   };
 
   const modules = [...new Set(logs.map(l => l.module))];
@@ -87,10 +138,24 @@ export function SystemLogs() {
           <h1 className="font-heading text-2xl font-bold text-foreground">System Logs</h1>
           <p className="text-muted-foreground">Monitor system activity and events</p>
         </div>
-        <Button variant="outline" onClick={handleExportLogs}>
-          <Download className="mr-2 h-4 w-4" />
-          Export Logs
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline">
+              <Download className="mr-2 h-4 w-4" />
+              Export Logs
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem onClick={exportToExcel}>
+              <FileSpreadsheet className="w-4 h-4 mr-2" />
+              Export to Excel
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={exportToPDF}>
+              <FileText className="w-4 h-4 mr-2" />
+              Export to PDF
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Stats */}

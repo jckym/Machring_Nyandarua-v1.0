@@ -1,10 +1,17 @@
-import { useState } from 'react';
+// src/components/MobileNav.tsx
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import {
   LayoutDashboard,
   Users,
@@ -26,23 +33,25 @@ import {
   AlertCircle,
   HelpCircle,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const totNavItems = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/farmers', icon: Users, label: 'Farmers' },
+  { to: '/dashboard/tot', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/farmers', icon: Users, label: 'My Farmers' },
   { to: '/sales', icon: ShoppingCart, label: 'Sales' },
   { to: '/mechanisation', icon: Tractor, label: 'Mechanisation' },
-  { to: '/visits', icon: MapPin, label: 'Visits' },
+  { to: '/visits', icon: MapPin, label: 'Field Visits' },
   { to: '/trainings', icon: GraduationCap, label: 'Trainings' },
   { to: '/products', icon: Package, label: 'Products' },
+  { to: '/commission', icon: Calculator, label: 'My Commission' },
   { to: '/reports', icon: FileText, label: 'Reports' },
   { to: '/support', icon: HelpCircle, label: 'Support' },
 ];
 
 const managerNavItems = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/dashboard/manager', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/tots', icon: UserCog, label: 'TOT Management' },
-  { to: '/farmers', icon: Users, label: 'Farmers' },
+  { to: '/farmers', icon: Users, label: 'All Farmers' },
   { to: '/sales', icon: ShoppingCart, label: 'Sales' },
   { to: '/mechanisation', icon: Tractor, label: 'Mechanisation' },
   { to: '/trainings', icon: GraduationCap, label: 'Trainings' },
@@ -52,7 +61,7 @@ const managerNavItems = [
 ];
 
 const adminNavItems = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/dashboard/admin', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/users', icon: UserCog, label: 'User Management' },
   { to: '/local-mrs', icon: Building2, label: 'Local MRs' },
   { to: '/products', icon: Package, label: 'Products' },
@@ -62,8 +71,8 @@ const adminNavItems = [
   { to: '/reports', icon: FileText, label: 'Reports' },
   { to: '/notifications', icon: Bell, label: 'Notifications' },
   { to: '/system-logs', icon: AlertCircle, label: 'System Logs' },
-  { to: '/audit', icon: Shield, label: 'Audit Logs' },
-  { to: '/settings', icon: Settings, label: 'Settings' },
+  { to: '/audit', icon: Shield, label: 'Audit Trail' },
+  { to: '/settings', icon: Settings, label: 'System Settings' },
 ];
 
 export function MobileNav() {
@@ -86,63 +95,85 @@ export function MobileNav() {
   const getRoleBadge = () => {
     switch (user?.role) {
       case 'admin':
-        return <Badge variant="terracotta" className="text-xs">Admin</Badge>;
+        return <Badge variant="destructive" className="text-xs">Admin</Badge>;
       case 'manager':
         return <Badge variant="wheat" className="text-xs">Manager</Badge>;
       default:
-        return <Badge variant="sage" className="text-xs">TOT</Badge>;
+        return <Badge variant="forest" className="text-xs">TOT</Badge>;
     }
+  };
+
+  const handleLogout = () => {
+    logout();
+    setOpen(false);
+    toast.success('Logged out successfully');
   };
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="lg:hidden">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="lg:hidden text-foreground hover:bg-accent"
+          aria-label="Open menu"
+        >
           <Menu className="w-6 h-6" />
-          <span className="sr-only">Toggle menu</span>
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-[280px] bg-sidebar text-sidebar-foreground p-0">
-        <SheetHeader className="p-4 border-b border-sidebar-border">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-sidebar-primary flex items-center justify-center">
-              <Wheat className="w-6 h-6 text-sidebar-primary-foreground" />
+
+      <SheetContent side="left" className="w-[300px] bg-sidebar text-sidebar-foreground p-0 flex flex-col">
+        {/* Header */}
+        <SheetHeader className="p-5 border-b border-sidebar-border">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-forest to-emerald-600 flex items-center justify-center shadow-lg">
+              <Wheat className="w-7 h-7 text-white" />
             </div>
-            <SheetTitle className="text-sidebar-foreground">
-              <div className="flex flex-col items-start">
-                <span className="font-heading font-semibold text-sm">Machinery Ring</span>
-                <span className="text-xs text-sidebar-foreground/60 font-normal">Kenya</span>
-              </div>
-            </SheetTitle>
+            <div>
+              <SheetTitle className="text-sidebar-foreground font-heading text-lg">
+                Farm Society KE
+              </SheetTitle>
+              <p className="text-xs text-sidebar-foreground/70">Machinery Ring Kenya</p>
+            </div>
           </div>
         </SheetHeader>
 
-        {/* User Info */}
-        <div className="p-4 border-b border-sidebar-border">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-sidebar-accent flex items-center justify-center text-sm font-semibold">
-              {user?.name?.split(' ').map(n => n[0]).join('')}
+        {/* User Profile */}
+        <div className="p-5 border-b border-sidebar-border">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-sidebar-primary flex items-center justify-center text-sidebar-primary-foreground font-bold text-lg shadow-md">
+              {user?.name?.split(' ').map(n => n[0].toUpperCase()).join('') || 'U'}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{user?.name}</p>
-              <div className="mt-1">{getRoleBadge()}</div>
+              <p className="font-medium text-sidebar-foreground truncate text-base">
+                {user?.name || 'User'}
+              </p>
+              <div className="flex items-center gap-2 mt-1">
+                {getRoleBadge()}
+                {user?.localMrName && (
+                  <p className="text-xs text-sidebar-foreground/70 truncate">
+                    {user.localMrName}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-3 max-h-[calc(100vh-280px)]">
+        <nav className="flex-1 overflow-y-auto p-3">
           <ul className="space-y-1">
             {navItems.map((item) => (
               <li key={item.to}>
                 <NavLink
                   to={item.to}
+                  end
                   onClick={() => setOpen(false)}
                   className={({ isActive }) =>
                     cn(
-                      'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
+                      'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200',
                       isActive
-                        ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-soft'
+                        ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-md font-semibold'
                         : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
                     )
                   }
@@ -155,19 +186,15 @@ export function MobileNav() {
           </ul>
         </nav>
 
-
         {/* Logout */}
-        <div className="p-3 border-t border-sidebar-border">
+        <div className="p-4 border-t border-sidebar-border">
           <Button
             variant="ghost"
-            className="w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-            onClick={() => {
-              logout();
-              setOpen(false);
-            }}
+            className="w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent rounded-xl"
+            onClick={handleLogout}
           >
             <LogOut className="w-5 h-5 mr-3" />
-            <span>Logout</span>
+            <span className="font-medium">Logout</span>
           </Button>
         </div>
       </SheetContent>

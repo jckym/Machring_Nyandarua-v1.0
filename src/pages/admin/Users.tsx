@@ -36,6 +36,7 @@ import { Search, Plus, MoreHorizontal, UserCog, Shield, Users as UsersIcon } fro
 import { toast } from 'sonner';
 import { useUsers, useLocalMRs, useCreateUser, useUpdateUser, useToggleUserStatus, useApiWithFallback } from '@/hooks/api';
 import { User, UserRole, LocalMR } from '@/types';
+import { PasswordStrengthIndicator, usePasswordValidation } from '@/components/ui/password-strength';
 
 // Fallback mock data
 const mockUsers: User[] = [
@@ -114,9 +115,16 @@ export function Users() {
     );
   };
 
+  const { isValid: isPasswordValid } = usePasswordValidation(formData.password);
+
   const handleAddUser = () => {
     if (!formData.name || !formData.email || !formData.phone) {
       toast.error('Please fill in all required fields');
+      return;
+    }
+
+    if (!formData.password || !isPasswordValid) {
+      toast.error('Please enter a valid password meeting all requirements');
       return;
     }
 
@@ -370,8 +378,9 @@ export function Users() {
                 type="password"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                placeholder="Enter temporary password"
+                placeholder="Enter secure password"
               />
+              <PasswordStrengthIndicator password={formData.password} />
             </div>
             <div className="space-y-2">
               <Label>Role *</Label>

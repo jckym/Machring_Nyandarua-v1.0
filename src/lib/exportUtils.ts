@@ -2,7 +2,11 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Farmer, Sale, MechanisationJob, Training, Visit } from '@/types';
-import { mockLocalMRs } from '@/data/mockData';
+
+// Helper to get MR name - fallback if localMrName not provided
+const getMrName = (localMrId: string, localMrName?: string) => {
+  return localMrName || localMrId || 'Unknown';
+};
 
 // Generic Excel export
 const exportToExcel = <T extends Record<string, any>>(data: T[], filename: string, sheetName: string) => {
@@ -51,7 +55,7 @@ export const exportFarmersToExcel = (farmers: Farmer[], filename: string = 'farm
     'Name': farmer.name,
     'Phone': farmer.phone,
     'Email': farmer.email || '',
-    'Local MR': mockLocalMRs.find(mr => mr.id === farmer.localMrId)?.name || farmer.localMrName,
+    'Local MR': getMrName(farmer.localMrId, farmer.localMrName),
     'County': farmer.location.county,
     'Subcounty': farmer.location.subcounty,
     'Ward': farmer.location.ward,
@@ -73,7 +77,7 @@ export const exportFarmersToPDF = (farmers: Farmer[], filename: string = 'farmer
   const rows = farmers.map(farmer => [
     farmer.name,
     farmer.phone,
-    mockLocalMRs.find(mr => mr.id === farmer.localMrId)?.name || farmer.localMrName || '',
+    getMrName(farmer.localMrId, farmer.localMrName),
     `${farmer.location.village}, ${farmer.location.county}`,
     farmer.valueChain,
     farmer.farmerCategory,

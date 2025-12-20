@@ -17,9 +17,18 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Farmer, FarmerCategory, ValueChain } from '@/types';
-import { mockLocalMRs, valueChains } from '@/data/mockData';
+import { Farmer, FarmerCategory, ValueChain, LocalMR } from '@/types';
 import { AlertTriangle, Send } from 'lucide-react';
+import { useLocalMRs, useApiWithFallback } from '@/hooks/api';
+
+// Fallback data
+const fallbackLocalMRs: LocalMR[] = [
+  { id: 'mr-1', name: 'Nakuru Central MR', code: 'NK-001', subcounty: 'Nakuru East', ward: 'Bahati', managerId: 'mgr-1', managerName: 'John Kamau', totalTots: 5, totalFarmers: 120 },
+  { id: 'mr-2', name: 'Nyeri Highland MR', code: 'NY-001', subcounty: 'Nyeri Central', ward: 'Ruring\'u', managerId: 'mgr-2', managerName: 'Mary Wanjiku', totalTots: 4, totalFarmers: 95 },
+  { id: 'mr-3', name: 'Eldoret Valley MR', code: 'EL-001', subcounty: 'Eldoret East', ward: 'Pioneer', managerId: 'mgr-3', managerName: 'Peter Kipkoech', totalTots: 6, totalFarmers: 150 },
+];
+
+const valueChains: ValueChain[] = ['Maize', 'Wheat', 'Dairy', 'Poultry', 'Horticulture', 'Coffee', 'Tea', 'Sugarcane', 'Livestock', 'Mixed Farming'];
 
 interface FarmerFormDialogProps {
   open: boolean;
@@ -36,6 +45,10 @@ export function FarmerFormDialog({
 }: FarmerFormDialogProps) {
   const { toast } = useToast();
   const isEditing = !!farmer;
+
+  // Fetch Local MRs with fallback
+  const localMRsQuery = useLocalMRs();
+  const { data: localMRs } = useApiWithFallback(localMRsQuery, fallbackLocalMRs);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -87,8 +100,8 @@ export function FarmerFormDialog({
       return;
     }
 
-    const selectedLocalMR = mockLocalMRs.find(
-      (mr) => mr.id === formData.localMrId
+    const selectedLocalMR = localMRs.find(
+      (mr: LocalMR) => mr.id === formData.localMrId
     );
 
     onSubmit({
@@ -160,7 +173,7 @@ export function FarmerFormDialog({
                 <SelectValue placeholder="Select Local MR" />
               </SelectTrigger>
               <SelectContent>
-                {mockLocalMRs.map((mr) => (
+                {localMRs.map((mr: LocalMR) => (
                   <SelectItem key={mr.id} value={mr.id}>
                     {mr.name}
                   </SelectItem>

@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { mockVisits } from '@/data/mockData';
 import { Search, Plus, MapPin, Calendar, Filter, Camera, MessageSquare, Download, FileSpreadsheet, FileText, WifiOff } from 'lucide-react';
 import { exportVisitsToExcel, exportVisitsToPDF } from '@/lib/exportUtils';
 import {
@@ -27,7 +26,7 @@ export function Visits() {
 
   // API hooks with fallback
   const visitsQuery = useVisits();
-  const { data: visits, isLoading, isUsingFallback } = useApiWithFallback(visitsQuery, mockVisits);
+  const { data: visits, isLoading, isUsingFallback } = useApiWithFallback(visitsQuery, [] as Visit[]);
   const createVisit = useCreateVisit();
 
   useEffect(() => {

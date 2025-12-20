@@ -6,10 +6,17 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { MechanisationJob } from '@/types';
-import { mockFarmers, mockMachinery } from '@/data/mockData';
+import { MechanisationJob, Farmer } from '@/types';
+import { useFarmers, useMachinery, useApiWithFallback } from '@/hooks/api';
 import { Upload, Tractor } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+
+interface MachineryItem {
+  id: string;
+  name: string;
+  status: 'available' | 'booked' | 'maintenance';
+  pricePerAcre: number;
+}
 
 interface MechanisationFormDialogProps {
   open: boolean;
@@ -37,16 +44,23 @@ export function MechanisationFormDialog({ open, onOpenChange, onSubmit }: Mechan
     notes: '',
   });
 
-  const availableMachinery = mockMachinery.filter(m => m.status === 'available');
+  // API hooks with fallback
+  const farmersQuery = useFarmers();
+  const { data: farmers } = useApiWithFallback(farmersQuery, [] as Farmer[]);
+  
+  const machineryQuery = useMachinery();
+  const { data: machinery } = useApiWithFallback(machineryQuery, [] as MachineryItem[]);
+
+  const availableMachinery = (machinery as MachineryItem[]).filter(m => m.status === 'available');
 
   const selectedMachinery = useMemo(
-    () => mockMachinery.find(m => m.id === formData.machineryId),
-    [formData.machineryId]
+    () => (machinery as MachineryItem[]).find(m => m.id === formData.machineryId),
+    [formData.machineryId, machinery]
   );
 
   const selectedFarmer = useMemo(
-    () => mockFarmers.find(f => f.id === formData.farmerId),
-    [formData.farmerId]
+    () => (farmers as Farmer[]).find(f => f.id === formData.farmerId),
+    [formData.farmerId, farmers]
   );
 
   const total = selectedMachinery ? selectedMachinery.pricePerAcre * formData.acreage : 0;
@@ -124,7 +138,7 @@ export function MechanisationFormDialog({ open, onOpenChange, onSubmit }: Mechan
                 <SelectValue placeholder="Choose a farmer" />
               </SelectTrigger>
               <SelectContent>
-                {mockFarmers.map((farmer) => (
+                {(farmers as Farmer[]).map((farmer) => (
                   <SelectItem key={farmer.id} value={farmer.id}>
                     {farmer.name} - {farmer.location.village}
                   </SelectItem>
@@ -144,7 +158,7 @@ export function MechanisationFormDialog({ open, onOpenChange, onSubmit }: Mechan
                 <SelectValue placeholder="Choose machinery" />
               </SelectTrigger>
               <SelectContent>
-                {mockMachinery.map((machine) => (
+                {(machinery as MachineryItem[]).map((machine) => (
                   <SelectItem 
                     key={machine.id} 
                     value={machine.id}

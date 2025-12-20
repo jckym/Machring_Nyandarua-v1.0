@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { mockMechanisationJobs } from '@/data/mockData';
 import { Search, Plus, Tractor, Calendar, Download, MapPin, Clock, CheckCircle, XCircle, FileSpreadsheet, FileText, FileCheck, WifiOff } from 'lucide-react';
 import { exportMechanisationToExcel, exportMechanisationToPDF } from '@/lib/exportUtils';
 import { MechanisationFormDialog } from '@/components/forms/MechanisationFormDialog';
@@ -45,7 +44,7 @@ export function Mechanisation() {
 
   // API hooks with fallback
   const mechQuery = useMechanisationJobs();
-  const { data: jobs, isLoading, isUsingFallback } = useApiWithFallback(mechQuery, mockMechanisationJobs);
+  const { data: jobs, isLoading, isUsingFallback } = useApiWithFallback(mechQuery, [] as MechanisationJob[]);
   const createMech = useCreateMechanisation();
 
   useEffect(() => {

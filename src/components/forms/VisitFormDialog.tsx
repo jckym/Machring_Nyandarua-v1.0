@@ -5,8 +5,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Visit } from '@/types';
-import { mockFarmers } from '@/data/mockData';
+import { Visit, Farmer } from '@/types';
+import { useFarmers, useApiWithFallback } from '@/hooks/api';
 import { Upload, MapPin, Loader2 } from 'lucide-react';
 
 interface VisitFormDialogProps {
@@ -38,6 +38,10 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
   const [gpsLocation, setGpsLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isLoadingGps, setIsLoadingGps] = useState(false);
 
+  // API hooks with fallback
+  const farmersQuery = useFarmers();
+  const { data: farmers } = useApiWithFallback(farmersQuery, [] as Farmer[]);
+
   useEffect(() => {
     if (open && 'geolocation' in navigator) {
       setIsLoadingGps(true);
@@ -58,7 +62,7 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
     }
   }, [open]);
 
-  const selectedFarmer = mockFarmers.find(f => f.id === formData.farmerId);
+  const selectedFarmer = (farmers as Farmer[]).find(f => f.id === formData.farmerId);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,7 +140,7 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
                 <SelectValue placeholder="Choose a farmer" />
               </SelectTrigger>
               <SelectContent>
-                {mockFarmers.map((farmer) => (
+                {(farmers as Farmer[]).map((farmer) => (
                   <SelectItem key={farmer.id} value={farmer.id}>
                     {farmer.name} - {farmer.location.village}
                   </SelectItem>

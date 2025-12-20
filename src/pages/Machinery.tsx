@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { mockMachinery } from '@/data/mockData';
 import { Plus, Tractor, CheckCircle, Clock, MoreVertical, Wrench, WifiOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
@@ -90,7 +89,7 @@ export function Machinery() {
 
   // API hooks with fallback
   const machineryQuery = useMachinery();
-  const { data: machinery, isLoading, isUsingFallback } = useApiWithFallback(machineryQuery, mockMachinery);
+  const { data: machinery, isLoading, isUsingFallback } = useApiWithFallback(machineryQuery, [] as MachineryItem[]);
   const createMachinery = useCreateMachinery();
   const updateStatus = useUpdateMachineryStatus();
 

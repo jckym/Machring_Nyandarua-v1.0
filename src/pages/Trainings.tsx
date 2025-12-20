@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { mockTrainings } from '@/data/mockData';
 import { Search, Plus, GraduationCap, Calendar, MapPin, Users, Clock, Filter, Download, FileSpreadsheet, FileText, WifiOff } from 'lucide-react';
 import { exportTrainingsToExcel, exportTrainingsToPDF } from '@/lib/exportUtils';
 import {
@@ -27,7 +26,7 @@ export function Trainings() {
 
   // API hooks with fallback
   const trainingsQuery = useTrainings();
-  const { data: trainings, isLoading, isUsingFallback } = useApiWithFallback(trainingsQuery, mockTrainings);
+  const { data: trainings, isLoading, isUsingFallback } = useApiWithFallback(trainingsQuery, [] as Training[]);
   const createTraining = useCreateTraining();
 
   useEffect(() => {

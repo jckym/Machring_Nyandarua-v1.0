@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import { mockFarmers, mockLocalMRs } from '@/data/mockData';
 import { exportFarmersToExcel, exportFarmersToPDF } from '@/lib/exportUtils';
 import { FarmerFormDialog } from '@/components/forms/FarmerFormDialog';
 import { Farmer } from '@/types';
@@ -77,11 +76,18 @@ export function Farmers() {
   const [previewRequest, setPreviewRequest] = useState<PendingRequest | null>(null);
   const [localFarmers, setLocalFarmers] = useState<Farmer[]>([]);
 
+  // Fallback data for Local MRs
+  const fallbackLocalMRs = [
+    { id: 'mr-1', name: 'Nakuru County MR', code: 'NKR-001' },
+    { id: 'mr-2', name: 'Eldoret MR', code: 'ELD-001' },
+    { id: 'mr-3', name: 'Kisumu MR', code: 'KSM-001' },
+  ];
+
   // API hooks with fallback
   const farmersQuery = useFarmers({ search: searchQuery, localMrId: localMrFilter !== 'all' ? localMrFilter : undefined });
   const { data: farmers, isLoading, isUsingFallback } = useApiWithFallback(
     farmersQuery,
-    mockFarmers
+    [] as Farmer[]
   );
   const createFarmer = useCreateFarmer();
   const updateFarmer = useUpdateFarmer();
@@ -304,7 +310,7 @@ export function Farmers() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Local MRs</SelectItem>
-                {mockLocalMRs.map(mr => (
+                {fallbackLocalMRs.map(mr => (
                   <SelectItem key={mr.id} value={mr.id}>{mr.name}</SelectItem>
                 ))}
               </SelectContent>

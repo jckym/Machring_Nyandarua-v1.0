@@ -14,10 +14,7 @@ import {
   Download, Building2, Users, TrendingUp, ChevronRight, 
   ArrowLeft, FileText, FileSpreadsheet, Calculator 
 } from 'lucide-react';
-import { 
-  mockLocalMRs, getLocalMRCommissionSummary, getTOTsByLocalMR, 
-  calculateTOTCommission, mockTots 
-} from '@/data/mockData';
+import { useLocalMRs, useUsers, useApiWithFallback } from '@/hooks/api';
 import { toast } from 'sonner';
 
 type ViewMode = 'local-mrs' | 'tots' | 'tot-detail';
@@ -29,14 +26,57 @@ interface SelectedContext {
   totName?: string;
 }
 
+interface LocalMRSummary {
+  localMrId: string;
+  localMrName: string;
+  managerName: string;
+  totalTots: number;
+  activeTots: number;
+  totalSales: number;
+  totalCommission: number;
+}
+
+interface TOTData {
+  totId: string;
+  totName: string;
+  phone: string;
+  status: 'active' | 'inactive';
+  totalSales: number;
+  totalCommission: number;
+  mechanisationJobsCompleted: number;
+  trainingsConducted: number;
+  visitsLogged: number;
+  salesByProduct?: { productName: string; quantity: number; totalSales: number; commission: number }[];
+}
+
 export function CommissionCalculator() {
   const [viewMode, setViewMode] = useState<ViewMode>('local-mrs');
   const [selectedContext, setSelectedContext] = useState<SelectedContext>({});
 
+  // API hooks
+  const localMRsQuery = useLocalMRs();
+  const { data: localMRs } = useApiWithFallback(localMRsQuery, [] as { id: string; name: string; managerName?: string; code?: string }[]);
+  
+  const usersQuery = useUsers();
+  const { data: users } = useApiWithFallback(usersQuery, [] as { id: string; name: string; role: string; phone?: string; localMrId?: string; status: string }[]);
+
   const formatCurrency = (value: number) => `KES ${value.toLocaleString()}`;
 
-  // Calculate totals across all Local MRs
-  const allMRSummaries = mockLocalMRs.map(mr => getLocalMRCommissionSummary(mr.id));
+  // Calculate Local MR summaries from API data
+  const allMRSummaries: LocalMRSummary[] = (localMRs as any[]).map(mr => {
+    const mrTots = (users as any[]).filter(u => u.role === 'tot' && u.localMrId === mr.id);
+    const activeTots = mrTots.filter(t => t.status === 'active').length;
+    return {
+      localMrId: mr.id,
+      localMrName: mr.name,
+      managerName: mr.managerName || 'Manager',
+      totalTots: mrTots.length,
+      activeTots,
+      totalSales: 0,
+      totalCommission: 0,
+    };
+  });
+
   const totalCommission = allMRSummaries.reduce((acc, mr) => acc + mr.totalCommission, 0);
   const totalSales = allMRSummaries.reduce((acc, mr) => acc + mr.totalSales, 0);
   const totalActiveTots = allMRSummaries.reduce((acc, mr) => acc + mr.activeTots, 0);
@@ -44,11 +84,6 @@ export function CommissionCalculator() {
   const handleSelectLocalMR = (mrId: string, mrName: string) => {
     setSelectedContext({ localMrId: mrId, localMrName: mrName });
     setViewMode('tots');
-  };
-
-  const handleSelectTOT = (totId: string, totName: string) => {
-    setSelectedContext(prev => ({ ...prev, totId, totName }));
-    setViewMode('tot-detail');
   };
 
   const handleBack = () => {
@@ -63,29 +98,17 @@ export function CommissionCalculator() {
 
   const exportToPDF = () => {
     toast.success('PDF export started - downloading...');
-    // Generate text report for now
     let reportContent = `COMMISSION REPORT\n${'='.repeat(50)}\nGenerated: ${new Date().toLocaleString()}\n\n`;
     
-    if (viewMode === 'local-mrs') {
-      reportContent += `ALL LOCAL MRs SUMMARY\n${'-'.repeat(30)}\n`;
-      allMRSummaries.forEach(mr => {
-        reportContent += `\n${mr.localMrName}\n`;
-        reportContent += `  Manager: ${mr.managerName}\n`;
-        reportContent += `  Total TOTs: ${mr.totalTots} (${mr.activeTots} active)\n`;
-        reportContent += `  Total Sales: ${formatCurrency(mr.totalSales)}\n`;
-        reportContent += `  Total Commission: ${formatCurrency(mr.totalCommission)}\n`;
-      });
-      reportContent += `\n${'='.repeat(50)}\nGRAND TOTAL COMMISSION: ${formatCurrency(totalCommission)}`;
-    } else if (viewMode === 'tots' && selectedContext.localMrId) {
-      const totsData = getTOTsByLocalMR(selectedContext.localMrId);
-      reportContent += `LOCAL MR: ${selectedContext.localMrName}\n${'-'.repeat(30)}\n`;
-      totsData.forEach(tot => {
-        reportContent += `\n${tot.totName}\n`;
-        reportContent += `  Status: ${tot.status}\n`;
-        reportContent += `  Total Sales: ${formatCurrency(tot.totalSales)}\n`;
-        reportContent += `  Commission Earned: ${formatCurrency(tot.totalCommission)}\n`;
-      });
-    }
+    reportContent += `ALL LOCAL MRs SUMMARY\n${'-'.repeat(30)}\n`;
+    allMRSummaries.forEach(mr => {
+      reportContent += `\n${mr.localMrName}\n`;
+      reportContent += `  Manager: ${mr.managerName}\n`;
+      reportContent += `  Total TOTs: ${mr.totalTots} (${mr.activeTots} active)\n`;
+      reportContent += `  Total Sales: ${formatCurrency(mr.totalSales)}\n`;
+      reportContent += `  Total Commission: ${formatCurrency(mr.totalCommission)}\n`;
+    });
+    reportContent += `\n${'='.repeat(50)}\nGRAND TOTAL COMMISSION: ${formatCurrency(totalCommission)}`;
     
     const blob = new Blob([reportContent], { type: 'text/plain' });
     const link = document.createElement('a');
@@ -96,27 +119,33 @@ export function CommissionCalculator() {
 
   const exportToExcel = () => {
     toast.success('Excel export started - downloading...');
-    // CSV export
-    let csvContent = '';
-    
-    if (viewMode === 'local-mrs') {
-      csvContent = 'Local MR,Manager,TOTs,Active TOTs,Total Sales (KES),Total Commission (KES)\n';
-      allMRSummaries.forEach(mr => {
-        csvContent += `"${mr.localMrName}","${mr.managerName}",${mr.totalTots},${mr.activeTots},${mr.totalSales},${mr.totalCommission}\n`;
-      });
-    } else if (viewMode === 'tots' && selectedContext.localMrId) {
-      csvContent = 'TOT Name,Status,Phone,Total Sales (KES),Commission (KES),Jobs Completed,Trainings,Visits\n';
-      const totsData = getTOTsByLocalMR(selectedContext.localMrId);
-      totsData.forEach(tot => {
-        csvContent += `"${tot.totName}","${tot.status}","${tot.phone}",${tot.totalSales},${tot.totalCommission},${tot.mechanisationJobsCompleted},${tot.trainingsConducted},${tot.visitsLogged}\n`;
-      });
-    }
+    let csvContent = 'Local MR,Manager,TOTs,Active TOTs,Total Sales (KES),Total Commission (KES)\n';
+    allMRSummaries.forEach(mr => {
+      csvContent += `"${mr.localMrName}","${mr.managerName}",${mr.totalTots},${mr.activeTots},${mr.totalSales},${mr.totalCommission}\n`;
+    });
     
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = `commission_data_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
+  };
+
+  // Get TOTs for selected Local MR
+  const getTOTsForMR = (mrId: string): TOTData[] => {
+    const mrTots = (users as any[]).filter(u => u.role === 'tot' && u.localMrId === mrId);
+    return mrTots.map(tot => ({
+      totId: tot.id,
+      totName: tot.name,
+      phone: tot.phone || '',
+      status: tot.status === 'active' ? 'active' : 'inactive',
+      totalSales: 0,
+      totalCommission: 0,
+      mechanisationJobsCompleted: 0,
+      trainingsConducted: 0,
+      visitsLogged: 0,
+      salesByProduct: [],
+    }));
   };
 
   // Render Local MRs view
@@ -131,7 +160,7 @@ export function CommissionCalculator() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Local MRs</p>
-              <p className="text-2xl font-bold font-heading">{mockLocalMRs.length}</p>
+              <p className="text-2xl font-bold font-heading">{(localMRs as any[]).length}</p>
             </div>
           </CardContent>
         </Card>
@@ -189,38 +218,46 @@ export function CommissionCalculator() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {allMRSummaries.map((mr) => (
-                <TableRow 
-                  key={mr.localMrId} 
-                  className="cursor-pointer hover:bg-muted/50 transition-colors"
-                  onClick={() => handleSelectLocalMR(mr.localMrId, mr.localMrName)}
-                >
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <Building2 className="w-5 h-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium">{mr.localMrName}</p>
-                        <p className="text-xs text-muted-foreground">{mr.activeTots} active TOTs</p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{mr.managerName}</TableCell>
-                  <TableCell className="text-center">
-                    <Badge variant="outline">{mr.totalTots}</Badge>
-                  </TableCell>
-                  <TableCell className="text-right font-medium">
-                    {formatCurrency(mr.totalSales)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <span className="font-bold text-primary">{formatCurrency(mr.totalCommission)}</span>
-                  </TableCell>
-                  <TableCell>
-                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
+              {allMRSummaries.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    No Local MRs found
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                allMRSummaries.map((mr) => (
+                  <TableRow 
+                    key={mr.localMrId} 
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => handleSelectLocalMR(mr.localMrId, mr.localMrName)}
+                  >
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <Building2 className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{mr.localMrName}</p>
+                          <p className="text-xs text-muted-foreground">{mr.activeTots} active TOTs</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>{mr.managerName}</TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant="outline">{mr.totalTots}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-medium">
+                      {formatCurrency(mr.totalSales)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className="font-bold text-primary">{formatCurrency(mr.totalCommission)}</span>
+                    </TableCell>
+                    <TableCell>
+                      <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -232,8 +269,8 @@ export function CommissionCalculator() {
   const renderTOTsView = () => {
     if (!selectedContext.localMrId) return null;
     
-    const totsData = getTOTsByLocalMR(selectedContext.localMrId);
-    const mrSummary = getLocalMRCommissionSummary(selectedContext.localMrId);
+    const totsData = getTOTsForMR(selectedContext.localMrId);
+    const mrSummary = allMRSummaries.find(m => m.localMrId === selectedContext.localMrId);
 
     return (
       <>
@@ -242,25 +279,25 @@ export function CommissionCalculator() {
           <Card>
             <CardContent className="p-4">
               <p className="text-sm text-muted-foreground">Total TOTs</p>
-              <p className="text-2xl font-bold">{mrSummary.totalTots}</p>
+              <p className="text-2xl font-bold">{mrSummary?.totalTots || 0}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
               <p className="text-sm text-muted-foreground">Active</p>
-              <p className="text-2xl font-bold text-green-600">{mrSummary.activeTots}</p>
+              <p className="text-2xl font-bold text-green-600">{mrSummary?.activeTots || 0}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
               <p className="text-sm text-muted-foreground">Total Sales</p>
-              <p className="text-2xl font-bold">{formatCurrency(mrSummary.totalSales)}</p>
+              <p className="text-2xl font-bold">{formatCurrency(mrSummary?.totalSales || 0)}</p>
             </CardContent>
           </Card>
           <Card variant="forest">
             <CardContent className="p-4">
               <p className="text-sm opacity-80">Total Commission</p>
-              <p className="text-2xl font-bold">{formatCurrency(mrSummary.totalCommission)}</p>
+              <p className="text-2xl font-bold">{formatCurrency(mrSummary?.totalCommission || 0)}</p>
             </CardContent>
           </Card>
         </div>
@@ -324,40 +361,6 @@ export function CommissionCalculator() {
             </Table>
           </CardContent>
         </Card>
-
-        {/* Product Breakdown for first TOT with sales */}
-        {totsData.length > 0 && totsData[0].salesByProduct && totsData[0].salesByProduct.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Product-wise Commission Breakdown</CardTitle>
-              <p className="text-sm text-muted-foreground">Showing breakdown for {totsData[0].totName}</p>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Product</TableHead>
-                    <TableHead className="text-center">Quantity Sold</TableHead>
-                    <TableHead className="text-right">Total Sales</TableHead>
-                    <TableHead className="text-right">Commission Earned</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {totsData[0].salesByProduct.map((product, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell className="font-medium">{product.productName}</TableCell>
-                      <TableCell className="text-center">{product.quantity}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(product.totalSales)}</TableCell>
-                      <TableCell className="text-right font-semibold text-primary">
-                        {formatCurrency(product.commission)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        )}
       </>
     );
   };
@@ -404,30 +407,10 @@ export function CommissionCalculator() {
           </Button>
           <ChevronRight className="w-4 h-4" />
           <span className="text-foreground font-medium">{selectedContext.localMrName}</span>
-          {viewMode === 'tot-detail' && selectedContext.totName && (
-            <>
-              <ChevronRight className="w-4 h-4" />
-              <span className="text-foreground font-medium">{selectedContext.totName}</span>
-            </>
-          )}
         </div>
       )}
 
-      {/* Info Banner */}
-      <Card className="bg-blue-50 border-blue-200">
-        <CardContent className="p-4 flex items-start gap-3">
-          <Calculator className="w-5 h-5 text-blue-600 mt-0.5" />
-          <div className="text-sm">
-            <p className="font-medium text-blue-900">Commission is auto-calculated</p>
-            <p className="text-blue-700">
-              Commission is automatically calculated based on <strong>completed sales only</strong>. 
-              Products without "Completed" status do not earn commission. All values are in Kenyan Shillings (KES).
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Main Content */}
+      {/* Content */}
       {viewMode === 'local-mrs' && renderLocalMRsView()}
       {viewMode === 'tots' && renderTOTsView()}
     </div>

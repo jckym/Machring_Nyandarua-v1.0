@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { mockMechanisationJobs } from '@/data/mockData';
-import { Search, Plus, Tractor, Calendar, Filter, Download, MapPin, Clock, CheckCircle, XCircle, MoreVertical, FileSpreadsheet, FileText } from 'lucide-react';
+import { Search, Plus, Tractor, Calendar, Download, MapPin, Clock, CheckCircle, XCircle, MoreVertical, FileSpreadsheet, FileText, FileCheck } from 'lucide-react';
 import { exportMechanisationToExcel, exportMechanisationToPDF } from '@/lib/exportUtils';
 import { MechanisationFormDialog } from '@/components/forms/MechanisationFormDialog';
 import { useNotifications } from '@/contexts/NotificationContext';
@@ -17,18 +17,36 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 export function Mechanisation() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [jobs, setJobs] = useState(mockMechanisationJobs);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [selectedJob, setSelectedJob] = useState<MechanisationJob | null>(null);
+  const [showReportDialog, setShowReportDialog] = useState(false);
   const { addNotification } = useNotifications();
   const { user } = useAuth();
 
-  const filteredJobs = jobs.filter(job =>
-    job.farmerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    job.serviceType.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredJobs = jobs.filter(job => {
+    const matchesSearch = job.farmerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      job.serviceType.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || job.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   const totalRevenue = jobs.reduce((acc, job) => acc + job.totalPrice, 0);
   const totalAcreage = jobs.reduce((acc, job) => acc + job.acreage, 0);
@@ -203,10 +221,19 @@ export function Mechanisation() {
                 className="pl-10 h-10"
               />
             </div>
-            <Button variant="outline" size="sm" className="w-full sm:w-auto">
-              <Filter className="w-4 h-4 mr-2" />
-              Filters
-            </Button>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="pending-approval">Pending Approval</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="in-progress">In Progress</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
@@ -250,6 +277,25 @@ export function Mechanisation() {
                 </div>
               </div>
               
+              {/* Completion Report for completed jobs */}
+              {job.status === 'completed' && job.completionReport && (
+                <div className="mt-3 p-3 bg-success/10 rounded-lg border border-success/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FileCheck className="w-4 h-4 text-success" />
+                    <span className="text-xs font-semibold text-success">Completion Report</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground line-clamp-2">{job.completionReport.summary}</p>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="mt-2 h-7 text-xs p-0 text-primary"
+                    onClick={() => { setSelectedJob(job); setShowReportDialog(true); }}
+                  >
+                    View Full Report
+                  </Button>
+                </div>
+              )}
+              
               <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-border flex gap-2">
                 <Button variant="outline" size="sm" className="flex-1 text-xs h-8 sm:h-9">Details</Button>
                 {job.status === 'pending-approval' && isManager && (
@@ -288,6 +334,42 @@ export function Mechanisation() {
         onOpenChange={setIsFormOpen}
         onSubmit={handleAddJob}
       />
+
+      {/* Completion Report Dialog */}
+      <Dialog open={showReportDialog} onOpenChange={setShowReportDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileCheck className="w-5 h-5 text-success" />
+              Completion Report
+            </DialogTitle>
+          </DialogHeader>
+          {selectedJob?.completionReport && (
+            <div className="space-y-4">
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">Summary</h4>
+                <p className="text-sm">{selectedJob.completionReport.summary}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Duration</h4>
+                  <p className="text-sm font-medium">{selectedJob.completionReport.duration}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Completed At</h4>
+                  <p className="text-sm font-medium">
+                    {new Date(selectedJob.completionReport.completedAt).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">Outcome</h4>
+                <p className="text-sm">{selectedJob.completionReport.outcome}</p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

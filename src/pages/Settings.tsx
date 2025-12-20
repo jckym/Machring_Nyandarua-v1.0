@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from 'next-themes';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,11 +23,15 @@ import {
   Camera,
   Save,
   RefreshCw,
+  Upload,
 } from 'lucide-react';
 
 export function Settings() {
   const { user } = useAuth();
+  const { theme, setTheme } = useTheme();
   const [activeTab, setActiveTab] = useState('profile');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
   
   // Profile state
   const [profileData, setProfileData] = useState({
@@ -44,7 +49,6 @@ export function Settings() {
     dailyDigest: false,
     language: 'en',
     timezone: 'Africa/Nairobi',
-    theme: 'system',
     compactMode: false,
   });
 
@@ -74,6 +78,22 @@ export function Settings() {
     }
     toast.success('Password changed successfully');
     setSecurityData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  };
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error('Image must be less than 2MB');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfileImage(reader.result as string);
+        toast.success('Profile picture updated');
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   return (
@@ -118,12 +138,23 @@ export function Settings() {
             <CardContent className="space-y-6">
               {/* Avatar Section */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-2xl font-bold text-primary">
-                  {user?.name?.split(' ').map(n => n[0]).join('')}
+                <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-2xl font-bold text-primary overflow-hidden">
+                  {profileImage ? (
+                    <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    user?.name?.split(' ').map(n => n[0]).join('')
+                  )}
                 </div>
                 <div className="space-y-2">
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <Camera className="w-4 h-4" />
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleImageUpload}
+                    accept="image/jpeg,image/png,image/gif"
+                    className="hidden"
+                  />
+                  <Button variant="outline" size="sm" className="gap-2" onClick={() => fileInputRef.current?.click()}>
+                    <Upload className="w-4 h-4" />
                     Change Photo
                   </Button>
                   <p className="text-xs text-muted-foreground">JPG, GIF or PNG. Max size 2MB</p>
@@ -289,8 +320,8 @@ export function Settings() {
                 <div className="space-y-2">
                   <Label>Theme</Label>
                   <Select
-                    value={preferences.theme}
-                    onValueChange={(value) => setPreferences({ ...preferences, theme: value })}
+                    value={theme}
+                    onValueChange={(value) => setTheme(value)}
                   >
                     <SelectTrigger className="w-full md:w-[200px]">
                       <SelectValue />
@@ -335,7 +366,12 @@ export function Settings() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="en">English</SelectItem>
-                        <SelectItem value="sw">Swahili</SelectItem>
+                        <SelectItem value="sw" disabled>
+                          <span className="flex items-center gap-2">
+                            Swahili
+                            <Badge variant="outline" className="text-xs">Coming Soon</Badge>
+                          </span>
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -412,41 +448,6 @@ export function Settings() {
                   <RefreshCw className="w-4 h-4" />
                   Update Password
                 </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="w-5 h-5" />
-                Security Settings
-              </CardTitle>
-              <CardDescription>Additional security options for your account</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium">Two-Factor Authentication</p>
-                  <p className="text-xs text-muted-foreground">Add an extra layer of security</p>
-                </div>
-                <Button variant="outline" size="sm">Enable</Button>
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium">Active Sessions</p>
-                  <p className="text-xs text-muted-foreground">Manage your active login sessions</p>
-                </div>
-                <Button variant="outline" size="sm">View Sessions</Button>
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium">Login History</p>
-                  <p className="text-xs text-muted-foreground">View your recent login activity</p>
-                </div>
-                <Button variant="outline" size="sm">View History</Button>
               </div>
             </CardContent>
           </Card>

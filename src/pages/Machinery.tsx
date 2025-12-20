@@ -1,15 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { mockMachinery } from '@/data/mockData';
-import {
-  Plus, Tractor,
-  CheckCircle, Clock, MoreVertical, Wrench
-} from 'lucide-react';
+import { Plus, Tractor, CheckCircle, Clock, MoreVertical, Wrench, WifiOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { useMachinery, useCreateMachinery, useUpdateMachineryStatus, useApiWithFallback } from '@/hooks/api';
 import {
   Dialog,
   DialogContent,
@@ -34,10 +33,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { MachineryStatus } from '@/types';
 
-/* =======================
-   Local Types
-======================= */
-
 interface MachineryItem {
   id: string;
   name: string;
@@ -50,47 +45,30 @@ interface MachineryItem {
   createdAt?: Date;
 }
 
-/* =======================
-   Helpers
-======================= */
-
 const getStatusColor = (status: MachineryStatus) => {
   switch (status) {
-    case 'available':
-      return 'success';
-    case 'booked':
-      return 'warning';
-    case 'maintenance':
-      return 'destructive';
-    default:
-      return 'secondary';
+    case 'available': return 'success';
+    case 'booked': return 'warning';
+    case 'maintenance': return 'destructive';
+    default: return 'secondary';
   }
 };
 
 const getStatusIcon = (status: MachineryStatus) => {
   switch (status) {
-    case 'available':
-      return <CheckCircle className="w-4 h-4" />;
-    case 'booked':
-      return <Clock className="w-4 h-4" />;
-    case 'maintenance':
-      return <Wrench className="w-4 h-4" />;
-    default:
-      return null;
+    case 'available': return <CheckCircle className="w-4 h-4" />;
+    case 'booked': return <Clock className="w-4 h-4" />;
+    case 'maintenance': return <Wrench className="w-4 h-4" />;
+    default: return null;
   }
 };
 
-const formatCurrency = (value: number) =>
-  `KES ${value.toLocaleString()}`;
-
-/* =======================
-   Component
-======================= */
+const formatCurrency = (value: number) => `KES ${value.toLocaleString()}`;
 
 export function Machinery() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [machinery, setMachinery] = useState<MachineryItem[]>(mockMachinery);
+  const [localMachinery, setLocalMachinery] = useState<MachineryItem[]>([]);
 
   const [newMachinery, setNewMachinery] = useState<{
     name: string;
@@ -108,17 +86,28 @@ export function Machinery() {
 
   const { user } = useAuth();
   const { addNotification } = useNotifications();
-
   const isAdmin = user?.role === 'admin';
 
-  const filteredMachinery = machinery.filter(m =>
+  // API hooks with fallback
+  const machineryQuery = useMachinery();
+  const { data: machinery, isLoading, isUsingFallback } = useApiWithFallback(machineryQuery, mockMachinery);
+  const createMachinery = useCreateMachinery();
+  const updateStatus = useUpdateMachineryStatus();
+
+  useEffect(() => {
+    if (machinery && Array.isArray(machinery)) {
+      setLocalMachinery(machinery);
+    }
+  }, [machinery]);
+
+  const filteredMachinery = localMachinery.filter(m =>
     m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     m.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const availableCount = machinery.filter(m => m.status === 'available').length;
-  const bookedCount = machinery.filter(m => m.status === 'booked').length;
-  const maintenanceCount = machinery.filter(m => m.status === 'maintenance').length;
+  const availableCount = localMachinery.filter(m => m.status === 'available').length;
+  const bookedCount = localMachinery.filter(m => m.status === 'booked').length;
+  const maintenanceCount = localMachinery.filter(m => m.status === 'maintenance').length;
 
   const handleAddMachinery = () => {
     if (!newMachinery.name || !newMachinery.category || !newMachinery.pricePerAcre) {
@@ -135,9 +124,14 @@ export function Machinery() {
       description: newMachinery.description,
     };
 
-    setMachinery(prev => [...prev, newItem]);
-    setIsAddDialogOpen(false);
+    if (!isUsingFallback) {
+      createMachinery.mutate(newItem as any);
+    } else {
+      setLocalMachinery(prev => [...prev, newItem]);
+      toast.success('Machinery added successfully (offline mode)');
+    }
 
+    setIsAddDialogOpen(false);
     setNewMachinery({
       name: '',
       category: '',
@@ -146,8 +140,6 @@ export function Machinery() {
       description: '',
     });
 
-    toast.success('Machinery added successfully');
-
     addNotification({
       title: 'New Machinery Added',
       message: `${newItem.name} has been added to the fleet`,
@@ -155,20 +147,43 @@ export function Machinery() {
     });
   };
 
-  const handleStatusChange = (
-    machineryId: string,
-    newStatus: MachineryStatus
-  ) => {
-    setMachinery(prev =>
-      prev.map(m =>
-        m.id === machineryId ? { ...m, status: newStatus } : m
-      )
-    );
-    toast.success('Status updated');
+  const handleStatusChange = (machineryId: string, newStatus: MachineryStatus) => {
+    if (!isUsingFallback) {
+      updateStatus.mutate({ id: machineryId, status: newStatus });
+    } else {
+      setLocalMachinery(prev =>
+        prev.map(m => m.id === machineryId ? { ...m, status: newStatus } : m)
+      );
+      toast.success('Status updated (offline mode)');
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <div className="grid grid-cols-3 gap-4">
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-24" />)}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-40" />)}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
+      {/* Offline Banner */}
+      {isUsingFallback && (
+        <div className="bg-warning/10 border border-warning/20 rounded-lg p-3 flex items-center gap-2 text-warning">
+          <WifiOff className="w-4 h-4" />
+          <span className="text-sm">Using offline data. Changes will sync when connection is restored.</span>
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex justify-between items-center">

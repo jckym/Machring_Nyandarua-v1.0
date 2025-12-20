@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { mockTrainings } from '@/data/mockData';
-import { Search, Plus, GraduationCap, Calendar, MapPin, Users, Clock, Filter, Download, FileSpreadsheet, FileText } from 'lucide-react';
+import { Search, Plus, GraduationCap, Calendar, MapPin, Users, Clock, Filter, Download, FileSpreadsheet, FileText, WifiOff } from 'lucide-react';
 import { exportTrainingsToExcel, exportTrainingsToPDF } from '@/lib/exportUtils';
 import {
   DropdownMenu,
@@ -16,32 +17,48 @@ import { TrainingFormDialog } from '@/components/forms/TrainingFormDialog';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { toast } from 'sonner';
 import { Training } from '@/types';
+import { useTrainings, useCreateTraining, useApiWithFallback } from '@/hooks/api';
 
 export function Trainings() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [trainings, setTrainings] = useState(mockTrainings);
+  const [localTrainings, setLocalTrainings] = useState<Training[]>([]);
   const { addNotification } = useNotifications();
 
-  const filteredTrainings = trainings.filter(training =>
+  // API hooks with fallback
+  const trainingsQuery = useTrainings();
+  const { data: trainings, isLoading, isUsingFallback } = useApiWithFallback(trainingsQuery, mockTrainings);
+  const createTraining = useCreateTraining();
+
+  useEffect(() => {
+    if (trainings && Array.isArray(trainings)) {
+      setLocalTrainings(trainings);
+    }
+  }, [trainings]);
+
+  const filteredTrainings = localTrainings.filter(training =>
     training.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     training.type.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const totalAttendees = trainings.reduce((acc, t) => acc + t.attendees.length, 0);
-  const totalHours = trainings.reduce((acc, t) => acc + t.duration, 0);
+  const totalAttendees = localTrainings.reduce((acc, t) => acc + t.attendees.length, 0);
+  const totalHours = localTrainings.reduce((acc, t) => acc + t.duration, 0);
 
   const handleAddTraining = (data: Partial<Training>) => {
-    const newTraining: Training = {
-      id: `training-${Date.now()}`,
-      ...data as any,
-      attendees: [],
-    };
-    setTrainings(prev => [...prev, newTraining]);
-    toast.success('Training scheduled successfully');
+    if (!isUsingFallback) {
+      createTraining.mutate(data as any);
+    } else {
+      const newTraining: Training = {
+        id: `training-${Date.now()}`,
+        ...data as any,
+        attendees: [],
+      };
+      setLocalTrainings(prev => [...prev, newTraining]);
+      toast.success('Training scheduled successfully (offline mode)');
+    }
     addNotification({
       title: 'New Training Scheduled',
-      message: `${newTraining.title} scheduled for ${new Date(newTraining.date).toLocaleDateString()}`,
+      message: `Training scheduled`,
       type: 'training',
     });
   };
@@ -51,24 +68,45 @@ export function Trainings() {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
-    }).format(date);
+    }).format(new Date(date));
   };
 
   const getTypeColor = (type: string) => {
     switch (type.toLowerCase()) {
-      case 'workshop':
-        return 'forest';
-      case 'field day':
-        return 'wheat';
-      case 'seminar':
-        return 'earth';
-      default:
-        return 'sage';
+      case 'workshop': return 'forest';
+      case 'field day': return 'wheat';
+      case 'seminar': return 'earth';
+      default: return 'sage';
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24" />)}
+        </div>
+        <div className="space-y-4">
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-40" />)}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 sm:space-y-6">
+      {/* Offline Banner */}
+      {isUsingFallback && (
+        <div className="bg-warning/10 border border-warning/20 rounded-lg p-3 flex items-center gap-2 text-warning">
+          <WifiOff className="w-4 h-4" />
+          <span className="text-sm">Using offline data. Changes will sync when connection is restored.</span>
+        </div>
+      )}
+
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
@@ -109,7 +147,7 @@ export function Trainings() {
               <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
-              <p className="text-lg sm:text-2xl font-bold font-heading">{mockTrainings.length}</p>
+              <p className="text-lg sm:text-2xl font-bold font-heading">{localTrainings.length}</p>
               <p className="text-xs sm:text-sm opacity-80">Sessions</p>
             </div>
           </div>
@@ -142,8 +180,10 @@ export function Trainings() {
               <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-700" />
             </div>
             <div>
-              <p className="text-lg sm:text-2xl font-bold font-heading text-emerald-700">3</p>
-              <p className="text-xs sm:text-sm text-muted-foreground">This Month</p>
+              <p className="text-lg sm:text-2xl font-bold font-heading text-emerald-700">
+                {localTrainings.filter(t => t.status === 'Upcoming').length}
+              </p>
+              <p className="text-xs sm:text-sm text-muted-foreground">Upcoming</p>
             </div>
           </div>
         </Card>

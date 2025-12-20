@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { mockVisits } from '@/data/mockData';
-import { Search, Plus, MapPin, Calendar, Filter, Camera, MessageSquare, Download, FileSpreadsheet, FileText } from 'lucide-react';
+import { Search, Plus, MapPin, Calendar, Filter, Camera, MessageSquare, Download, FileSpreadsheet, FileText, WifiOff } from 'lucide-react';
 import { exportVisitsToExcel, exportVisitsToPDF } from '@/lib/exportUtils';
 import {
   DropdownMenu,
@@ -16,28 +17,44 @@ import { VisitFormDialog } from '@/components/forms/VisitFormDialog';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { toast } from 'sonner';
 import { Visit } from '@/types';
+import { useVisits, useCreateVisit, useApiWithFallback } from '@/hooks/api';
 
 export function Visits() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [visits, setVisits] = useState(mockVisits);
+  const [localVisits, setLocalVisits] = useState<Visit[]>([]);
   const { addNotification } = useNotifications();
 
-  const filteredVisits = visits.filter(visit =>
+  // API hooks with fallback
+  const visitsQuery = useVisits();
+  const { data: visits, isLoading, isUsingFallback } = useApiWithFallback(visitsQuery, mockVisits);
+  const createVisit = useCreateVisit();
+
+  useEffect(() => {
+    if (visits && Array.isArray(visits)) {
+      setLocalVisits(visits);
+    }
+  }, [visits]);
+
+  const filteredVisits = localVisits.filter(visit =>
     visit.farmerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     visit.purpose.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleAddVisit = (data: Partial<Visit>) => {
-    const newVisit: Visit = {
-      id: `visit-${Date.now()}`,
-      ...data as any,
-    };
-    setVisits(prev => [newVisit, ...prev]);
-    toast.success('Visit logged successfully');
+    if (!isUsingFallback) {
+      createVisit.mutate(data as any);
+    } else {
+      const newVisit: Visit = {
+        id: `visit-${Date.now()}`,
+        ...data as any,
+      };
+      setLocalVisits(prev => [newVisit, ...prev]);
+      toast.success('Visit logged successfully (offline mode)');
+    }
     addNotification({
       title: 'Field Visit Logged',
-      message: `Visit to ${newVisit.farmerName} recorded`,
+      message: `Visit recorded`,
       type: 'visit',
     });
   };
@@ -47,11 +64,48 @@ export function Visits() {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
-    }).format(date);
+    }).format(new Date(date));
   };
+
+  // Calculate stats
+  const thisWeekVisits = localVisits.filter(v => {
+    const visitDate = new Date(v.date);
+    const now = new Date();
+    const weekStart = new Date(now.setDate(now.getDate() - now.getDay()));
+    return visitDate >= weekStart;
+  }).length;
+
+  const withPhotos = 0; // Photo URLs not in type - will show 0 for now
+  const gpsTagged = localVisits.filter(v => v.gpsLocation).length;
+  const gpsPercentage = localVisits.length > 0 ? Math.round((gpsTagged / localVisits.length) * 100) : 0;
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24" />)}
+        </div>
+        <div className="space-y-4">
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-40" />)}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      {/* Offline Banner */}
+      {isUsingFallback && (
+        <div className="bg-warning/10 border border-warning/20 rounded-lg p-3 flex items-center gap-2 text-warning">
+          <WifiOff className="w-4 h-4" />
+          <span className="text-sm">Using offline data. Changes will sync when connection is restored.</span>
+        </div>
+      )}
+
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
@@ -92,7 +146,7 @@ export function Visits() {
               <MapPin className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
-              <p className="text-lg sm:text-2xl font-bold font-heading">{mockVisits.length}</p>
+              <p className="text-lg sm:text-2xl font-bold font-heading">{localVisits.length}</p>
               <p className="text-xs sm:text-sm opacity-80">Total Visits</p>
             </div>
           </div>
@@ -103,7 +157,7 @@ export function Visits() {
               <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
             </div>
             <div>
-              <p className="text-lg sm:text-2xl font-bold font-heading text-primary">12</p>
+              <p className="text-lg sm:text-2xl font-bold font-heading text-primary">{thisWeekVisits}</p>
               <p className="text-xs sm:text-sm text-muted-foreground">This Week</p>
             </div>
           </div>
@@ -114,7 +168,7 @@ export function Visits() {
               <Camera className="w-4 h-4 sm:w-5 sm:h-5 text-accent-foreground" />
             </div>
             <div>
-              <p className="text-lg sm:text-2xl font-bold font-heading text-accent-foreground">8</p>
+              <p className="text-lg sm:text-2xl font-bold font-heading text-accent-foreground">{withPhotos}</p>
               <p className="text-xs sm:text-sm text-muted-foreground">With Photos</p>
             </div>
           </div>
@@ -125,7 +179,7 @@ export function Visits() {
               <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-700" />
             </div>
             <div>
-              <p className="text-lg sm:text-2xl font-bold font-heading text-emerald-700">95%</p>
+              <p className="text-lg sm:text-2xl font-bold font-heading text-emerald-700">{gpsPercentage}%</p>
               <p className="text-xs sm:text-sm text-muted-foreground">GPS Tagged</p>
             </div>
           </div>

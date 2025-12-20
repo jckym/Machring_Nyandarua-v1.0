@@ -1,13 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Skeleton } from '@/components/ui/skeleton';
 import { mockProducts as initialProducts, productCategories } from '@/data/mockData';
-import { Search, Plus, Package, Filter, AlertTriangle, TrendingUp, Edit, RefreshCw } from 'lucide-react';
+import { Search, Plus, Package, Filter, AlertTriangle, TrendingUp, Edit, RefreshCw, WifiOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useProducts, useCreateProduct, useUpdateProduct, useApiWithFallback } from '@/hooks/api';
 import {
   Dialog,
   DialogContent,
@@ -28,7 +30,7 @@ import { Product, ProductCategory } from '@/types';
 export function Products() {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [localProducts, setLocalProducts] = useState<Product[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isStockDialogOpen, setIsStockDialogOpen] = useState(false);
@@ -46,16 +48,28 @@ export function Products() {
     description: '',
   });
 
-  const filteredProducts = products.filter(product => {
+  // API hooks with fallback
+  const productsQuery = useProducts();
+  const { data: products, isLoading, isUsingFallback } = useApiWithFallback(productsQuery, initialProducts);
+  const createProduct = useCreateProduct();
+  const updateProduct = useUpdateProduct();
+
+  useEffect(() => {
+    if (products && Array.isArray(products)) {
+      setLocalProducts(products);
+    }
+  }, [products]);
+
+  const filteredProducts = localProducts.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.category.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
 
-  const lowStockProducts = products.filter(p => p.inStock < 100);
-  const totalValue = products.reduce((acc, p) => acc + (p.inStock * p.unitPrice), 0);
-  const categories = [...new Set(products.map(p => p.category))];
+  const lowStockProducts = localProducts.filter(p => p.inStock < 100);
+  const totalValue = localProducts.reduce((acc, p) => acc + (p.inStock * p.unitPrice), 0);
+  const categories = [...new Set(localProducts.map(p => p.category))];
 
   const resetForm = () => {
     setFormData({
@@ -70,12 +84,8 @@ export function Products() {
   };
 
   const formatCurrency = (value: number) => {
-    if (value >= 1000000) {
-      return `KES ${(value / 1000000).toFixed(1)}M`;
-    }
-    if (value >= 1000) {
-      return `KES ${(value / 1000).toFixed(0)}K`;
-    }
+    if (value >= 1000000) return `KES ${(value / 1000000).toFixed(1)}M`;
+    if (value >= 1000) return `KES ${(value / 1000).toFixed(0)}K`;
     return `KES ${value.toLocaleString()}`;
   };
 
@@ -91,14 +101,17 @@ export function Products() {
       return;
     }
 
-    const newProduct: Product = {
-      id: `prod-${Date.now()}`,
-      ...formData,
-      createdAt: new Date(),
-    };
-
-    setProducts(prev => [...prev, newProduct]);
-    toast.success('Product added successfully');
+    if (!isUsingFallback) {
+      createProduct.mutate(formData as any);
+    } else {
+      const newProduct: Product = {
+        id: `prod-${Date.now()}`,
+        ...formData,
+        createdAt: new Date(),
+      };
+      setLocalProducts(prev => [...prev, newProduct]);
+      toast.success('Product added successfully (offline mode)');
+    }
     setIsAddDialogOpen(false);
     resetForm();
   };
@@ -120,12 +133,16 @@ export function Products() {
   const handleUpdateProduct = () => {
     if (!selectedProduct) return;
 
-    setProducts(prev => prev.map(p => 
-      p.id === selectedProduct.id 
-        ? { ...p, ...formData, lastEditedAt: new Date() }
-        : p
-    ));
-    toast.success('Product updated successfully');
+    if (!isUsingFallback) {
+      updateProduct.mutate({ id: selectedProduct.id, data: formData as any });
+    } else {
+      setLocalProducts(prev => prev.map(p => 
+        p.id === selectedProduct.id 
+          ? { ...p, ...formData, lastEditedAt: new Date() }
+          : p
+      ));
+      toast.success('Product updated successfully (offline mode)');
+    }
     setIsEditDialogOpen(false);
     setSelectedProduct(null);
     resetForm();
@@ -143,7 +160,7 @@ export function Products() {
       return;
     }
 
-    setProducts(prev => prev.map(p => {
+    setLocalProducts(prev => prev.map(p => {
       if (p.id === selectedProduct.id) {
         const newStock = stockUpdate.type === 'add' 
           ? p.inStock + stockUpdate.quantity 
@@ -158,8 +175,33 @@ export function Products() {
     setSelectedProduct(null);
   };
 
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24" />)}
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+          {[1, 2, 3, 4, 5, 6].map(i => <Skeleton key={i} className="h-64" />)}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 sm:space-y-6">
+      {/* Offline Banner */}
+      {isUsingFallback && (
+        <div className="bg-warning/10 border border-warning/20 rounded-lg p-3 flex items-center gap-2 text-warning">
+          <WifiOff className="w-4 h-4" />
+          <span className="text-sm">Using offline data. Changes will sync when connection is restored.</span>
+        </div>
+      )}
+
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
@@ -184,7 +226,7 @@ export function Products() {
               <Package className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
-              <p className="text-lg sm:text-2xl font-bold font-heading">{products.length}</p>
+              <p className="text-lg sm:text-2xl font-bold font-heading">{localProducts.length}</p>
               <p className="text-xs sm:text-sm opacity-80">Products</p>
             </div>
           </div>
@@ -479,13 +521,13 @@ export function Products() {
         </DialogContent>
       </Dialog>
 
-      {/* Update Stock Dialog */}
+      {/* Stock Update Dialog */}
       <Dialog open={isStockDialogOpen} onOpenChange={setIsStockDialogOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Update Stock</DialogTitle>
             <DialogDescription>
-              {selectedProduct?.name} - Current stock: {selectedProduct?.inStock} units
+              Current stock: {selectedProduct?.inStock} units
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -508,9 +550,9 @@ export function Products() {
               <Label>Quantity</Label>
               <Input
                 type="number"
-                min="1"
                 value={stockUpdate.quantity}
                 onChange={(e) => setStockUpdate({ ...stockUpdate, quantity: parseInt(e.target.value) || 0 })}
+                min={0}
               />
             </div>
             <div className="flex gap-3 pt-4">

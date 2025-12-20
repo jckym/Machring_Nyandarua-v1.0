@@ -1,16 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { mockMechanisationJobs } from '@/data/mockData';
-import { Search, Plus, Tractor, Calendar, Download, MapPin, Clock, CheckCircle, XCircle, MoreVertical, FileSpreadsheet, FileText, FileCheck } from 'lucide-react';
+import { Search, Plus, Tractor, Calendar, Download, MapPin, Clock, CheckCircle, XCircle, FileSpreadsheet, FileText, FileCheck, WifiOff } from 'lucide-react';
 import { exportMechanisationToExcel, exportMechanisationToPDF } from '@/lib/exportUtils';
 import { MechanisationFormDialog } from '@/components/forms/MechanisationFormDialog';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { MechanisationJob } from '@/types';
+import { useMechanisationJobs, useCreateMechanisation, useApiWithFallback } from '@/hooks/api';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,41 +36,56 @@ import {
 export function Mechanisation() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [jobs, setJobs] = useState(mockMechanisationJobs);
+  const [localJobs, setLocalJobs] = useState<MechanisationJob[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedJob, setSelectedJob] = useState<MechanisationJob | null>(null);
   const [showReportDialog, setShowReportDialog] = useState(false);
   const { addNotification } = useNotifications();
   const { user } = useAuth();
 
-  const filteredJobs = jobs.filter(job => {
+  // API hooks with fallback
+  const mechQuery = useMechanisationJobs();
+  const { data: jobs, isLoading, isUsingFallback } = useApiWithFallback(mechQuery, mockMechanisationJobs);
+  const createMech = useCreateMechanisation();
+
+  useEffect(() => {
+    if (jobs && Array.isArray(jobs)) {
+      setLocalJobs(jobs);
+    }
+  }, [jobs]);
+
+  const filteredJobs = localJobs.filter(job => {
     const matchesSearch = job.farmerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.serviceType.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || job.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const totalRevenue = jobs.reduce((acc, job) => acc + job.totalPrice, 0);
-  const totalAcreage = jobs.reduce((acc, job) => acc + job.acreage, 0);
+  const totalRevenue = localJobs.reduce((acc, job) => acc + job.totalPrice, 0);
+  const totalAcreage = localJobs.reduce((acc, job) => acc + job.acreage, 0);
 
   const handleAddJob = (data: Partial<MechanisationJob>) => {
-    const newJob: MechanisationJob = {
-      id: `mech-${Date.now()}`,
-      ...data as any,
-      status: 'pending-approval',
-    };
-    setJobs(prev => [...prev, newJob]);
-    toast.success('Booking submitted for approval');
+    if (!isUsingFallback) {
+      createMech.mutate(data as any);
+    } else {
+      const newJob: MechanisationJob = {
+        id: `mech-${Date.now()}`,
+        ...data as any,
+        status: 'pending-approval',
+      };
+      setLocalJobs(prev => [...prev, newJob]);
+      toast.success('Booking submitted for approval (offline mode)');
+    }
     addNotification({
       title: 'New Mechanisation Booking',
-      message: `${newJob.serviceType} booking for ${newJob.farmerName} pending approval`,
+      message: `Booking pending approval`,
       type: 'mechanisation',
     });
   };
 
   const handleApprove = (jobId: string) => {
-    setJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: 'approved' as const } : j));
-    const job = jobs.find(j => j.id === jobId);
+    setLocalJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: 'approved' as const } : j));
+    const job = localJobs.find(j => j.id === jobId);
     toast.success('Booking approved');
     addNotification({
       title: 'Booking Approved',
@@ -78,13 +95,13 @@ export function Mechanisation() {
   };
 
   const handleReject = (jobId: string) => {
-    setJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: 'rejected' as const } : j));
+    setLocalJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: 'rejected' as const } : j));
     toast.info('Booking rejected');
   };
 
   const handleComplete = (jobId: string) => {
-    setJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: 'completed' as const } : j));
-    const job = jobs.find(j => j.id === jobId);
+    setLocalJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: 'completed' as const } : j));
+    const job = localJobs.find(j => j.id === jobId);
     toast.success('Job marked as completed');
     addNotification({
       title: 'Mechanisation Completed',
@@ -97,35 +114,52 @@ export function Mechanisation() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed':
-        return 'success';
-      case 'in-progress':
-        return 'info';
-      case 'approved':
-        return 'forest';
-      case 'pending-approval':
-        return 'warning';
-      case 'rejected':
-        return 'destructive';
-      default:
-        return 'warning';
+      case 'completed': return 'success';
+      case 'in-progress': return 'info';
+      case 'approved': return 'forest';
+      case 'pending-approval': return 'warning';
+      case 'rejected': return 'destructive';
+      default: return 'warning';
     }
   };
 
-  const formatCurrency = (value: number) => {
-    return `KES ${value.toLocaleString()}`;
-  };
+  const formatCurrency = (value: number) => `KES ${value.toLocaleString()}`;
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat('en-KE', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
-    }).format(date);
+    }).format(new Date(date));
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24" />)}
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-64" />)}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      {/* Offline Banner */}
+      {isUsingFallback && (
+        <div className="bg-warning/10 border border-warning/20 rounded-lg p-3 flex items-center gap-2 text-warning">
+          <WifiOff className="w-4 h-4" />
+          <span className="text-sm">Using offline data. Changes will sync when connection is restored.</span>
+        </div>
+      )}
+
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
@@ -166,7 +200,7 @@ export function Mechanisation() {
               <Tractor className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
-              <p className="text-lg sm:text-2xl font-bold font-heading">{mockMechanisationJobs.length}</p>
+              <p className="text-lg sm:text-2xl font-bold font-heading">{localJobs.length}</p>
               <p className="text-xs sm:text-sm opacity-80">Bookings</p>
             </div>
           </div>
@@ -189,7 +223,7 @@ export function Mechanisation() {
             </div>
             <div>
               <p className="text-lg sm:text-2xl font-bold font-heading text-accent-foreground">
-                {mockMechanisationJobs.filter(j => j.status === 'pending-approval').length}
+                {localJobs.filter(j => j.status === 'pending-approval').length}
               </p>
               <p className="text-xs sm:text-sm text-muted-foreground">Pending</p>
             </div>

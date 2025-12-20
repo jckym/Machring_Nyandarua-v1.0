@@ -172,8 +172,8 @@ export function ManagerDashboard() {
                   <span className="font-semibold">{localMr?.managerName}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="opacity-80">Location</span>
-                  <span className="font-semibold">{localMr?.location}</span>
+                  <span className="opacity-80">Subcounty</span>
+                  <span className="font-semibold">{localMr?.subcounty}, {localMr?.ward}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="opacity-80">Visits This Month</span>

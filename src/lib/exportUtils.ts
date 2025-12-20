@@ -59,7 +59,6 @@ export const exportFarmersToExcel = (farmers: Farmer[], filename: string = 'farm
     'Value Chain': farmer.valueChain,
     'Category': farmer.farmerCategory,
     'Rating': farmer.farmerRating,
-    'Farming Activity': farmer.farmingActivity,
     'Total Purchases': farmer.totalPurchases,
     'Mechanisation Count': farmer.mechanisationCount,
     'Trainings Attended': farmer.trainingsAttended,

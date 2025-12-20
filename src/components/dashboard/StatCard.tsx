@@ -1,3 +1,4 @@
+// src/components/StatCard.tsx
 import { LucideIcon } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -20,7 +21,7 @@ const variantStyles = {
   earth: 'bg-secondary text-secondary-foreground',
   wheat: 'bg-accent text-accent-foreground',
   sage: 'bg-muted',
-};
+} as const;
 
 const iconContainerStyles = {
   default: 'bg-primary/10 text-primary',
@@ -28,11 +29,18 @@ const iconContainerStyles = {
   earth: 'bg-secondary-foreground/20 text-secondary-foreground',
   wheat: 'bg-accent-foreground/20 text-accent-foreground',
   sage: 'bg-primary/10 text-primary',
-};
+} as const;
 
-export function StatCard({ title, value, subtitle, icon: Icon, trend, variant = 'default' }: StatCardProps) {
+export function StatCard({
+  title,
+  value,
+  subtitle,
+  icon: Icon,
+  trend,
+  variant = 'default',
+}: StatCardProps) {
   return (
-    <Card 
+    <Card
       className={cn(
         'p-6 transition-all duration-300 hover:shadow-card animate-fade-in',
         variantStyles[variant]
@@ -40,35 +48,43 @@ export function StatCard({ title, value, subtitle, icon: Icon, trend, variant = 
     >
       <div className="flex items-start justify-between">
         <div className="space-y-2">
-          <p className={cn(
-            'text-sm font-medium',
-            variant === 'default' ? 'text-muted-foreground' : 'opacity-80'
-          )}>
+          <p
+            className={cn(
+              'text-sm font-medium',
+              variant === 'default' ? 'text-muted-foreground' : 'opacity-80'
+            )}
+          >
             {title}
           </p>
           <p className="font-heading text-3xl font-bold tracking-tight">{value}</p>
           {subtitle && (
-            <p className={cn(
-              'text-xs',
-              variant === 'default' ? 'text-muted-foreground' : 'opacity-70'
-            )}>
+            <p
+              className={cn(
+                'text-xs',
+                variant === 'default' ? 'text-muted-foreground' : 'opacity-70'
+              )}
+            >
               {subtitle}
             </p>
           )}
           {trend && (
-            <div className={cn(
-              'flex items-center gap-1 text-xs font-medium',
-              trend.isPositive ? 'text-emerald-600' : 'text-red-500'
-            )}>
+            <div
+              className={cn(
+                'flex items-center gap-1 text-xs font-medium',
+                trend.isPositive ? 'text-emerald-600' : 'text-red-500'
+              )}
+            >
               <span>{trend.isPositive ? '↑' : '↓'}</span>
               <span>{Math.abs(trend.value)}% from last month</span>
             </div>
           )}
         </div>
-        <div className={cn(
-          'w-12 h-12 rounded-xl flex items-center justify-center',
-          iconContainerStyles[variant]
-        )}>
+        <div
+          className={cn(
+            'w-12 h-12 rounded-xl flex items-center justify-center',
+            iconContainerStyles[variant]
+          )}
+        >
           <Icon className="w-6 h-6" />
         </div>
       </div>

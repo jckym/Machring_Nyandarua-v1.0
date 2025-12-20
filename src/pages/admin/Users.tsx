@@ -62,6 +62,7 @@ export function Users() {
     name: '',
     email: '',
     phone: '',
+    password: '',
     role: 'tot' as UserRole,
     localMrId: '',
     status: 'active' as 'active' | 'inactive',
@@ -89,6 +90,7 @@ export function Users() {
       name: '',
       email: '',
       phone: '',
+      password: '',
       role: 'tot',
       localMrId: '',
       status: 'active',
@@ -134,6 +136,7 @@ export function Users() {
       name: formData.name,
       email: formData.email,
       phone: formData.phone,
+      password: formData.password || 'TempPassword123!',
       role: formData.role,
       localMrId: formData.role !== 'admin' ? formData.localMrId : undefined,
     }, {
@@ -150,6 +153,7 @@ export function Users() {
       name: user.name,
       email: user.email,
       phone: user.phone,
+      password: '',
       role: user.role,
       localMrId: user.localMrId || '',
       status: user.status,
@@ -358,6 +362,15 @@ export function Users() {
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 placeholder="+254..."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Password *</Label>
+              <Input
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                placeholder="Enter temporary password"
               />
             </div>
             <div className="space-y-2">

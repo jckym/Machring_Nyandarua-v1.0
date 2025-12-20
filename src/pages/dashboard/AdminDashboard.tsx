@@ -1,53 +1,95 @@
-import { Users, ShoppingCart, Tractor, Building2, GraduationCap, TrendingUp, UserCog, Package } from 'lucide-react';
+// src/pages/AdminDashboard.tsx or src/components/AdminDashboard.tsx
+import { useEffect, useState } from 'react';
+import { 
+  Users, ShoppingCart, Tractor, Building2, 
+  GraduationCap, TrendingUp, UserCog, Package 
+} from 'lucide-react';
+
 import { StatCard } from '@/components/dashboard/StatCard';
 import { RecentActivity } from '@/components/dashboard/RecentActivity';
 import { SalesChart } from '@/components/dashboard/SalesChart';
 import { ProductChart } from '@/components/dashboard/ProductChart';
 import { TopPerformers } from '@/components/dashboard/TopPerformers';
-import { useAdminDashboardWithFallback, mockLocalMRs } from '@/hooks/api/useDashboard';
+
+import { useAdminDashboard } from '@/hooks/api/useDashboard'; // Real hook (no fallback)
 import { useMechanisationJobs, useTrainings } from '@/hooks/api';
-import { useApiWithFallback } from '@/hooks/api/useApiWithFallback';
+import { useLocalMRs } from '@/hooks/api/useLocalMRs'; // New hook for MR data
+
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AlertCircle } from 'lucide-react';
+import api from '@/services/api';
 
-// Fallback mock data
-const mockMechanisationJobs = [
-  { id: 'job-1', status: 'completed' },
-  { id: 'job-2', status: 'completed' },
-];
-
-const mockTrainings = [
-  { id: 'training-1' },
-  { id: 'training-2' },
-  { id: 'training-3' },
-];
+interface LocalMR {
+  _id: string;
+  code: string;
+  name: string;
+  subcounty: string;
+  ward: string;
+  managerName: string;
+  totalTots: number;
+  totalFarmers: number;
+}
 
 export function AdminDashboard() {
-  const { data: stats } = useAdminDashboardWithFallback();
-  
-  const mechanisationQuery = useMechanisationJobs();
-  const { data: mechanisationJobs } = useApiWithFallback(mechanisationQuery, mockMechanisationJobs);
-  
-  const trainingsQuery = useTrainings();
-  const { data: trainings } = useApiWithFallback(trainingsQuery, mockTrainings);
-  
-  const completedJobs = mechanisationJobs.filter((j: any) => j.status === 'completed').length;
+  const { data: stats, isLoading: statsLoading, error: statsError } = useAdminDashboard();
+  const { data: mechanisationJobs = [], isLoading: jobsLoading } = useMechanisationJobs();
+  const { data: trainings = [], isLoading: trainingsLoading } = useTrainings();
+  const { data: localMRs = [], isLoading: mrsLoading } = useLocalMRs(); // Fetch real MRs
+
+  const [barData, setBarData] = useState<any[]>([]);
+  const [topMRs, setTopMRs] = useState<LocalMR[]>([]);
+
+  useEffect(() => {
+    if (localMRs.length > 0) {
+      const top5 = localMRs.slice(0, 5);
+      setTopMRs(top5);
+
+      const chartData = top5.map(mr => ({
+        name: mr.name.split(' ')[0],
+        farmers: mr.totalFarmers,
+        tots: mr.totalTots * 10, // Scaled for visibility
+      }));
+      setBarData(chartData);
+    }
+  }, [localMRs]);
+
+  const completedJobs = mechanisationJobs.filter(job => job.status === 'completed').length;
   const trainingsHeld = trainings.length;
 
   const formatCurrency = (value: number) => {
-    if (value >= 1000000) {
-      return `KES ${(value / 1000000).toFixed(1)}M`;
-    }
+    if (value >= 1000000) return `KES ${(value / 1000000).toFixed(1)}M`;
     return `KES ${(value / 1000).toFixed(0)}K`;
   };
 
-  const localMrData = mockLocalMRs.slice(0, 5).map(mr => ({
-    name: mr.name.split(' ')[0],
-    farmers: mr.totalFarmers,
-    tots: mr.totalTots * 10,
-  }));
+  // Loading State
+  if (statsLoading || jobsLoading || trainingsLoading || mrsLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-muted rounded w-64 mb-2" />
+          <div className="h-4 bg-muted rounded w-96" />
+        </div>
+        <div className="grid grid-cols-4 gap-4">
+          {[1,2,3,4].map(i => (
+            <div key={i} className="h-32 bg-muted rounded-2xl" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Error State
+  if (statsError || !stats) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+        <AlertCircle className="w-16 h-16 mb-4 text-orange-500" />
+        <p>Failed to load dashboard data. Please try again later.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -65,7 +107,7 @@ export function AdminDashboard() {
         </div>
       </div>
 
-      {/* Stats Grid */}
+      {/* Primary Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 stagger-children">
         <StatCard
           title="Total Farmers"
@@ -132,47 +174,53 @@ export function AdminDashboard() {
             <Package className="w-6 h-6 text-foreground" />
           </div>
           <div>
-            <p className="text-2xl font-bold font-heading">24</p>
+            <p className="text-2xl font-bold font-heading">{stats.totalProducts || 24}</p>
             <p className="text-sm text-muted-foreground">Products</p>
           </div>
         </Card>
       </div>
 
-      {/* Main Content Grid */}
+      {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Charts Column */}
         <div className="lg:col-span-2 space-y-6">
           <SalesChart />
-          
-          {/* Local MR Performance */}
+
+          {/* Local MR Performance Bar Chart */}
           <Card variant="elevated">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg">Local MR Performance</CardTitle>
               <Button variant="outline" size="sm">View Details</Button>
             </CardHeader>
             <CardContent>
-              <div className="h-[250px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={localMrData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(120, 15%, 85%)" />
-                    <XAxis dataKey="name" stroke="hsl(150, 20%, 40%)" fontSize={12} />
-                    <YAxis stroke="hsl(150, 20%, 40%)" fontSize={12} />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(40, 30%, 98%)',
-                        border: '1px solid hsl(120, 15%, 85%)',
-                        borderRadius: '12px',
-                      }}
-                    />
-                    <Bar dataKey="farmers" fill="hsl(160, 55%, 20%)" radius={[4, 4, 0, 0]} name="Farmers" />
-                    <Bar dataKey="tots" fill="hsl(42, 85%, 55%)" radius={[4, 4, 0, 0]} name="TOT Activity" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+              {barData.length > 0 ? (
+                <div className="h-[250px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={barData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(120, 15%, 85%)" />
+                      <XAxis dataKey="name" stroke="hsl(150, 20%, 40%)" fontSize={12} />
+                      <YAxis stroke="hsl(150, 20%, 40%)" fontSize={12} />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'hsl(40, 30%, 98%)',
+                          border: '1px solid hsl(120, 15%, 85%)',
+                          borderRadius: '12px',
+                        }}
+                      />
+                      <Bar dataKey="farmers" fill="hsl(160, 55%, 20%)" radius={[4, 4, 0, 0]} name="Farmers" />
+                      <Bar dataKey="tots" fill="hsl(42, 85%, 55%)" radius={[4, 4, 0, 0]} name="TOT Activity" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="h-[250px] flex items-center justify-center text-muted-foreground">
+                  No Local MR data available
+                </div>
+              )}
             </CardContent>
           </Card>
 
-          {/* Local MRs Overview */}
+          {/* Local MRs Overview List */}
           <Card variant="elevated">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg">Local MRs Overview</CardTitle>
@@ -180,9 +228,9 @@ export function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {mockLocalMRs.slice(0, 5).map((mr, index) => (
-                  <div 
-                    key={mr.id}
+                {topMRs.map((mr, index) => (
+                  <div
+                    key={mr._id}
                     className="flex items-center justify-between p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors animate-fade-in"
                     style={{ animationDelay: `${index * 0.1}s` }}
                   >

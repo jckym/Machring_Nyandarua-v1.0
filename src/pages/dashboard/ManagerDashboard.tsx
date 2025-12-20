@@ -1,87 +1,95 @@
-import { Users, ShoppingCart, Tractor, Building2, GraduationCap, TrendingUp, UserCheck, MapPin } from 'lucide-react';
+// src/pages/ManagerDashboard.tsx or src/components/ManagerDashboard.tsx
+import React from 'react';
+import { 
+  Users, ShoppingCart, Tractor, Building2, 
+  GraduationCap, TrendingUp, UserCheck, MapPin 
+} from 'lucide-react';
+
 import { StatCard } from '@/components/dashboard/StatCard';
 import { RecentActivity } from '@/components/dashboard/RecentActivity';
 import { SalesChart } from '@/components/dashboard/SalesChart';
 import { ProductChart } from '@/components/dashboard/ProductChart';
 import { TopPerformers } from '@/components/dashboard/TopPerformers';
-import { 
-  useManagerDashboardWithFallback, 
-  useLocalMRTotPerformanceWithFallback, 
-  mockLocalMRs 
-} from '@/hooks/api/useDashboard';
-import { useFarmers, useSales, useMechanisationJobs, useTrainings, useVisits } from '@/hooks/api';
-import { useApiWithFallback } from '@/hooks/api/useApiWithFallback';
+
+import { useManagerDashboard } from '@/hooks/api/useDashboard'; // Real hook
+import { useLocalMR } from '@/hooks/api/useLocalMRs'; // For Local MR details
+import { useTotsByLocalMR } from '@/hooks/api/useTots'; // Real TOTs with performance
+import { useFarmers } from '@/hooks/api/useFarmers';
+import { useSales } from '@/hooks/api/useSales';
+import { useMechanisationJobs } from '@/hooks/api/useMechanisationJobs';
+import { useTrainings } from '@/hooks/api/useTrainings';
+import { useVisits } from '@/hooks/api/useVisits';
+
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-
-// Fallback mock data
-const mockTots = [
-  { id: 'tot-1', name: 'Samuel Mwangi', localMrId: 'mr-1', status: 'active' },
-  { id: 'tot-2', name: 'Agnes Wairimu', localMrId: 'mr-1', status: 'active' },
-];
-
-const mockFarmers = [
-  { id: 'farmer-1', localMrId: 'mr-1' },
-  { id: 'farmer-2', localMrId: 'mr-1' },
-];
-
-const mockSalesData = [
-  { id: 'sale-1', localMrId: 'mr-1', status: 'completed', total: 17500 },
-  { id: 'sale-2', localMrId: 'mr-1', status: 'completed', total: 13500 },
-];
-
-const mockMechanisationJobs = [
-  { id: 'job-1', localMrId: 'mr-1', status: 'completed' },
-  { id: 'job-2', localMrId: 'mr-1', status: 'pending-approval' },
-];
-
-const mockTrainings = [{ id: 'training-1', localMrId: 'mr-1' }];
-const mockVisitsData = [{ id: 'visit-1', localMrId: 'mr-1' }, { id: 'visit-2', localMrId: 'mr-1' }];
 
 export function ManagerDashboard() {
   const { user } = useAuth();
-  const localMrId = user?.localMrId || 'mr-1';
-  const localMr = mockLocalMRs.find(mr => mr.id === localMrId) || mockLocalMRs[0];
-  
-  const { data: managerStats } = useManagerDashboardWithFallback(localMrId);
-  const { data: totPerformance } = useLocalMRTotPerformanceWithFallback(localMrId);
-  
-  // Fetch data with fallback
-  const farmersQuery = useFarmers({ localMrId });
-  const { data: farmers } = useApiWithFallback(farmersQuery, mockFarmers);
-  
-  const salesQuery = useSales({ localMrId });
-  const { data: sales } = useApiWithFallback(salesQuery, mockSalesData);
-  
-  const mechanisationQuery = useMechanisationJobs({ localMrId });
-  const { data: jobs } = useApiWithFallback(mechanisationQuery, mockMechanisationJobs);
-  
-  const trainingsQuery = useTrainings({ localMrId });
-  const { data: trainings } = useApiWithFallback(trainingsQuery, mockTrainings);
-  
-  const visitsQuery = useVisits({ localMrId });
-  const { data: visits } = useApiWithFallback(visitsQuery, mockVisitsData);
+  const localMrId = user?.localMrId;
 
-  // Calculate stats from data
-  const mrFarmers = farmers.filter((f: any) => f.localMrId === localMrId);
-  const mrSales = sales.filter((s: any) => s.localMrId === localMrId);
-  const mrJobs = jobs.filter((j: any) => j.localMrId === localMrId);
-  const mrTrainings = trainings.filter((t: any) => t.localMrId === localMrId);
-  const mrVisits = visits.filter((v: any) => v.localMrId === localMrId);
-  
-  const totalRevenue = mrSales.filter((s: any) => s.status === 'completed').reduce((acc: number, s: any) => acc + (s.total || 0), 0);
-  const completedJobs = mrJobs.filter((j: any) => j.status === 'completed').length;
-  const pendingApprovals = mrJobs.filter((j: any) => j.status === 'pending-approval').length;
-  const activeTots = mockTots.filter(t => t.localMrId === localMrId && t.status === 'active').length;
+  // Fetch core data
+  const { data: managerStats, isLoading: statsLoading } = useManagerDashboard(localMrId!);
+  const { data: localMr, isLoading: mrLoading } = useLocalMR(localMrId!);
+  const { data: totPerformance = [], isLoading: totsLoading } = useTotsByLocalMR(localMrId!);
+
+  const { data: farmers = [], isLoading: farmersLoading } = useFarmers({ localMrId });
+  const { data: sales = [], isLoading: salesLoading } = useSales({ localMrId });
+  const { data: jobs = [], isLoading: jobsLoading } = useMechanisationJobs({ localMrId });
+  const { data: trainings = [], isLoading: trainingsLoading } = useTrainings({ localMrId });
+  const { data: visits = [], isLoading: visitsLoading } = useVisits({ localMrId });
+
+  // Derived stats
+  const totalRevenue = sales
+    .filter(s => s.status === 'completed')
+    .reduce((acc, s) => acc + (s.total || 0), 0);
+
+  const completedJobs = jobs.filter(j => j.status === 'completed').length;
+  const pendingApprovals = jobs.filter(j => j.status === 'pending-approval').length;
+  const activeTots = totPerformance.filter(t => t.status === 'active').length;
 
   const formatCurrency = (value: number) => {
-    if (value >= 1000000) {
-      return `KES ${(value / 1000000).toFixed(1)}M`;
-    }
+    if (value >= 1000000) return `KES ${(value / 1000000).toFixed(1)}M`;
     return `KES ${(value / 1000).toFixed(0)}K`;
   };
+
+  const isLoading = statsLoading || mrLoading || totsLoading || farmersLoading || 
+                    salesLoading || jobsLoading || trainingsLoading || visitsLoading;
+
+  if (!localMrId) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <p className="text-muted-foreground">No Local MR assigned. Contact admin.</p>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-muted rounded w-64 mb-2" />
+          <div className="h-4 bg-muted rounded w-96" />
+        </div>
+        <div className="grid grid-cols-6 gap-4">
+          {[1,2,3,4,5,6].map(i => (
+            <div key={i} className="h-32 bg-muted rounded-2xl" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (!managerStats || !localMr) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+        <AlertCircle className="w-16 h-16 mb-4 text-orange-500" />
+        <p>Failed to load dashboard data.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -89,7 +97,7 @@ export function ManagerDashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="font-heading text-2xl font-bold text-foreground">Local MR Dashboard</h1>
-          <p className="text-muted-foreground">{localMr?.name || 'Local MR'} Overview</p>
+          <p className="text-muted-foreground">{localMr.name} Overview</p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="forest" className="text-sm py-1 px-3">
@@ -108,7 +116,7 @@ export function ManagerDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 stagger-children">
         <StatCard
           title="Total Farmers"
-          value={mrFarmers.length}
+          value={farmers.length}
           subtitle="In your Local MR"
           icon={Users}
           trend={{ value: 18, isPositive: true }}
@@ -123,7 +131,7 @@ export function ManagerDashboard() {
         />
         <StatCard
           title="Total Sales"
-          value={mrSales.length}
+          value={sales.length}
           subtitle="This month"
           icon={ShoppingCart}
         />
@@ -143,20 +151,20 @@ export function ManagerDashboard() {
         />
         <StatCard
           title="Trainings"
-          value={mrTrainings.length}
+          value={trainings.length}
           subtitle="Sessions held"
           icon={GraduationCap}
           variant="earth"
         />
       </div>
 
-      {/* Main Content Grid */}
+      {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Charts Column */}
         <div className="lg:col-span-2 space-y-6">
           <SalesChart />
-          
-          {/* TOT Team Overview Card */}
+
+          {/* TOT Team Overview */}
           <Card variant="elevated">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg">TOT Team Overview</CardTitle>
@@ -165,27 +173,31 @@ export function ManagerDashboard() {
             <CardContent>
               <div className="space-y-3">
                 {totPerformance.slice(0, 5).map((tot: any, index: number) => (
-                  <div 
-                    key={tot.totId}
+                  <div
+                    key={tot._id || tot.totId}
                     className="flex items-center justify-between p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors animate-fade-in"
                     style={{ animationDelay: `${index * 0.1}s` }}
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
-                        {tot.totName.split(' ').map((n: string) => n[0]).join('')}
+                        {tot.name.split(' ').map((n: string) => n[0]).join('')}
                       </div>
                       <div>
-                        <p className="font-medium text-sm">{tot.totName}</p>
+                        <p className="font-medium text-sm">{tot.name}</p>
                         <p className="text-xs text-muted-foreground">{tot.phone}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="text-right">
-                        <p className="font-semibold text-sm text-primary">{formatCurrency(tot.totalSales || 0)}</p>
+                        <p className="font-semibold text-sm text-primary">
+                          {formatCurrency(tot.totalSales || 0)}
+                        </p>
                         <p className="text-xs text-muted-foreground">Sales</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-semibold text-sm text-secondary">{formatCurrency(tot.totalCommission || 0)}</p>
+                        <p className="font-semibold text-sm text-secondary">
+                          {formatCurrency(tot.totalCommission || 0)}
+                        </p>
                         <p className="text-xs text-muted-foreground">Commission</p>
                       </div>
                       <Badge variant={tot.status === 'active' ? 'success' : 'secondary'}>
@@ -201,34 +213,34 @@ export function ManagerDashboard() {
 
         {/* Side Column */}
         <div className="space-y-6">
-          {/* Quick Stats */}
+          {/* Local MR Summary */}
           <Card variant="forest">
             <CardContent className="p-4 space-y-4">
-              <h3 className="font-heading font-semibold flex items-center gap-2">
+              <h3 className="font-heading font-semibold flex items-center gap-2 text-foreground">
                 <MapPin className="w-5 h-5" />
                 Local MR Summary
               </h3>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="opacity-80">Manager</span>
-                  <span className="font-semibold">{localMr?.managerName}</span>
+                  <span className="font-semibold">{localMr.managerName}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="opacity-80">Subcounty</span>
-                  <span className="font-semibold">{localMr?.subcounty}, {localMr?.ward}</span>
+                  <span className="opacity-80">Location</span>
+                  <span className="font-semibold">{localMr.subcounty}, {localMr.ward}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="opacity-80">Visits This Month</span>
-                  <span className="font-semibold">{mrVisits.length}</span>
+                  <span className="font-semibold">{visits.length}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="opacity-80">Pending Jobs</span>
-                  <span className="font-semibold text-warning">{pendingApprovals}</span>
+                  <span className="font-semibold text-warning-foreground">{pendingApprovals}</span>
                 </div>
               </div>
             </CardContent>
           </Card>
-          
+
           <TopPerformers type="tots" />
           <TopPerformers type="farmers" />
           <ProductChart />

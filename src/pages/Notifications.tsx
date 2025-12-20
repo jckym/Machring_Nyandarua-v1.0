@@ -1,17 +1,23 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { toast } from 'sonner';
 import { 
   Bell, CheckCircle, Trash2, Eye, Clock, 
-  ShoppingCart, Tractor, Users, GraduationCap, AlertCircle 
+  ShoppingCart, Tractor, Users, GraduationCap, AlertCircle,
+  CheckSquare, X
 } from 'lucide-react';
 import { Notification } from '@/types';
 
 export function Notifications() {
   const { notifications, markAsRead, markAllAsRead, deleteNotification, unreadCount } = useNotifications();
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isSelecting, setIsSelecting] = useState(false);
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
 
   const filteredNotifications = filter === 'unread' 
     ? notifications.filter(n => !n.read)
@@ -81,6 +87,63 @@ export function Notifications() {
     }).format(new Date(date));
   };
 
+  // Long press handlers for mobile multi-select
+  const handleTouchStart = useCallback((id: string) => {
+    longPressTimer.current = setTimeout(() => {
+      setIsSelecting(true);
+      setSelectedIds(new Set([id]));
+      toast.info('Multi-select mode enabled');
+    }, 500); // 500ms long press
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }, []);
+
+  const handleSelect = (id: string) => {
+    if (!isSelecting) return;
+    
+    setSelectedIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.size === filteredNotifications.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredNotifications.map(n => n.id)));
+    }
+  };
+
+  const handleBulkMarkRead = () => {
+    selectedIds.forEach(id => markAsRead(id));
+    toast.success(`${selectedIds.size} notifications marked as read`);
+    setSelectedIds(new Set());
+    setIsSelecting(false);
+  };
+
+  const handleBulkDelete = () => {
+    selectedIds.forEach(id => deleteNotification(id));
+    toast.success(`${selectedIds.size} notifications deleted`);
+    setSelectedIds(new Set());
+    setIsSelecting(false);
+  };
+
+  const cancelSelection = () => {
+    setIsSelecting(false);
+    setSelectedIds(new Set());
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -91,26 +154,59 @@ export function Notifications() {
             {unreadCount > 0 ? `${unreadCount} unread notifications` : 'All notifications read'}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button 
-            variant={filter === 'all' ? 'default' : 'outline'} 
-            size="sm"
-            onClick={() => setFilter('all')}
-          >
-            All ({notifications.length})
-          </Button>
-          <Button 
-            variant={filter === 'unread' ? 'default' : 'outline'} 
-            size="sm"
-            onClick={() => setFilter('unread')}
-          >
-            Unread ({unreadCount})
-          </Button>
-          {unreadCount > 0 && (
-            <Button variant="outline" size="sm" onClick={markAllAsRead}>
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Mark All Read
-            </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {isSelecting ? (
+            <>
+              <Badge variant="secondary" className="text-sm">
+                {selectedIds.size} selected
+              </Badge>
+              <Button variant="outline" size="sm" onClick={handleSelectAll}>
+                <CheckSquare className="w-4 h-4 mr-2" />
+                {selectedIds.size === filteredNotifications.length ? 'Deselect All' : 'Select All'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleBulkMarkRead} disabled={selectedIds.size === 0}>
+                <Eye className="w-4 h-4 mr-2" />
+                Mark Read
+              </Button>
+              <Button variant="destructive" size="sm" onClick={handleBulkDelete} disabled={selectedIds.size === 0}>
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete
+              </Button>
+              <Button variant="ghost" size="sm" onClick={cancelSelection}>
+                <X className="w-4 h-4" />
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button 
+                variant={filter === 'all' ? 'default' : 'outline'} 
+                size="sm"
+                onClick={() => setFilter('all')}
+              >
+                All ({notifications.length})
+              </Button>
+              <Button 
+                variant={filter === 'unread' ? 'default' : 'outline'} 
+                size="sm"
+                onClick={() => setFilter('unread')}
+              >
+                Unread ({unreadCount})
+              </Button>
+              {unreadCount > 0 && (
+                <Button variant="outline" size="sm" onClick={markAllAsRead}>
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Mark All Read
+                </Button>
+              )}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => { setIsSelecting(true); toast.info('Select notifications to perform bulk actions'); }}
+              >
+                <CheckSquare className="w-4 h-4 mr-2" />
+                Select
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -165,6 +261,14 @@ export function Notifications() {
         </Card>
       </div>
 
+      {/* Info banner for long press */}
+      {!isSelecting && (
+        <div className="bg-muted/50 rounded-lg p-3 text-sm text-muted-foreground flex items-center gap-2">
+          <Bell className="w-4 h-4" />
+          <span>Tip: Long press on a notification or click "Select" to enable multi-select mode</span>
+        </div>
+      )}
+
       {/* Notifications List */}
       <Card variant="elevated">
         <CardHeader>
@@ -185,13 +289,28 @@ export function Notifications() {
               {filteredNotifications.map((notification) => {
                 const Icon = getNotificationIcon(notification.type);
                 const colorClass = getNotificationColor(notification.type);
+                const isSelected = selectedIds.has(notification.id);
                 
                 return (
                   <div 
                     key={notification.id}
-                    className={`p-4 hover:bg-muted/50 transition-colors ${!notification.read ? 'bg-primary/5' : ''}`}
+                    className={`p-4 hover:bg-muted/50 transition-colors cursor-pointer ${
+                      !notification.read ? 'bg-primary/5' : ''
+                    } ${isSelected ? 'bg-primary/10 ring-2 ring-primary ring-inset' : ''}`}
+                    onTouchStart={() => handleTouchStart(notification.id)}
+                    onTouchEnd={handleTouchEnd}
+                    onTouchCancel={handleTouchEnd}
+                    onClick={() => isSelecting && handleSelect(notification.id)}
                   >
                     <div className="flex items-start gap-4">
+                      {isSelecting && (
+                        <div className="flex items-center pt-1">
+                          <Checkbox 
+                            checked={isSelected}
+                            onCheckedChange={() => handleSelect(notification.id)}
+                          />
+                        </div>
+                      )}
                       <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${colorClass}`}>
                         <Icon className="w-5 h-5" />
                       </div>
@@ -210,27 +329,29 @@ export function Notifications() {
                             {formatDate(notification.createdAt)}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 mt-3">
-                          {!notification.read && (
+                        {!isSelecting && (
+                          <div className="flex items-center gap-2 mt-3">
+                            {!notification.read && (
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={(e) => { e.stopPropagation(); markAsRead(notification.id); }}
+                              >
+                                <Eye className="w-4 h-4 mr-1" />
+                                Mark Read
+                              </Button>
+                            )}
                             <Button 
                               variant="ghost" 
                               size="sm" 
-                              onClick={() => markAsRead(notification.id)}
+                              className="text-destructive hover:text-destructive"
+                              onClick={(e) => { e.stopPropagation(); deleteNotification(notification.id); }}
                             >
-                              <Eye className="w-4 h-4 mr-1" />
-                              Mark Read
+                              <Trash2 className="w-4 h-4 mr-1" />
+                              Delete
                             </Button>
-                          )}
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => deleteNotification(notification.id)}
-                          >
-                            <Trash2 className="w-4 h-4 mr-1" />
-                            Delete
-                          </Button>
-                        </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

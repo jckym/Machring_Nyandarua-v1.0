@@ -31,6 +31,7 @@ import { SystemLogs } from "@/pages/admin/SystemLogs";
 import { Commission } from "@/pages/Commission";
 import { TOTManagement } from "@/pages/TOTManagement";
 import { Notifications } from "@/pages/Notifications";
+import { ApprovalRequests } from "@/pages/ApprovalRequests";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -95,6 +96,11 @@ const App = () => (
                   <Route path="/tots" element={
                     <ProtectedRoute allowedRoles={['manager', 'admin']}>
                       <TOTManagement />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/approval-requests" element={
+                    <ProtectedRoute allowedRoles={['manager', 'admin']}>
+                      <ApprovalRequests />
                     </ProtectedRoute>
                   } />
                   

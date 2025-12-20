@@ -5,31 +5,76 @@ import { SalesChart } from '@/components/dashboard/SalesChart';
 import { ProductChart } from '@/components/dashboard/ProductChart';
 import { TopPerformers } from '@/components/dashboard/TopPerformers';
 import { 
-  mockTots, mockFarmers, mockSales, mockMechanisationJobs, 
-  mockTrainings, mockVisits, getTOTsByLocalMR, mockLocalMRs 
-} from '@/data/mockData';
+  useManagerDashboardWithFallback, 
+  useLocalMRTotPerformanceWithFallback, 
+  mockLocalMRs 
+} from '@/hooks/api/useDashboard';
+import { useFarmers, useSales, useMechanisationJobs, useTrainings, useVisits } from '@/hooks/api';
+import { useApiWithFallback } from '@/hooks/api/useApiWithFallback';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 
+// Fallback mock data
+const mockTots = [
+  { id: 'tot-1', name: 'Samuel Mwangi', localMrId: 'mr-1', status: 'active' },
+  { id: 'tot-2', name: 'Agnes Wairimu', localMrId: 'mr-1', status: 'active' },
+];
+
+const mockFarmers = [
+  { id: 'farmer-1', localMrId: 'mr-1' },
+  { id: 'farmer-2', localMrId: 'mr-1' },
+];
+
+const mockSalesData = [
+  { id: 'sale-1', localMrId: 'mr-1', status: 'completed', total: 17500 },
+  { id: 'sale-2', localMrId: 'mr-1', status: 'completed', total: 13500 },
+];
+
+const mockMechanisationJobs = [
+  { id: 'job-1', localMrId: 'mr-1', status: 'completed' },
+  { id: 'job-2', localMrId: 'mr-1', status: 'pending-approval' },
+];
+
+const mockTrainings = [{ id: 'training-1', localMrId: 'mr-1' }];
+const mockVisitsData = [{ id: 'visit-1', localMrId: 'mr-1' }, { id: 'visit-2', localMrId: 'mr-1' }];
+
 export function ManagerDashboard() {
   const { user } = useAuth();
   const localMrId = user?.localMrId || 'mr-1';
-  const localMr = mockLocalMRs.find(mr => mr.id === localMrId);
+  const localMr = mockLocalMRs.find(mr => mr.id === localMrId) || mockLocalMRs[0];
   
-  // Get stats for the manager's Local MR
-  const mrTots = mockTots.filter(t => t.localMrId === localMrId);
-  const mrFarmers = mockFarmers.filter(f => f.localMrId === localMrId);
-  const mrSales = mockSales.filter(s => s.localMrId === localMrId);
-  const mrJobs = mockMechanisationJobs.filter(j => j.localMrId === localMrId);
-  const mrTrainings = mockTrainings.filter(t => t.localMrId === localMrId);
-  const mrVisits = mockVisits.filter(v => v.localMrId === localMrId);
+  const { data: managerStats } = useManagerDashboardWithFallback(localMrId);
+  const { data: totPerformance } = useLocalMRTotPerformanceWithFallback(localMrId);
   
-  const totalRevenue = mrSales.filter(s => s.status === 'completed').reduce((acc, s) => acc + s.total, 0);
-  const completedJobs = mrJobs.filter(j => j.status === 'completed').length;
-  const pendingApprovals = mrJobs.filter(j => j.status === 'pending-approval').length;
-  const activeTots = mrTots.filter(t => t.status === 'active').length;
+  // Fetch data with fallback
+  const farmersQuery = useFarmers({ localMrId });
+  const { data: farmers } = useApiWithFallback(farmersQuery, mockFarmers);
+  
+  const salesQuery = useSales({ localMrId });
+  const { data: sales } = useApiWithFallback(salesQuery, mockSalesData);
+  
+  const mechanisationQuery = useMechanisationJobs({ localMrId });
+  const { data: jobs } = useApiWithFallback(mechanisationQuery, mockMechanisationJobs);
+  
+  const trainingsQuery = useTrainings({ localMrId });
+  const { data: trainings } = useApiWithFallback(trainingsQuery, mockTrainings);
+  
+  const visitsQuery = useVisits({ localMrId });
+  const { data: visits } = useApiWithFallback(visitsQuery, mockVisitsData);
+
+  // Calculate stats from data
+  const mrFarmers = farmers.filter((f: any) => f.localMrId === localMrId);
+  const mrSales = sales.filter((s: any) => s.localMrId === localMrId);
+  const mrJobs = jobs.filter((j: any) => j.localMrId === localMrId);
+  const mrTrainings = trainings.filter((t: any) => t.localMrId === localMrId);
+  const mrVisits = visits.filter((v: any) => v.localMrId === localMrId);
+  
+  const totalRevenue = mrSales.filter((s: any) => s.status === 'completed').reduce((acc: number, s: any) => acc + (s.total || 0), 0);
+  const completedJobs = mrJobs.filter((j: any) => j.status === 'completed').length;
+  const pendingApprovals = mrJobs.filter((j: any) => j.status === 'pending-approval').length;
+  const activeTots = mockTots.filter(t => t.localMrId === localMrId && t.status === 'active').length;
 
   const formatCurrency = (value: number) => {
     if (value >= 1000000) {
@@ -37,9 +82,6 @@ export function ManagerDashboard() {
     }
     return `KES ${(value / 1000).toFixed(0)}K`;
   };
-
-  // Get TOT performance data
-  const totPerformance = getTOTsByLocalMR(localMrId);
 
   return (
     <div className="space-y-6">
@@ -122,7 +164,7 @@ export function ManagerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {totPerformance.slice(0, 5).map((tot, index) => (
+                {totPerformance.slice(0, 5).map((tot: any, index: number) => (
                   <div 
                     key={tot.totId}
                     className="flex items-center justify-between p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors animate-fade-in"
@@ -130,7 +172,7 @@ export function ManagerDashboard() {
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
-                        {tot.totName.split(' ').map(n => n[0]).join('')}
+                        {tot.totName.split(' ').map((n: string) => n[0]).join('')}
                       </div>
                       <div>
                         <p className="font-medium text-sm">{tot.totName}</p>
@@ -139,11 +181,11 @@ export function ManagerDashboard() {
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="text-right">
-                        <p className="font-semibold text-sm text-primary">{formatCurrency(tot.totalSales)}</p>
+                        <p className="font-semibold text-sm text-primary">{formatCurrency(tot.totalSales || 0)}</p>
                         <p className="text-xs text-muted-foreground">Sales</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-semibold text-sm text-secondary">{formatCurrency(tot.totalCommission)}</p>
+                        <p className="font-semibold text-sm text-secondary">{formatCurrency(tot.totalCommission || 0)}</p>
                         <p className="text-xs text-muted-foreground">Commission</p>
                       </div>
                       <Badge variant={tot.status === 'active' ? 'success' : 'secondary'}>

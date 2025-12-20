@@ -4,16 +4,37 @@ import { RecentActivity } from '@/components/dashboard/RecentActivity';
 import { SalesChart } from '@/components/dashboard/SalesChart';
 import { ProductChart } from '@/components/dashboard/ProductChart';
 import { TopPerformers } from '@/components/dashboard/TopPerformers';
-import { getAdminStats, mockLocalMRs, mockMechanisationJobs, mockTrainings } from '@/data/mockData';
+import { useAdminDashboardWithFallback, mockLocalMRs } from '@/hooks/api/useDashboard';
+import { useMechanisationJobs, useTrainings } from '@/hooks/api';
+import { useApiWithFallback } from '@/hooks/api/useApiWithFallback';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
+// Fallback mock data
+const mockMechanisationJobs = [
+  { id: 'job-1', status: 'completed' },
+  { id: 'job-2', status: 'completed' },
+];
+
+const mockTrainings = [
+  { id: 'training-1' },
+  { id: 'training-2' },
+  { id: 'training-3' },
+];
+
 export function AdminDashboard() {
-  const stats = getAdminStats();
-  const mechanisationJobs = mockMechanisationJobs.filter(j => j.status === 'completed').length;
-  const trainingsHeld = mockTrainings.length;
+  const { data: stats } = useAdminDashboardWithFallback();
+  
+  const mechanisationQuery = useMechanisationJobs();
+  const { data: mechanisationJobs } = useApiWithFallback(mechanisationQuery, mockMechanisationJobs);
+  
+  const trainingsQuery = useTrainings();
+  const { data: trainings } = useApiWithFallback(trainingsQuery, mockTrainings);
+  
+  const completedJobs = mechanisationJobs.filter((j: any) => j.status === 'completed').length;
+  const trainingsHeld = trainings.length;
 
   const formatCurrency = (value: number) => {
     if (value >= 1000000) {
@@ -39,7 +60,7 @@ export function AdminDashboard() {
         <div className="flex items-center gap-2">
           <Badge variant="terracotta" className="text-sm py-1 px-3">
             <Building2 className="w-4 h-4 mr-1" />
-            10 Local MRs
+            {stats.totalMRs} Local MRs
           </Badge>
         </div>
       </div>
@@ -70,7 +91,7 @@ export function AdminDashboard() {
         />
         <StatCard
           title="Mechanisation"
-          value={mechanisationJobs}
+          value={completedJobs}
           subtitle="Jobs completed"
           icon={Tractor}
           variant="earth"

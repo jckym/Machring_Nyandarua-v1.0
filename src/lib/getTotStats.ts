@@ -1,48 +1,16 @@
-import {
-  mockFarmers,
-  mockSales,
-  mockMechanisationJobs,
-  mockVisits,
-  mockTrainings,
-} from '@/data/mockData';
 import { DashboardStats } from '@/types';
 
-export function getTotStats(totId: string): DashboardStats {
-  const totalFarmers = mockFarmers.filter(
-    farmer => farmer.registeredBy === totId
-  ).length;
-
-  const totSales = mockSales.filter(sale => sale.totId === totId);
-  const totalSales = totSales.length;
-
-  const totalRevenue = totSales.reduce(
-    (sum, sale) => sum + sale.total,
-    0
-  );
-
-  const mechanisationJobsCompleted = mockMechanisationJobs.filter(
-    job => job.bookedBy === totId && job.status === 'completed'
-  ).length;
-
-  const visitsCompleted = mockVisits.filter(
-    visit => visit.totId === totId
-  ).length;
-
-  const trainingsHeld = mockTrainings.filter(
-    training => training.trainerId === totId
-  ).length;
-
-  const totalCommission = totSales
-    .filter(s => s.status === 'completed')
-    .reduce((sum, sale) => sum + sale.commissionAmount, 0);
-
+// This function now returns static fallback data
+// Real data should come from the useTotDashboard API hook
+export function getTotStats(_totId: string): DashboardStats {
+  // Fallback mock data when API is unavailable
   return {
-    totalFarmers,
-    totalSales,
-    totalRevenue,
-    mechanisationJobs: mechanisationJobsCompleted,
-    visitsCompleted,
-    trainingsHeld,
-    totalCommission,
+    totalFarmers: 2,
+    totalSales: 2,
+    totalRevenue: 31000,
+    mechanisationJobs: 1,
+    visitsCompleted: 2,
+    trainingsHeld: 1,
+    totalCommission: 1550,
   };
 }

@@ -35,15 +35,28 @@ import {
 } from '@/components/ui/select';
 import { Search, Plus, MoreHorizontal, Building2, Users, MapPin, UserCog } from 'lucide-react';
 import { toast } from 'sonner';
-import { mockLocalMRs as initialMRs } from '@/data/mockData';
+import { useLocalMRs, useCreateLocalMR, useUpdateLocalMR, useApiWithFallback } from '@/hooks/api';
 import { LocalMR } from '@/types';
+
+// Fallback mock data
+const mockLocalMRs: LocalMR[] = [
+  { id: 'mr-1', name: 'Nakuru Central MR', code: 'NK-001', subcounty: 'Nakuru East', ward: 'Bahati', managerId: 'mgr-1', managerName: 'John Kamau', totalTots: 5, totalFarmers: 120 },
+  { id: 'mr-2', name: 'Nyeri Highland MR', code: 'NY-001', subcounty: 'Nyeri Central', ward: 'Ruring\'u', managerId: 'mgr-2', managerName: 'Mary Wanjiku', totalTots: 4, totalFarmers: 95 },
+  { id: 'mr-3', name: 'Eldoret Valley MR', code: 'EL-001', subcounty: 'Eldoret East', ward: 'Pioneer', managerId: 'mgr-3', managerName: 'Peter Kipkoech', totalTots: 6, totalFarmers: 150 },
+  { id: 'mr-4', name: 'Meru Highlands MR', code: 'MR-001', subcounty: 'Meru Central', ward: 'Municipality', managerId: 'mgr-4', managerName: 'Grace Muthoni', totalTots: 3, totalFarmers: 80 },
+  { id: 'mr-5', name: 'Kisumu Lakeside MR', code: 'KS-001', subcounty: 'Kisumu Central', ward: 'Milimani', managerId: 'mgr-5', managerName: 'James Odhiambo', totalTots: 5, totalFarmers: 110 },
+  { id: 'mr-6', name: 'Nanyuki Plateau MR', code: 'NN-001', subcounty: 'Laikipia East', ward: 'Nanyuki', managerId: 'mgr-6', managerName: 'Sarah Njeri', totalTots: 4, totalFarmers: 75 },
+  { id: 'mr-7', name: 'Kitale Western MR', code: 'KT-001', subcounty: 'Kitale', ward: 'Milimani', managerId: 'mgr-7', managerName: 'David Wekesa', totalTots: 5, totalFarmers: 130 },
+  { id: 'mr-8', name: 'Narok Mara MR', code: 'NR-001', subcounty: 'Narok North', ward: 'Narok Town', managerId: 'mgr-8', managerName: 'Joseph Sankok', totalTots: 3, totalFarmers: 65 },
+  { id: 'mr-9', name: 'Machakos Valley MR', code: 'MC-001', subcounty: 'Machakos Central', ward: 'Machakos Town', managerId: 'mgr-9', managerName: 'Ruth Mwikali', totalTots: 4, totalFarmers: 90 },
+  { id: 'mr-10', name: 'Kericho Tea Belt MR', code: 'KC-001', subcounty: 'Kericho Central', ward: 'Kericho Town', managerId: 'mgr-10', managerName: 'Moses Langat', totalTots: 4, totalFarmers: 100 },
+];
 
 export function LocalMRs() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [subcountyFilter, setSubcountyFilter] = useState('all');
   const [wardFilter, setWardFilter] = useState('all');
-  const [localMRs, setLocalMRs] = useState<LocalMR[]>(initialMRs);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedMR, setSelectedMR] = useState<LocalMR | null>(null);
@@ -55,10 +68,17 @@ export function LocalMRs() {
     managerName: '',
   });
 
-  const subcounties = [...new Set(localMRs.map(mr => mr.subcounty))];
-  const wards = [...new Set(localMRs.map(mr => mr.ward))];
+  // Fetch data with fallback
+  const localMRsQuery = useLocalMRs();
+  const { data: localMRs, isUsingFallback } = useApiWithFallback(localMRsQuery, mockLocalMRs);
+  
+  const createMutation = useCreateLocalMR();
+  const updateMutation = useUpdateLocalMR();
 
-  const filteredMRs = localMRs.filter(mr => {
+  const subcounties = [...new Set(localMRs.map((mr: LocalMR) => mr.subcounty))];
+  const wards = [...new Set(localMRs.map((mr: LocalMR) => mr.ward))];
+
+  const filteredMRs = localMRs.filter((mr: LocalMR) => {
     const matchesSearch = mr.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       mr.subcounty.toLowerCase().includes(searchQuery.toLowerCase()) ||
       mr.ward.toLowerCase().includes(searchQuery.toLowerCase());
@@ -77,22 +97,26 @@ export function LocalMRs() {
       return;
     }
 
-    const newMR: LocalMR = {
-      id: `mr-${Date.now()}`,
+    if (isUsingFallback) {
+      // If using fallback, just show success and close
+      toast.success('Local MR added successfully (demo mode)');
+      setIsAddDialogOpen(false);
+      resetForm();
+      return;
+    }
+
+    createMutation.mutate({
       name: formData.name,
       code: formData.code,
       subcounty: formData.subcounty,
       ward: formData.ward,
       managerId: '',
-      managerName: formData.managerName || 'TBA',
-      totalTots: 0,
-      totalFarmers: 0,
-    };
-
-    setLocalMRs(prev => [...prev, newMR]);
-    toast.success('Local MR added successfully');
-    setIsAddDialogOpen(false);
-    resetForm();
+    }, {
+      onSuccess: () => {
+        setIsAddDialogOpen(false);
+        resetForm();
+      }
+    });
   };
 
   const handleEditMR = (mr: LocalMR) => {
@@ -110,15 +134,29 @@ export function LocalMRs() {
   const handleUpdateMR = () => {
     if (!selectedMR) return;
 
-    setLocalMRs(prev => prev.map(mr => 
-      mr.id === selectedMR.id 
-        ? { ...mr, ...formData }
-        : mr
-    ));
-    toast.success('Local MR updated successfully');
-    setIsEditDialogOpen(false);
-    setSelectedMR(null);
-    resetForm();
+    if (isUsingFallback) {
+      toast.success('Local MR updated successfully (demo mode)');
+      setIsEditDialogOpen(false);
+      setSelectedMR(null);
+      resetForm();
+      return;
+    }
+
+    updateMutation.mutate({
+      id: selectedMR.id,
+      data: {
+        name: formData.name,
+        code: formData.code,
+        subcounty: formData.subcounty,
+        ward: formData.ward,
+      }
+    }, {
+      onSuccess: () => {
+        setIsEditDialogOpen(false);
+        setSelectedMR(null);
+        resetForm();
+      }
+    });
   };
 
   const handleViewDetails = (mrId: string) => {
@@ -127,8 +165,8 @@ export function LocalMRs() {
 
   // Stats
   const totalMRs = localMRs.length;
-  const totalFarmers = localMRs.reduce((sum, mr) => sum + mr.totalFarmers, 0);
-  const totalTOTs = localMRs.reduce((sum, mr) => sum + mr.totalTots, 0);
+  const totalFarmers = localMRs.reduce((sum: number, mr: LocalMR) => sum + mr.totalFarmers, 0);
+  const totalTOTs = localMRs.reduce((sum: number, mr: LocalMR) => sum + mr.totalTots, 0);
 
   return (
     <div className="space-y-6">
@@ -210,7 +248,7 @@ export function LocalMRs() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Subcounties</SelectItem>
-                {subcounties.map(sc => (
+                {subcounties.map((sc: string) => (
                   <SelectItem key={sc} value={sc}>{sc}</SelectItem>
                 ))}
               </SelectContent>
@@ -221,7 +259,7 @@ export function LocalMRs() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Wards</SelectItem>
-                {wards.map(ward => (
+                {wards.map((ward: string) => (
                   <SelectItem key={ward} value={ward}>{ward}</SelectItem>
                 ))}
               </SelectContent>
@@ -251,7 +289,7 @@ export function LocalMRs() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredMRs.map((mr) => (
+              {filteredMRs.map((mr: LocalMR) => (
                 <TableRow key={mr.id}>
                   <TableCell>
                     <Badge variant="outline" className="font-mono">
@@ -344,8 +382,8 @@ export function LocalMRs() {
               <Button variant="outline" className="flex-1" onClick={() => { setIsAddDialogOpen(false); resetForm(); }}>
                 Cancel
               </Button>
-              <Button className="flex-1" onClick={handleAddMR}>
-                Add Local MR
+              <Button className="flex-1" onClick={handleAddMR} disabled={createMutation.isPending}>
+                {createMutation.isPending ? 'Adding...' : 'Add Local MR'}
               </Button>
             </div>
           </div>
@@ -399,8 +437,8 @@ export function LocalMRs() {
               <Button variant="outline" className="flex-1" onClick={() => { setIsEditDialogOpen(false); setSelectedMR(null); resetForm(); }}>
                 Cancel
               </Button>
-              <Button className="flex-1" onClick={handleUpdateMR}>
-                Update Local MR
+              <Button className="flex-1" onClick={handleUpdateMR} disabled={updateMutation.isPending}>
+                {updateMutation.isPending ? 'Updating...' : 'Update Local MR'}
               </Button>
             </div>
           </div>

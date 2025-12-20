@@ -34,12 +34,27 @@ import {
 } from '@/components/ui/select';
 import { Search, Plus, MoreHorizontal, UserCog, Shield, Users as UsersIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import { getAllUsers, mockLocalMRs } from '@/data/mockData';
-import { User, UserRole } from '@/types';
+import { useUsers, useLocalMRs, useCreateUser, useUpdateUser, useToggleUserStatus, useApiWithFallback } from '@/hooks/api';
+import { User, UserRole, LocalMR } from '@/types';
+
+// Fallback mock data
+const mockUsers: User[] = [
+  { id: 'admin-1', name: 'Admin User', email: 'admin@mr.ke', phone: '+254700000000', role: 'admin', status: 'active', createdAt: new Date('2023-01-01') },
+  { id: 'mgr-1', name: 'John Kamau', email: 'john.kamau@mr.ke', phone: '+254700000001', role: 'manager', localMrId: 'mr-1', status: 'active', createdAt: new Date('2023-01-01') },
+  { id: 'mgr-2', name: 'Mary Wanjiku', email: 'mary.wanjiku@mr.ke', phone: '+254700000002', role: 'manager', localMrId: 'mr-2', status: 'active', createdAt: new Date('2023-01-01') },
+  { id: 'tot-1', name: 'Samuel Mwangi', email: 'samuel@mr.ke', phone: '+254712345001', role: 'tot', localMrId: 'mr-1', status: 'active', createdAt: new Date('2024-01-15') },
+  { id: 'tot-2', name: 'Agnes Wairimu', email: 'agnes@mr.ke', phone: '+254712345002', role: 'tot', localMrId: 'mr-1', status: 'active', createdAt: new Date('2024-02-10') },
+  { id: 'tot-3', name: 'Paul Kimani', email: 'paul@mr.ke', phone: '+254712345003', role: 'tot', localMrId: 'mr-2', status: 'active', createdAt: new Date('2024-01-20') },
+];
+
+const mockLocalMRs: LocalMR[] = [
+  { id: 'mr-1', name: 'Nakuru Central MR', code: 'NK-001', subcounty: 'Nakuru East', ward: 'Bahati', managerId: 'mgr-1', managerName: 'John Kamau', totalTots: 5, totalFarmers: 120 },
+  { id: 'mr-2', name: 'Nyeri Highland MR', code: 'NY-001', subcounty: 'Nyeri Central', ward: 'Ruring\'u', managerId: 'mgr-2', managerName: 'Mary Wanjiku', totalTots: 4, totalFarmers: 95 },
+  { id: 'mr-3', name: 'Eldoret Valley MR', code: 'EL-001', subcounty: 'Eldoret East', ward: 'Pioneer', managerId: 'mgr-3', managerName: 'Peter Kipkoech', totalTots: 6, totalFarmers: 150 },
+];
 
 export function Users() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [users, setUsers] = useState<User[]>(getAllUsers());
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -52,10 +67,21 @@ export function Users() {
     status: 'active' as 'active' | 'inactive',
   });
 
-  const filteredUsers = users.filter(user =>
+  // Fetch data with fallback
+  const usersQuery = useUsers();
+  const { data: users, isUsingFallback } = useApiWithFallback(usersQuery, mockUsers);
+  
+  const localMRsQuery = useLocalMRs();
+  const { data: localMRs } = useApiWithFallback(localMRsQuery, mockLocalMRs);
+  
+  const createMutation = useCreateUser();
+  const updateMutation = useUpdateUser();
+  const toggleStatusMutation = useToggleUserStatus();
+
+  const filteredUsers = users.filter((user: User) =>
     user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (user.localMrId && mockLocalMRs.find(mr => mr.id === user.localMrId)?.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    (user.localMrId && localMRs.find((mr: LocalMR) => mr.id === user.localMrId)?.name.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const resetForm = () => {
@@ -97,21 +123,25 @@ export function Users() {
       return;
     }
 
-    const newUser: User = {
-      id: `user-${Date.now()}`,
+    if (isUsingFallback) {
+      toast.success(`${formData.role.toUpperCase()} ${formData.name} added successfully (demo mode)`);
+      setIsAddDialogOpen(false);
+      resetForm();
+      return;
+    }
+
+    createMutation.mutate({
       name: formData.name,
       email: formData.email,
       phone: formData.phone,
       role: formData.role,
       localMrId: formData.role !== 'admin' ? formData.localMrId : undefined,
-      status: formData.status,
-      createdAt: new Date(),
-    };
-
-    setUsers(prev => [...prev, newUser]);
-    toast.success(`${formData.role.toUpperCase()} ${formData.name} added successfully`);
-    setIsAddDialogOpen(false);
-    resetForm();
+    }, {
+      onSuccess: () => {
+        setIsAddDialogOpen(false);
+        resetForm();
+      }
+    });
   };
 
   const handleEditUser = (user: User) => {
@@ -130,37 +160,58 @@ export function Users() {
   const handleUpdateUser = () => {
     if (!selectedUser) return;
 
-    setUsers(prev => prev.map(u => 
-      u.id === selectedUser.id 
-        ? { ...u, ...formData, localMrId: formData.role !== 'admin' ? formData.localMrId : undefined }
-        : u
-    ));
-    toast.success('User updated successfully');
-    setIsEditDialogOpen(false);
-    setSelectedUser(null);
-    resetForm();
+    if (isUsingFallback) {
+      toast.success('User updated successfully (demo mode)');
+      setIsEditDialogOpen(false);
+      setSelectedUser(null);
+      resetForm();
+      return;
+    }
+
+    updateMutation.mutate({
+      id: selectedUser.id,
+      data: {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        role: formData.role,
+        localMrId: formData.role !== 'admin' ? formData.localMrId : undefined,
+        status: formData.status,
+      }
+    }, {
+      onSuccess: () => {
+        setIsEditDialogOpen(false);
+        setSelectedUser(null);
+        resetForm();
+      }
+    });
   };
 
   const handleToggleStatus = (userId: string) => {
-    setUsers(prev => prev.map(u => 
-      u.id === userId 
-        ? { ...u, status: u.status === 'active' ? 'inactive' : 'active' }
-        : u
-    ));
-    const user = users.find(u => u.id === userId);
-    toast.success(`User ${user?.name} ${user?.status === 'active' ? 'deactivated' : 'activated'}`);
+    const user = users.find((u: User) => u.id === userId);
+    if (!user) return;
+
+    if (isUsingFallback) {
+      toast.success(`User ${user.name} ${user.status === 'active' ? 'deactivated' : 'activated'} (demo mode)`);
+      return;
+    }
+
+    toggleStatusMutation.mutate({
+      id: userId,
+      status: user.status === 'active' ? 'inactive' : 'active'
+    });
   };
 
   const getBranchName = (localMrId?: string) => {
     if (!localMrId) return 'HQ';
-    const mr = mockLocalMRs.find(m => m.id === localMrId);
+    const mr = localMRs.find((m: LocalMR) => m.id === localMrId);
     return mr?.name || 'Unknown';
   };
 
   // Stats
   const totalUsers = users.length;
-  const activeUsers = users.filter(u => u.status === 'active').length;
-  const adminCount = users.filter(u => u.role === 'admin').length;
+  const activeUsers = users.filter((u: User) => u.status === 'active').length;
+  const adminCount = users.filter((u: User) => u.role === 'admin').length;
 
   return (
     <div className="space-y-6">
@@ -245,7 +296,7 @@ export function Users() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredUsers.map((user) => (
+              {filteredUsers.map((user: User) => (
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.name}</TableCell>
                   <TableCell>{user.email}</TableCell>
@@ -336,7 +387,7 @@ export function Users() {
                     <SelectValue placeholder="Select Local MR" />
                   </SelectTrigger>
                   <SelectContent>
-                    {mockLocalMRs.map((mr) => (
+                    {localMRs.map((mr: LocalMR) => (
                       <SelectItem key={mr.id} value={mr.id}>{mr.name}</SelectItem>
                     ))}
                   </SelectContent>
@@ -362,8 +413,8 @@ export function Users() {
               <Button variant="outline" className="flex-1" onClick={() => { setIsAddDialogOpen(false); resetForm(); }}>
                 Cancel
               </Button>
-              <Button className="flex-1" onClick={handleAddUser}>
-                Add User
+              <Button className="flex-1" onClick={handleAddUser} disabled={createMutation.isPending}>
+                {createMutation.isPending ? 'Adding...' : 'Add User'}
               </Button>
             </div>
           </div>
@@ -427,7 +478,7 @@ export function Users() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {mockLocalMRs.map((mr) => (
+                    {localMRs.map((mr: LocalMR) => (
                       <SelectItem key={mr.id} value={mr.id}>{mr.name}</SelectItem>
                     ))}
                   </SelectContent>
@@ -453,8 +504,8 @@ export function Users() {
               <Button variant="outline" className="flex-1" onClick={() => { setIsEditDialogOpen(false); setSelectedUser(null); resetForm(); }}>
                 Cancel
               </Button>
-              <Button className="flex-1" onClick={handleUpdateUser}>
-                Update User
+              <Button className="flex-1" onClick={handleUpdateUser} disabled={updateMutation.isPending}>
+                {updateMutation.isPending ? 'Updating...' : 'Update User'}
               </Button>
             </div>
           </div>

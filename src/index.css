@@ -119,13 +119,30 @@
     @apply border-border;
   }
 
+  html {
+    /* Prevent layout shift when keyboard opens on mobile */
+    overflow-x: hidden;
+  }
+
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'DM Sans', sans-serif;
+    /* Safe area support for notched devices */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Outfit', sans-serif;
+  }
+
+  /* Improve touch targets on mobile */
+  @media (pointer: coarse) {
+    button, [role="button"], a, input, select, textarea {
+      min-height: 44px;
+    }
   }
 }
 

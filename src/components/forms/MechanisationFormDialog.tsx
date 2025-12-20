@@ -107,12 +107,12 @@ export function MechanisationFormDialog({ open, onOpenChange, onSubmit }: Mechan
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-lg flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="font-heading">New Mechanisation Booking</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto space-y-4 -mx-4 sm:-mx-6 px-4 sm:px-6">
           {/* Farmer Selection */}
           <div className="space-y-2">
             <Label>Select Farmer *</Label>
@@ -258,8 +258,8 @@ export function MechanisationFormDialog({ open, onOpenChange, onSubmit }: Mechan
             </div>
           )}
 
-          {/* Actions */}
-          <div className="flex gap-3 pt-4">
+          {/* Actions - Sticky on mobile */}
+          <div className="flex gap-3 pt-4 pb-2 sticky bottom-0 bg-background border-t -mx-4 sm:-mx-6 px-4 sm:px-6 mt-auto">
             <Button type="button" variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>

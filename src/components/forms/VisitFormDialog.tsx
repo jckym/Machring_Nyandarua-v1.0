@@ -97,12 +97,12 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
+      <DialogContent className="max-w-lg flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="font-heading">Log Field Visit</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto space-y-4 -mx-4 sm:-mx-6 px-4 sm:px-6">
           {/* GPS Status */}
           <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
             {isLoadingGps ? (
@@ -191,8 +191,8 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
             Visit timestamp: {new Date().toLocaleString('en-KE')}
           </div>
 
-          {/* Actions */}
-          <div className="flex gap-3 pt-4">
+          {/* Actions - Sticky on mobile */}
+          <div className="flex gap-3 pt-4 pb-2 sticky bottom-0 bg-background border-t -mx-4 sm:-mx-6 px-4 sm:px-6 mt-auto">
             <Button type="button" variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>

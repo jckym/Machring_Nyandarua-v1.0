@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { mockSales, mockProducts } from '@/data/mockData';
 import { Search, Plus, TrendingUp, Calendar, Download, Package, CheckCircle, MoreVertical, FileSpreadsheet, FileText, WifiOff } from 'lucide-react';
 import { exportSalesToExcel, exportSalesToPDF } from '@/lib/exportUtils';
 import { SaleFormDialog } from '@/components/forms/SaleFormDialog';
@@ -36,9 +35,16 @@ export function Sales() {
   const { addNotification } = useNotifications();
   const { user } = useAuth();
 
+  // Fallback products for filter dropdown
+  const fallbackProducts = [
+    { id: 'prod-1', name: 'Maize Seeds (10kg)' },
+    { id: 'prod-2', name: 'DAP Fertilizer (50kg)' },
+    { id: 'prod-3', name: 'Herbicide (5L)' },
+  ];
+
   // API hooks with fallback
   const salesQuery = useSales();
-  const { data: sales, isLoading, isUsingFallback } = useApiWithFallback(salesQuery, mockSales);
+  const { data: sales, isLoading, isUsingFallback } = useApiWithFallback(salesQuery, [] as Sale[]);
   const createSale = useCreateSale();
 
   useEffect(() => {
@@ -234,7 +240,7 @@ export function Sales() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Products</SelectItem>
-                {mockProducts.map(product => (
+                {fallbackProducts.map(product => (
                   <SelectItem key={product.id} value={product.id}>{product.name}</SelectItem>
                 ))}
               </SelectContent>

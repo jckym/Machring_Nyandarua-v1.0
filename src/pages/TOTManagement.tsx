@@ -32,23 +32,60 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { 
-  mockTots, mockLocalMRs, getTOTsByLocalMR, getTOTPerformance,
-  mockFarmers 
-} from '@/data/mockData';
+import { useLocalMRs, useUsers, useFarmers, useApiWithFallback } from '@/hooks/api';
 import { format } from 'date-fns';
+
+interface TOTPerformance {
+  totId: string;
+  totName: string;
+  phone: string;
+  email: string;
+  status: 'active' | 'inactive';
+  totalSales: number;
+  totalCommission: number;
+  mechanisationJobsCompleted: number;
+  trainingsConducted: number;
+  visitsLogged: number;
+  lastActivityDate?: Date;
+}
 
 export function TOTManagement() {
   const { user } = useAuth();
   const localMrId = user?.localMrId || 'mr-1';
-  const localMr = mockLocalMRs.find(mr => mr.id === localMrId);
+
+  // API hooks
+  const localMRsQuery = useLocalMRs();
+  const { data: localMRs } = useApiWithFallback(localMRsQuery, [] as { id: string; name: string; managerName?: string }[]);
+  
+  const usersQuery = useUsers();
+  const { data: users } = useApiWithFallback(usersQuery, [] as { id: string; name: string; role: string; email: string; phone: string; localMrId?: string; status: string }[]);
+  
+  const farmersQuery = useFarmers();
+  const { data: farmers } = useApiWithFallback(farmersQuery, [] as { id: string; registeredBy?: string }[]);
+
+  const localMr = (localMRs as any[]).find(mr => mr.id === localMrId);
+  
+  // Get TOTs for this Local MR
+  const tots = (users as any[]).filter(u => u.role === 'tot' && u.localMrId === localMrId);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedTOT, setSelectedTOT] = useState<string | null>(null);
 
-  // Get TOTs for the manager's Local MR
-  const totsPerformance = getTOTsByLocalMR(localMrId);
+  // Build TOT performance data
+  const totsPerformance: TOTPerformance[] = tots.map(tot => ({
+    totId: tot.id,
+    totName: tot.name,
+    phone: tot.phone || '',
+    email: tot.email || '',
+    status: tot.status === 'active' ? 'active' : 'inactive',
+    totalSales: 0,
+    totalCommission: 0,
+    mechanisationJobsCompleted: 0,
+    trainingsConducted: 0,
+    visitsLogged: 0,
+    lastActivityDate: undefined,
+  }));
   
   const filteredTOTs = totsPerformance.filter(tot =>
     tot.totName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -130,9 +167,9 @@ export function TOTManagement() {
     link.click();
   };
 
-  const selectedTOTData = selectedTOT ? getTOTPerformance(selectedTOT) : null;
+  const selectedTOTData = selectedTOT ? totsPerformance.find(t => t.totId === selectedTOT) : null;
   const farmersRegisteredByTOT = selectedTOT 
-    ? mockFarmers.filter(f => f.registeredBy === selectedTOT).length 
+    ? (farmers as any[]).filter(f => f.registeredBy === selectedTOT).length 
     : 0;
 
   return (
@@ -413,26 +450,11 @@ export function TOTManagement() {
                 </div>
               </div>
 
-              {/* Product Breakdown */}
-              {selectedTOTData.salesByProduct && selectedTOTData.salesByProduct.length > 0 && (
-                <div>
-                  <h4 className="font-medium mb-3">Sales by Product</h4>
-                  <div className="space-y-2">
-                    {selectedTOTData.salesByProduct.map((product, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                        <div>
-                          <p className="font-medium text-sm">{product.productName}</p>
-                          <p className="text-xs text-muted-foreground">Qty: {product.quantity}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-sm">{formatCurrency(product.totalSales)}</p>
-                          <p className="text-xs text-primary">+{formatCurrency(product.commission)} commission</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {/* Last Activity */}
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Calendar className="w-4 h-4" />
+                <span>Last Activity: {formatDate(selectedTOTData.lastActivityDate)}</span>
+              </div>
             </div>
           )}
         </DialogContent>

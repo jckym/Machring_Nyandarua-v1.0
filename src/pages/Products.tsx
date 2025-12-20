@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
-import { mockProducts as initialProducts, productCategories } from '@/data/mockData';
 import { Search, Plus, Package, Filter, AlertTriangle, TrendingUp, Edit, RefreshCw, WifiOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProducts, useCreateProduct, useUpdateProduct, useApiWithFallback } from '@/hooks/api';
@@ -26,6 +25,8 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Product, ProductCategory } from '@/types';
+
+const productCategories: ProductCategory[] = ['Seeds', 'Fertilizers', 'Chemicals', 'Equipment', 'Others'];
 
 export function Products() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -50,7 +51,7 @@ export function Products() {
 
   // API hooks with fallback
   const productsQuery = useProducts();
-  const { data: products, isLoading, isUsingFallback } = useApiWithFallback(productsQuery, initialProducts);
+  const { data: products, isLoading, isUsingFallback } = useApiWithFallback(productsQuery, [] as Product[]);
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
 

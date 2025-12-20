@@ -3,17 +3,37 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { mockFarmers, mockSales, mockMechanisationJobs, mockVisits, mockTrainings, mockLocalMRs } from '@/data/mockData';
+import { useFarmers, useSales, useMechanisationJobs, useVisits, useTrainings, useLocalMRs, useApiWithFallback } from '@/hooks/api';
 import { 
   ArrowLeft, Phone, Mail, MapPin, Calendar, ShoppingCart, Tractor, 
   GraduationCap, Users, Star, Edit, TrendingUp 
 } from 'lucide-react';
+import { Farmer, Sale, MechanisationJob, Visit, Training } from '@/types';
 
 export function FarmerProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
   
-  const farmer = mockFarmers.find(f => f.id === id);
+  // API hooks with fallback
+  const farmersQuery = useFarmers();
+  const { data: farmers } = useApiWithFallback(farmersQuery, [] as Farmer[]);
+  
+  const salesQuery = useSales();
+  const { data: sales } = useApiWithFallback(salesQuery, [] as Sale[]);
+  
+  const mechQuery = useMechanisationJobs();
+  const { data: mechJobs } = useApiWithFallback(mechQuery, [] as MechanisationJob[]);
+  
+  const visitsQuery = useVisits();
+  const { data: visits } = useApiWithFallback(visitsQuery, [] as Visit[]);
+  
+  const trainingsQuery = useTrainings();
+  const { data: trainings } = useApiWithFallback(trainingsQuery, [] as Training[]);
+  
+  const localMRsQuery = useLocalMRs();
+  const { data: localMRs } = useApiWithFallback(localMRsQuery, [] as { id: string; name: string }[]);
+  
+  const farmer = (farmers as Farmer[]).find(f => f.id === id);
   
   if (!farmer) {
     return (
@@ -27,11 +47,11 @@ export function FarmerProfile() {
     );
   }
 
-  const localMr = mockLocalMRs.find(mr => mr.id === farmer.localMrId);
-  const farmerSales = mockSales.filter(s => s.farmerId === farmer.id);
-  const farmerJobs = mockMechanisationJobs.filter(j => j.farmerId === farmer.id);
-  const farmerVisits = mockVisits.filter(v => v.farmerId === farmer.id);
-  const farmerTrainings = mockTrainings.filter(t => t.attendees.includes(farmer.id));
+  const localMr = (localMRs as { id: string; name: string }[]).find(mr => mr.id === farmer.localMrId);
+  const farmerSales = (sales as Sale[]).filter(s => s.farmerId === farmer.id);
+  const farmerJobs = (mechJobs as MechanisationJob[]).filter(j => j.farmerId === farmer.id);
+  const farmerVisits = (visits as Visit[]).filter(v => v.farmerId === farmer.id);
+  const farmerTrainings = (trainings as Training[]).filter(t => t.attendees.includes(farmer.id));
 
   const totalSpent = farmerSales.reduce((acc, s) => acc + s.total, 0);
   const mechanisationSpent = farmerJobs.reduce((acc, j) => acc + j.totalPrice, 0);

@@ -26,7 +26,7 @@ import {
 import { toast } from 'sonner';
 import { Product, ProductCategory } from '@/types';
 
-const productCategories: ProductCategory[] = ['Seeds', 'Fertilizers', 'Chemicals', 'Equipment', 'Others'];
+const productCategories: ProductCategory[] = ['Seeds', 'Fertilizers', 'Agrochemicals', 'Animal Feeds & Supplements', 'Services', 'Equipment', 'Others'];
 
 export function Products() {
   const [searchQuery, setSearchQuery] = useState('');

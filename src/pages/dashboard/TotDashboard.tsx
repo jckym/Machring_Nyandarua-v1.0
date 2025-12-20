@@ -13,13 +13,14 @@ import { RecentActivity } from '@/components/dashboard/RecentActivity';
 import { SalesChart } from '@/components/dashboard/SalesChart';
 import { ProductChart } from '@/components/dashboard/ProductChart';
 
-import { getTotStats } from '@/lib/getTotStats';
+import { useTotDashboardWithFallback } from '@/hooks/api/useDashboard';
+import { useAuth } from '@/contexts/AuthContext';
 
 export function TotDashboard() {
-  // 🔧 TEMP: Replace with auth user later
-  const totId = 'tot1';
+  const { user } = useAuth();
+  const totId = user?.id || 'tot-1';
 
-  const stats = getTotStats(totId);
+  const { data: stats } = useTotDashboardWithFallback(totId);
 
   const formatCurrency = (value: number) => {
     return `KES ${(value / 1000).toFixed(0)}K`;

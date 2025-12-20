@@ -3,12 +3,11 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { mockFarmerApprovalRequests } from '@/data/mockData';
 import { FarmerApprovalRequest } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { toast } from 'sonner';
-import { Search, CheckCircle, XCircle, Clock, User, MapPin, Filter } from 'lucide-react';
+import { Search, CheckCircle, XCircle, Clock, User, MapPin } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -26,6 +25,27 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+
+// Fallback mock data
+const mockFarmerApprovalRequests: FarmerApprovalRequest[] = [
+  { 
+    id: 'approval-1', 
+    farmerData: { 
+      name: 'New Test Farmer', 
+      phone: '+254711999999', 
+      location: { village: 'Test Village', ward: 'Test Ward', subcounty: 'Nakuru East', county: 'Nakuru' }, 
+      valueChain: 'Maize', 
+      farmerCategory: 'New' 
+    }, 
+    type: 'add', 
+    status: 'pending', 
+    requestedBy: 'tot-1', 
+    requestedByName: 'Samuel Mwangi', 
+    localMrId: 'mr-1', 
+    localMrName: 'Nakuru Central MR', 
+    createdAt: new Date('2025-06-18') 
+  },
+];
 
 export function ApprovalRequests() {
   const { user } = useAuth();
@@ -119,7 +139,7 @@ export function ApprovalRequests() {
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-    }).format(date);
+    }).format(new Date(date));
   };
 
   return (

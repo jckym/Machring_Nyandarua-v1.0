@@ -171,7 +171,7 @@ export function AdminDashboard() {
                       </div>
                       <div>
                         <p className="font-medium">{mr.name}</p>
-                        <p className="text-sm text-muted-foreground">{mr.county} County • {mr.managerName}</p>
+                        <p className="text-sm text-muted-foreground">{mr.subcounty}, {mr.ward} • {mr.managerName}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-6">

@@ -1,20 +1,19 @@
 // src/hooks/api/useSyncStatus.ts
+import { useQuery } from '@tanstack/react-query';
+import { syncService } from '@/lib/api';
+
 export function useSyncStatus() {
   return useQuery({
-    queryKey: ['sync-status'],
+    queryKey: ['sync', 'status'],
     queryFn: () => syncService.getPendingCount(),
-    refetchInterval: 30000, // 30 seconds
+    refetchInterval: (query) => {
+      // Only refetch when online and there are pending items
+      const isOnline = navigator.onLine;
+      const pending = query.state.data ?? 0;
+      return isOnline && pending > 0 ? 10000 : false; // Every 10s if syncing needed
+    },
+    staleTime: 5000,
+    // Optional: optimistic default
+    initialData: 0,
   });
-}
-
-// src/hooks/useGlobalSearch.ts
-export function useGlobalSearch() {
-  const [searchQuery, setSearchQuery] = useState('');
-  
-  const handleSearch = () => {
-    // Global search across farmers, sales, visits, etc.
-    navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
-  };
-
-  return { searchQuery, setSearchQuery, handleSearch };
 }

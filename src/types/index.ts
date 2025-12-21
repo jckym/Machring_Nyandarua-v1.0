@@ -12,6 +12,7 @@ export interface User {
   role: UserRole;
   phone: string;
   localMrId?: string;
+  localMrName?: string;
   status: 'active' | 'inactive';
   avatar?: string;
   createdAt: Date;
@@ -236,10 +237,11 @@ export interface Visit {
 // Trainings
 // -----------------------------
 export type TrainingStatus = 'Upcoming' | 'Completed';
+export type TrainingType = 'Workshop' | 'Field Day' | 'Seminar' | 'Demonstration' | 'Online Training';
 
 export interface Training {
   id: string;
-  type?: string;
+  type?: TrainingType;
   title: string;
   date: Date;
   status: TrainingStatus;

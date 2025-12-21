@@ -51,7 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Admin login
     if (normalizedEmail === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
       const adminUser: User = {
-        _id: 'admin-001',
+        id: 'admin-001',
         name: 'System Administrator',
         email: ADMIN_EMAIL,
         role: 'admin' as UserRole,

@@ -1,40 +1,12 @@
 // src/components/DashboardStats.tsx
-import { useState, useEffect } from 'react';
 import { StatCard } from './StatCard';
-import { Users, ShoppingCart, Tractor, DollarSign, TrendingUp } from 'lucide-react';
-import api from '@/services/api';
-
-interface DashboardStatsData {
-  totalFarmers: number;
-  totalSales: number;
-  totalMechanisationRevenue: number;
-  activeTOTs: number;
-  monthlyGrowth: number; // percentage
-}
+import { Users, ShoppingCart, Tractor, TrendingUp } from 'lucide-react';
+import { useAdminDashboard } from '@/hooks/api/useDashboard';
 
 export function DashboardStats() {
-  const [stats, setStats] = useState<DashboardStatsData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const { data: stats, isLoading, error } = useAdminDashboard();
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        setLoading(true);
-        const { data } = await api.get<DashboardStatsData>('/api/analytics/dashboard-stats');
-        setStats(data);
-      } catch (err) {
-        console.error('Failed to fetch dashboard stats:', err);
-        setError(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStats();
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[1, 2, 3, 4].map((i) => (
@@ -61,7 +33,7 @@ export function DashboardStats() {
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       <StatCard
         title="Total Farmers"
-        value={stats.totalFarmers.toLocaleString()}
+        value={(stats.totalFarmers || 0).toLocaleString()}
         subtitle="Registered to date"
         icon={Users}
         trend={{ value: 18, isPositive: true }}
@@ -69,26 +41,26 @@ export function DashboardStats() {
       />
       <StatCard
         title="Total Sales"
-        value={formatKES(stats.totalSales)}
+        value={formatKES(stats.totalRevenue || 0)}
         subtitle="This month"
         icon={ShoppingCart}
         trend={{ value: 12, isPositive: true }}
         variant="forest"
       />
       <StatCard
-        title="Mechanisation Revenue"
-        value={formatKES(stats.totalMechanisationRevenue)}
+        title="Mechanisation Jobs"
+        value={(stats.mechanisationJobs || 0).toLocaleString()}
         subtitle="This month"
         icon={Tractor}
         trend={{ value: 8, isPositive: true }}
         variant="wheat"
       />
       <StatCard
-        title="Monthly Growth"
-        value={`${stats.monthlyGrowth}%`}
-        subtitle="vs last month"
+        title="Trainings Held"
+        value={(stats.trainingsHeld || 0).toLocaleString()}
+        subtitle="This month"
         icon={TrendingUp}
-        trend={{ value: stats.monthlyGrowth, isPositive: stats.monthlyGrowth > 0 }}
+        trend={{ value: 5, isPositive: true }}
         variant="sage"
       />
     </div>

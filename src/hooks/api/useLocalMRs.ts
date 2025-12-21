@@ -1,6 +1,7 @@
 // src/hooks/api/useLocalMRs.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { localMrService, CreateLocalMRDto, UpdateLocalMRDto, LocalMRFilters } from '@/lib/api';
+import { LocalMR } from '@/types';
 import { toast } from 'sonner';
 
 export const localMrKeys = {
@@ -29,12 +30,14 @@ export function useLocalMRs(options: UseLocalMRsOptions = {}) {
     queryKey: localMrKeys.list(filters),
     queryFn: () => localMrService.getAll(filters),
     staleTime: 1000 * 60 * 5, // 5 minutes - dashboard data doesn't change frequently
-    cacheTime: 1000 * 60 * 10, // 10 minutes
-    select: (data) => {
+    gcTime: 1000 * 60 * 10, // 10 minutes
+    select: (response) => {
+      // Handle both array and ApiResponse formats
+      const data = Array.isArray(response) ? response : (response?.data || []);
       // Client-side sorting for consistent dashboard display
-      const sorted = [...data].sort((a, b) => {
-        let aVal: any = a[sortBy];
-        let bVal: any = b[sortBy];
+      const sorted = [...data].sort((a: LocalMR, b: LocalMR) => {
+        let aVal: any = a[sortBy as keyof LocalMR];
+        let bVal: any = b[sortBy as keyof LocalMR];
 
         if (sortBy === 'name') {
           aVal = a.name.toLowerCase();
@@ -91,7 +94,7 @@ export function useCreateLocalMR() {
 
       // Optimistically update list
       queryClient.setQueryData(localMrKeys.lists(), (old: any[] = []) => [
-        { ...newMR, _id: 'temp-id', totalTots: 0, totalFarmers: 0, isActive: true },
+        { ...newMR, id: 'temp-id', totalTots: 0, totalFarmers: 0, isActive: true },
         ...old,
       ]);
 
@@ -100,7 +103,7 @@ export function useCreateLocalMR() {
     onSuccess: (newMR) => {
       // Replace temp item with real one
       queryClient.setQueryData(localMrKeys.lists(), (old: any[] = []) =>
-        old.map((mr) => (mr._id === 'temp-id' ? newMR : mr))
+        old.map((mr) => (mr.id === 'temp-id' ? newMR : mr))
       );
 
       // Invalidate all related queries
@@ -140,7 +143,7 @@ export function useUpdateLocalMR() {
 
       // Optimistically update list
       queryClient.setQueryData(localMrKeys.lists(), (old: any[] = []) =>
-        old.map((mr) => (mr._id === id ? { ...mr, ...data } : mr))
+        old.map((mr) => (mr.id === id ? { ...mr, ...data } : mr))
       );
 
       return { previousMR, previousList };
@@ -179,7 +182,7 @@ export function useDeleteLocalMR() {
       const previousList = queryClient.getQueryData(localMrKeys.lists());
 
       queryClient.setQueryData(localMrKeys.lists(), (old: any[] = []) =>
-        old.filter((mr) => mr._id !== id)
+        old.filter((mr) => mr.id !== id)
       );
 
       return { previousList };

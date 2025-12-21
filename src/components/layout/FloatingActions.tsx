@@ -13,12 +13,11 @@ import {
   GraduationCap,
   Package,
 } from 'lucide-react';
-import { FarmerFormDialog } from './farmer/FarmerFormDialog';
-import { SaleFormDialog } from './sales/SaleFormDialog';
-import { MechanisationFormDialog } from './mechanisation/MechanisationFormDialog';
-import { VisitFormDialog } from './visits/VisitFormDialog';
-import { TrainingFormDialog } from './trainings/TrainingFormDialog';
-import { ProductFormDialog } from './products/ProductFormDialog'; // Admin only
+import { FarmerFormDialog } from '@/components/forms/FarmerFormDialog';
+import { SaleFormDialog } from '@/components/forms/SaleFormDialog';
+import { MechanisationFormDialog } from '@/components/forms/MechanisationFormDialog';
+import { VisitFormDialog } from '@/components/forms/VisitFormDialog';
+import { TrainingFormDialog } from '@/components/forms/TrainingFormDialog';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface FloatingAction {
@@ -41,7 +40,6 @@ export function FloatingActions() {
   const [mechanisationDialogOpen, setMechanisationDialogOpen] = useState(false);
   const [visitDialogOpen, setVisitDialogOpen] = useState(false);
   const [trainingDialogOpen, setTrainingDialogOpen] = useState(false);
-  const [productDialogOpen, setProductDialogOpen] = useState(false);
 
   const actions: FloatingAction[] = [
     {
@@ -74,12 +72,6 @@ export function FloatingActions() {
       dialog: <TrainingFormDialog open={trainingDialogOpen} onOpenChange={setTrainingDialogOpen} onSubmit={() => {}} />,
       roles: ['tot', 'manager'],
     },
-    {
-      icon: Package,
-      label: 'Add Product',
-      dialog: <ProductFormDialog open={productDialogOpen} onOpenChange={setProductDialogOpen} onSubmit={() => {}} />,
-      roles: ['admin'],
-    },
   ];
 
   // Filter actions by current page and user role
@@ -87,7 +79,7 @@ export function FloatingActions() {
   const relevantActions = actions.filter(action => {
     if (!action.roles || action.roles.includes(userRole as any)) {
       // Show on relevant pages or dashboard
-      const relevantPages = {
+      const relevantPages: Record<string, boolean> = {
         farmers: action.label.includes('Farmer'),
         sales: action.label.includes('Sale'),
         mechanisation: action.label.includes('Booking'),
@@ -115,15 +107,14 @@ export function FloatingActions() {
             variant={action.label.includes('Product') ? 'forest' : action.label.includes('Sale') ? 'wheat' : 'earth'}
             className="h-14 w-14 rounded-full shadow-elevated"
             onClick={() => {
-              const setOpen = {
+              const setOpen: Record<string, React.Dispatch<React.SetStateAction<boolean>>> = {
                 'Add Farmer': setFarmerDialogOpen,
                 'Record Sale': setSaleDialogOpen,
                 'New Booking': setMechanisationDialogOpen,
                 'Log Visit': setVisitDialogOpen,
                 'Schedule Training': setTrainingDialogOpen,
-                'Add Product': setProductDialogOpen,
-              }[action.label];
-              setOpen?.(true);
+              };
+              setOpen[action.label]?.(true);
             }}
           >
             <action.icon className="w-6 h-6" />
@@ -162,15 +153,14 @@ export function FloatingActions() {
                 variant={action.label.includes('Product') ? 'forest' : action.label.includes('Sale') ? 'wheat' : 'earth'}
                 className="h-12 w-12 rounded-full shadow-card"
                 onClick={() => {
-                  const setOpen = {
+                  const setOpen: Record<string, React.Dispatch<React.SetStateAction<boolean>>> = {
                     'Add Farmer': setFarmerDialogOpen,
                     'Record Sale': setSaleDialogOpen,
                     'New Booking': setMechanisationDialogOpen,
                     'Log Visit': setVisitDialogOpen,
                     'Schedule Training': setTrainingDialogOpen,
-                    'Add Product': setProductDialogOpen,
-                  }[action.label];
-                  setOpen?.(true);
+                  };
+                  setOpen[action.label]?.(true);
                   setIsOpen(false);
                 }}
               >

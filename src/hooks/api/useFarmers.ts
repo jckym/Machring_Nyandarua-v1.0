@@ -15,20 +15,19 @@ export const farmerKeys = {
 
 interface UseFarmersOptions {
   filters?: FarmerFilters;
-  includePending?: boolean;
 }
 
 /**
  * Fetch farmers list - supports filtering (e.g., by localMrId, status)
  */
 export function useFarmers(options: UseFarmersOptions = {}) {
-  const { filters = {}, includePending = false } = options;
+  const { filters = {} } = options;
 
   return useQuery({
     queryKey: farmerKeys.list(filters),
-    queryFn: () => farmerService.getAll({ ...filters, includePending }),
+    queryFn: () => farmerService.getAll(filters),
     staleTime: 1000 * 60 * 5, // 5 minutes
-    cacheTime: 1000 * 60 * 10,
+    gcTime: 1000 * 60 * 10,
   });
 }
 
@@ -71,7 +70,7 @@ export function useCreateFarmer() {
 
       // Optimistically add
       queryClient.setQueryData(farmerKeys.lists(), (old: any[] = []) => [
-        { ...newFarmer, _id: 'temp-id', status: 'approved' }, // Assume immediate approval for new
+        { ...newFarmer, id: 'temp-id', status: 'approved' },
         ...old,
       ]);
 
@@ -98,7 +97,7 @@ export function useUpdateFarmer() {
 
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateFarmerDto }) =>
-      farmerService.requestEdit(id, data), // Backend should create pending edit
+      farmerService.update(id, data),
 
     onMutate: async ({ id, data }) => {
       await queryClient.cancelQueries({ queryKey: farmerKeys.all });

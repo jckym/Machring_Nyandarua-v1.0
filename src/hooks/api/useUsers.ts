@@ -19,7 +19,7 @@ export function useUsers(filters?: UserFilters) {
     queryKey: userKeys.list(filters || {}),
     queryFn: () => userService.getAll(filters),
     staleTime: 1000 * 60 * 5, // 5 minutes
-    cacheTime: 1000 * 60 * 10,
+    gcTime: 1000 * 60 * 10,
   });
 }
 
@@ -50,7 +50,7 @@ export function useCreateUser() {
 
       // Optimistically add
       queryClient.setQueryData(userKeys.lists(), (old: any[] = []) => [
-        { ...newUser, _id: 'temp-id', status: 'active', createdAt: new Date() },
+        { ...newUser, id: 'temp-id', status: 'active', createdAt: new Date() },
         ...old,
       ]);
 
@@ -90,7 +90,7 @@ export function useUpdateUser() {
 
       // Optimistically update list
       queryClient.setQueryData(userKeys.lists(), (old: any[] = []) =>
-        old.map((u) => (u._id === id ? { ...u, ...data } : u))
+        old.map((u) => (u.id === id ? { ...u, ...data } : u))
       );
 
       return { previousUser, previousList };
@@ -127,7 +127,7 @@ export function useDeleteUser() {
       const previousList = queryClient.getQueryData(userKeys.lists());
 
       queryClient.setQueryData(userKeys.lists(), (old: any[] = []) =>
-        old.filter((u) => u._id !== id)
+        old.filter((u) => u.id !== id)
       );
 
       return { previousList };
@@ -163,7 +163,7 @@ export function useToggleUserStatus() {
 
       // Optimistically toggle
       queryClient.setQueryData(userKeys.lists(), (old: any[] = []) =>
-        old.map((u) => (u._id === id ? { ...u, status } : u))
+        old.map((u) => (u.id === id ? { ...u, status } : u))
       );
       queryClient.setQueryData(userKeys.detail(id), (old: any) => ({ ...old, status }));
 

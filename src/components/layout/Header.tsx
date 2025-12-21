@@ -1,26 +1,27 @@
 // src/components/Header.tsx
-import React from 'react';
-import { useLocation, Link } from 'react-router-dom';
-import { Search, Cloud, CloudOff, Settings, Bell } from 'lucide-react';
+import React, { useState } from 'react';
+import { useLocation, Link, useNavigate } from 'react-router-dom';
+import { Search, Cloud, CloudOff, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { MobileNav } from './MobileNav';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSyncStatus } from '@/hooks/api/useSyncStatus'; // Real sync hook
-import { useGlobalSearch } from '@/hooks/useGlobalSearch'; // Global search
 
 export function Header() {
   const { user } = useAuth();
-  const location = useLocation();
+  const navigate = useNavigate();
   const isOnline = navigator.onLine;
 
-  // Real sync status from API
-  const { data: syncStatus } = useSyncStatus();
+  const [searchQuery, setSearchQuery] = useState('');
 
-  // Global search functionality
-  const { searchQuery, setSearchQuery, handleSearch } = useGlobalSearch();
+  const handleSearch = () => {
+    if (searchQuery.trim()) {
+      // Navigate to search results or filter current page
+      console.log('Search:', searchQuery);
+    }
+  };
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -41,8 +42,6 @@ export function Header() {
         return 'Trainer of Trainers';
     }
   };
-
-  const pendingCount = syncStatus?.pending || 0;
 
   return (
     <header
@@ -93,18 +92,13 @@ export function Header() {
           {isOnline ? (
             <div className="flex items-center gap-1.5 text-emerald-600">
               <Cloud className="w-4 h-4" />
-              {pendingCount > 0 && (
-                <Badge variant="success" className="text-xs font-medium">
-                  {pendingCount}
-                </Badge>
-              )}
               <span className="text-xs font-medium hidden sm:inline">Synced</span>
             </div>
           ) : (
             <div className="flex items-center gap-1.5 text-orange-600">
               <CloudOff className="w-4 h-4" />
               <Badge variant="warning" className="text-xs font-medium">
-                {pendingCount || 'Offline'}
+                Offline
               </Badge>
             </div>
           )}

@@ -20,7 +20,7 @@ export function useProducts(filters?: ProductFilters) {
     queryKey: productKeys.list(filters || {}),
     queryFn: () => productService.getAll(filters),
     staleTime: 1000 * 60 * 5, // 5 minutes
-    cacheTime: 1000 * 60 * 10,
+    gcTime: 1000 * 60 * 10,
   });
 }
 
@@ -44,7 +44,7 @@ export function useProductPerformance() {
     queryKey: productKeys.performance(),
     queryFn: () => productService.getPerformance(),
     staleTime: 1000 * 60 * 15, // Performance changes less frequently
-    cacheTime: 1000 * 60 * 30,
+    gcTime: 1000 * 60 * 30,
   });
 }
 
@@ -63,7 +63,7 @@ export function useCreateProduct() {
 
       // Optimistically add
       queryClient.setQueryData(productKeys.lists(), (old: any[] = []) => [
-        { ...newProduct, _id: 'temp-id', inStock: 0 },
+        { ...newProduct, id: 'temp-id', inStock: 0 },
         ...old,
       ]);
 
@@ -104,7 +104,7 @@ export function useUpdateProduct() {
 
       // Optimistically update list
       queryClient.setQueryData(productKeys.lists(), (old: any[] = []) =>
-        old.map((p) => (p._id === id ? { ...p, ...data } : p))
+        old.map((p) => (p.id === id ? { ...p, ...data } : p))
       );
 
       return { previousProduct, previousList };
@@ -145,7 +145,7 @@ export function useUpdateProductStock() {
 
       // Optimistically update stock
       queryClient.setQueryData(productKeys.lists(), (old: any[] = []) =>
-        old.map((p) => (p._id === id ? { ...p, inStock: stock } : p))
+        old.map((p) => (p.id === id ? { ...p, inStock: stock } : p))
       );
       queryClient.setQueryData(productKeys.detail(id), (old: any) => ({ ...old, inStock: stock }));
 
@@ -182,7 +182,7 @@ export function useDeleteProduct() {
       const previousList = queryClient.getQueryData(productKeys.lists());
 
       queryClient.setQueryData(productKeys.lists(), (old: any[] = []) =>
-        old.filter((p) => p._id !== id)
+        old.filter((p) => p.id !== id)
       );
 
       return { previousList };

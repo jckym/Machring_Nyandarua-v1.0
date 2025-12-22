@@ -1,4 +1,4 @@
-// src/pages/TotDashboard.tsx or src/components/TotDashboard.tsx
+// src/pages/dashboard/TotDashboard.tsx
 import React from 'react';
 import { 
   Users, 
@@ -15,7 +15,7 @@ import { RecentActivity } from '@/components/dashboard/RecentActivity';
 import { SalesChart } from '@/components/dashboard/SalesChart';
 import { ProductChart } from '@/components/dashboard/ProductChart';
 
-import { useTotDashboard } from '@/hooks/api/useDashboard'; // Real hook (no fallback)
+import { useTotDashboard, TotStats } from '@/hooks/api/useDashboard';
 import { useAuth } from '@/contexts/AuthContext';
 
 import { AlertCircle } from 'lucide-react';
@@ -25,17 +25,19 @@ export function TotDashboard() {
   const totId = user?.id;
 
   const { 
-    data: stats, 
+    data: statsResponse, 
     isLoading, 
     error 
-  } = useTotDashboard(totId!); // Real-time stats for this TOT
+  } = useTotDashboard(totId!);
+
+  // Unwrap stats from ApiResponse
+  const stats: TotStats | undefined = statsResponse?.data;
 
   const formatCurrency = (value: number) => {
     if (!value) return 'KES 0K';
     return `KES ${(value / 1000).toFixed(0)}K`;
   };
 
-  // Loading State
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -52,7 +54,6 @@ export function TotDashboard() {
     );
   }
 
-  // Error State
   if (error || !stats) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
@@ -127,19 +128,19 @@ export function TotDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Charts */}
         <div className="lg:col-span-2 space-y-6">
-          <SalesChart /> {/* Already scoped to current TOT via context or API */}
+          <SalesChart />
         </div>
 
         {/* Sidebar */}
         <div className="flex flex-col gap-6">
           <QuickActions />
-          <ProductChart /> {/* Top products sold by this TOT */}
+          <ProductChart />
         </div>
       </div>
 
       {/* Bottom Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <RecentActivity /> {/* Filtered to this TOT's activities */}
+        <RecentActivity />
       </div>
     </div>
   );

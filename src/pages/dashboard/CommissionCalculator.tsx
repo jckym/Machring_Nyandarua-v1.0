@@ -1,18 +1,13 @@
-// src/components/CommissionCalculator.tsx
-import React, { useState, useEffect } from 'react';
+// src/pages/dashboard/CommissionCalculator.tsx
+import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Download, Plus, Trash2 } from 'lucide-react';
-import { useProducts } from '@/hooks/api/useProducts'; // Assume you have this hook
+import { useProducts, useApiWithFallback } from '@/hooks/api';
 import { toast } from 'sonner';
-
-interface Product {
-  _id: string;
-  name: string;
-  commission: number; // Commission in KSH (set by admin when adding product)
-}
+import { Product } from '@/types';
 
 interface SoldItem {
   productId: string;
@@ -27,11 +22,10 @@ export function CommissionCalculator() {
   const [selectedProductId, setSelectedProductId] = useState('');
   const [quantity, setQuantity] = useState(1);
 
-  const { data: products = [], isLoading } = useProducts(); // Fetch real products with commission
+  const productsQuery = useProducts();
+  const { data: products, isLoading } = useApiWithFallback(productsQuery, [] as Product[]);
 
-  const availableProducts = products.filter(
-    (p: Product) => p.commission > 0
-  );
+  const availableProducts = products.filter(p => p.commission > 0);
 
   const addProduct = () => {
     if (!selectedProductId || quantity < 1) {
@@ -39,22 +33,20 @@ export function CommissionCalculator() {
       return;
     }
 
-    const product = availableProducts.find((p: Product) => p._id === selectedProductId);
+    const product = availableProducts.find(p => p.id === selectedProductId);
     if (!product) return;
 
     const existingIndex = soldItems.findIndex(item => item.productId === selectedProductId);
 
     if (existingIndex >= 0) {
-      // Update quantity
       const updated = [...soldItems];
       updated[existingIndex].quantity += quantity;
       setSoldItems(updated);
     } else {
-      // Add new
       setSoldItems([
         ...soldItems,
         {
-          productId: product._id,
+          productId: product.id,
           productName: product.name,
           quantity,
           commissionPerUnit: product.commission,
@@ -155,8 +147,8 @@ export function CommissionCalculator() {
                     ? 'No products with commission'
                     : 'Choose a product'}
                 </option>
-                {availableProducts.map((p: Product) => (
-                  <option key={p._id} value={p._id}>
+                {availableProducts.map((p) => (
+                  <option key={p.id} value={p.id}>
                     {p.name} (KES {p.commission} commission/unit)
                   </option>
                 ))}

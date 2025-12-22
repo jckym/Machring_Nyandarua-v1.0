@@ -1,7 +1,7 @@
 // src/contexts/NotificationContext.tsx
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { notificationService } from '@/lib/api'; // Your API service
+import { notificationService } from '@/lib/api';
 import { Notification } from '@/types';
 import { toast } from 'sonner';
 
@@ -21,15 +21,18 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
 
-  // Fetch notifications from API
+  // Fetch notifications from API - unwrap ApiResponse
   const {
     data: notifications = [],
     isLoading,
     error,
   } = useQuery<Notification[]>({
     queryKey: ['notifications'],
-    queryFn: () => notificationService.getAll(),
-    refetchInterval: 60000, // Refetch every minute
+    queryFn: async () => {
+      const response = await notificationService.getAll();
+      return response.data || [];
+    },
+    refetchInterval: 60000,
     staleTime: 30000,
   });
 
@@ -37,8 +40,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   // Mutations
   const addMutation = useMutation({
-    mutationFn: (data: Omit<Notification, 'id' | 'createdAt' | 'read'>) =>
-      notificationService.create(data),
+    mutationFn: async (data: Omit<Notification, 'id' | 'createdAt' | 'read'>) => {
+      const response = await notificationService.create(data as any);
+      return response.data;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       toast.success('Notification added');
@@ -49,7 +54,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   });
 
   const markReadMutation = useMutation({
-    mutationFn: (id: string) => notificationService.markAsRead(id),
+    mutationFn: async (id: string) => {
+      const response = await notificationService.markAsRead(id);
+      return response.data;
+    },
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: ['notifications'] });
       const previous = queryClient.getQueryData<Notification[]>(['notifications']);
@@ -70,7 +78,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   });
 
   const markAllReadMutation = useMutation({
-    mutationFn: () => notificationService.markAllAsRead(),
+    mutationFn: async () => {
+      const response = await notificationService.markAllAsRead();
+      return response.data;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       toast.success('All notifications marked as read');
@@ -78,7 +89,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => notificationService.delete(id),
+    mutationFn: async (id: string) => {
+      const response = await notificationService.delete(id);
+      return response.data;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       toast.success('Notification deleted');

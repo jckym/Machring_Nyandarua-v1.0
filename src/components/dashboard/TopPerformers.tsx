@@ -1,28 +1,21 @@
-// src/components/TopPerformers.tsx
-import { useState, useEffect } from 'react';
+// src/components/dashboard/TopPerformers.tsx
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Trophy, TrendingUp, AlertCircle } from 'lucide-react';
-import api from '@/services/api'; // Your existing Axios instance with auth interceptors
+import { useTopPerformers } from '@/hooks/api/useDashboard';
 
 interface Performer {
-  _id: string;
+  id: string;
   name: string;
-  metric: string; // e.g., "Sales", "Farmers Registered", "Purchases"
-  value: string;  // formatted string, e.g., "KES 485K", "42 registered"
+  metric: string;
+  value: string;
   rank: number;
 }
 
-interface TopPerformersData {
-  tots: Performer[];
-  farmers: Performer[];
-}
-
 export function TopPerformers({ type = 'tots' }: { type?: 'tots' | 'farmers' }) {
-  const [performers, setPerformers] = useState<Performer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
+  const { data: response, isLoading, error } = useTopPerformers(type);
+  
+  const performers: Performer[] = response?.data || [];
   const title = type === 'tots' ? 'Top TOTs This Month' : 'Most Active Farmers';
 
   const getRankColor = (rank: number) => {
@@ -38,39 +31,7 @@ export function TopPerformers({ type = 'tots' }: { type?: 'tots' | 'farmers' }) 
     }
   };
 
-  useEffect(() => {
-    const fetchTopPerformers = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        // Fetch both leaderboards in parallel (or just one if you prefer)
-        const endpoint = type === 'tots' 
-          ? '/api/analytics/top-tots' 
-          : '/api/analytics/top-farmers';
-
-        const { data } = await api.get<Performer[]>(endpoint);
-
-        setPerformers(data.slice(0, 5)); // Top 5 only
-      } catch (err: any) {
-        console.error('Failed to fetch top performers:', err);
-        setError('Failed to load leaderboard');
-        setPerformers([]); // fallback to empty
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTopPerformers();
-  }, [type]);
-
-  // Optional: Auto-refresh every 5 minutes
-  // useEffect(() => {
-  //   const interval = setInterval(fetchTopPerformers, 5 * 60 * 1000);
-  //   return () => clearInterval(interval);
-  // }, [type]);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <Card variant="elevated">
         <CardHeader className="flex flex-row items-center gap-2">
@@ -105,7 +66,7 @@ export function TopPerformers({ type = 'tots' }: { type?: 'tots' | 'farmers' }) 
         <CardContent className="text-center py-8 text-muted-foreground">
           <AlertCircle className="w-10 h-10 mx-auto mb-3 text-orange-500" />
           <p className="text-sm">
-            {error || 'No data available yet. Check back later!'}
+            {error ? 'Failed to load data' : 'No data available yet. Check back later!'}
           </p>
         </CardContent>
       </Card>
@@ -120,9 +81,9 @@ export function TopPerformers({ type = 'tots' }: { type?: 'tots' | 'farmers' }) 
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {performers.map((performer, index) => (
+          {performers.slice(0, 5).map((performer, index) => (
             <div
-              key={performer._id}
+              key={performer.id}
               className="flex items-center gap-4 p-3 rounded-xl bg-muted/50 animate-fade-in transition-all hover:bg-muted/80"
               style={{ animationDelay: `${index * 0.1}s` }}
             >

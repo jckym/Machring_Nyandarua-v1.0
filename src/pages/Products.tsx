@@ -6,9 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Search, Plus, Package, Filter, AlertTriangle, TrendingUp, Edit, RefreshCw, WifiOff } from 'lucide-react';
+import { Search, Plus, Package, Filter, AlertTriangle, TrendingUp, Edit, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useProducts, useCreateProduct, useUpdateProduct, useApiWithFallback } from '@/hooks/api';
+import { useProducts, useCreateProduct, useUpdateProduct } from '@/hooks/api';
 import {
   Dialog,
   DialogContent,
@@ -49,9 +49,8 @@ export function Products() {
     description: '',
   });
 
-  // API hooks with fallback
-  const productsQuery = useProducts();
-  const { data: products, isLoading, isUsingFallback } = useApiWithFallback(productsQuery, [] as Product[]);
+  // API hooks
+  const { data: products = [], isLoading } = useProducts();
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
 
@@ -102,17 +101,7 @@ export function Products() {
       return;
     }
 
-    if (!isUsingFallback) {
-      createProduct.mutate(formData as any);
-    } else {
-      const newProduct: Product = {
-        id: `prod-${Date.now()}`,
-        ...formData,
-        createdAt: new Date(),
-      };
-      setLocalProducts(prev => [...prev, newProduct]);
-      toast.success('Product added successfully (offline mode)');
-    }
+    createProduct.mutate(formData as any);
     setIsAddDialogOpen(false);
     resetForm();
   };
@@ -134,16 +123,7 @@ export function Products() {
   const handleUpdateProduct = () => {
     if (!selectedProduct) return;
 
-    if (!isUsingFallback) {
-      updateProduct.mutate({ id: selectedProduct.id, data: formData as any });
-    } else {
-      setLocalProducts(prev => prev.map(p => 
-        p.id === selectedProduct.id 
-          ? { ...p, ...formData, lastEditedAt: new Date() }
-          : p
-      ));
-      toast.success('Product updated successfully (offline mode)');
-    }
+    updateProduct.mutate({ id: selectedProduct.id, data: formData as any });
     setIsEditDialogOpen(false);
     setSelectedProduct(null);
     resetForm();
@@ -161,15 +141,14 @@ export function Products() {
       return;
     }
 
-    setLocalProducts(prev => prev.map(p => {
-      if (p.id === selectedProduct.id) {
-        const newStock = stockUpdate.type === 'add' 
-          ? p.inStock + stockUpdate.quantity 
-          : Math.max(0, p.inStock - stockUpdate.quantity);
-        return { ...p, inStock: newStock, lastEditedAt: new Date() };
-      }
-      return p;
-    }));
+    const newStock = stockUpdate.type === 'add' 
+      ? selectedProduct.inStock + stockUpdate.quantity 
+      : Math.max(0, selectedProduct.inStock - stockUpdate.quantity);
+    
+    updateProduct.mutate({ 
+      id: selectedProduct.id, 
+      data: { inStock: newStock } as any 
+    });
 
     toast.success(`Stock ${stockUpdate.type === 'add' ? 'added' : 'removed'} successfully`);
     setIsStockDialogOpen(false);
@@ -195,14 +174,6 @@ export function Products() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Offline Banner */}
-      {isUsingFallback && (
-        <div className="bg-warning/10 border border-warning/20 rounded-lg p-3 flex items-center gap-2 text-warning">
-          <WifiOff className="w-4 h-4" />
-          <span className="text-sm">Using offline data. Changes will sync when connection is restored.</span>
-        </div>
-      )}
-
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
@@ -436,7 +407,7 @@ export function Products() {
               <Button variant="outline" className="flex-1" onClick={() => { setIsAddDialogOpen(false); resetForm(); }}>
                 Cancel
               </Button>
-              <Button className="flex-1" onClick={handleAddProduct}>
+              <Button variant="forest" className="flex-1" onClick={handleAddProduct}>
                 Add Product
               </Button>
             </div>
@@ -449,7 +420,7 @@ export function Products() {
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Product</DialogTitle>
-            <DialogDescription>Update product details.</DialogDescription>
+            <DialogDescription>Update product information.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -514,26 +485,26 @@ export function Products() {
               <Button variant="outline" className="flex-1" onClick={() => { setIsEditDialogOpen(false); setSelectedProduct(null); resetForm(); }}>
                 Cancel
               </Button>
-              <Button className="flex-1" onClick={handleUpdateProduct}>
-                Update Product
+              <Button variant="forest" className="flex-1" onClick={handleUpdateProduct}>
+                Save Changes
               </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Stock Update Dialog */}
+      {/* Update Stock Dialog */}
       <Dialog open={isStockDialogOpen} onOpenChange={setIsStockDialogOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Update Stock</DialogTitle>
             <DialogDescription>
-              Current stock: {selectedProduct?.inStock} units
+              {selectedProduct?.name} - Current stock: {selectedProduct?.inStock} units
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Action</Label>
+              <Label>Operation</Label>
               <Select
                 value={stockUpdate.type}
                 onValueChange={(value: 'add' | 'subtract') => setStockUpdate({ ...stockUpdate, type: value })}
@@ -553,14 +524,14 @@ export function Products() {
                 type="number"
                 value={stockUpdate.quantity}
                 onChange={(e) => setStockUpdate({ ...stockUpdate, quantity: parseInt(e.target.value) || 0 })}
-                min={0}
+                min={1}
               />
             </div>
             <div className="flex gap-3 pt-4">
               <Button variant="outline" className="flex-1" onClick={() => { setIsStockDialogOpen(false); setSelectedProduct(null); }}>
                 Cancel
               </Button>
-              <Button className="flex-1" onClick={handleUpdateStock}>
+              <Button variant="forest" className="flex-1" onClick={handleUpdateStock}>
                 Update Stock
               </Button>
             </div>

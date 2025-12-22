@@ -12,7 +12,7 @@ import { ProductChart } from '@/components/dashboard/ProductChart';
 import { TopPerformers } from '@/components/dashboard/TopPerformers';
 
 import { useAdminDashboard, AdminStats } from '@/hooks/api/useDashboard';
-import { useMechanisationJobs, useTrainings, useLocalMRs, useApiWithFallback } from '@/hooks/api';
+import { useMechanisationJobs, useTrainings, useLocalMRs } from '@/hooks/api';
 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,14 +24,10 @@ import { LocalMR, MechanisationJob, Training } from '@/types';
 export function AdminDashboard() {
   const { data: statsResponse, isLoading: statsLoading, error: statsError } = useAdminDashboard();
   
-  const mechanisationQuery = useMechanisationJobs();
-  const { data: mechanisationJobs } = useApiWithFallback(mechanisationQuery, [] as MechanisationJob[]);
-  
-  const trainingsQuery = useTrainings();
-  const { data: trainings } = useApiWithFallback(trainingsQuery, [] as Training[]);
-  
-  const localMRsQuery = useLocalMRs();
-  const { data: localMRs } = useApiWithFallback(localMRsQuery, [] as LocalMR[]);
+  // API hooks - data is already normalized by select transforms
+  const { data: mechanisationJobs = [] } = useMechanisationJobs();
+  const { data: trainings = [] } = useTrainings();
+  const { data: localMRs = [] } = useLocalMRs();
 
   const [barData, setBarData] = useState<any[]>([]);
   const [topMRs, setTopMRs] = useState<LocalMR[]>([]);
@@ -40,8 +36,8 @@ export function AdminDashboard() {
   const stats: AdminStats | undefined = statsResponse?.data;
 
   useEffect(() => {
-    if (localMRs.length > 0) {
-      const top5 = localMRs.slice(0, 5);
+    if ((localMRs as LocalMR[]).length > 0) {
+      const top5 = (localMRs as LocalMR[]).slice(0, 5);
       setTopMRs(top5);
 
       const chartData = top5.map(mr => ({
@@ -53,8 +49,8 @@ export function AdminDashboard() {
     }
   }, [localMRs]);
 
-  const completedJobs = mechanisationJobs.filter(job => job.status === 'completed').length;
-  const trainingsHeld = trainings.length;
+  const completedJobs = (mechanisationJobs as MechanisationJob[]).filter(job => job.status === 'completed').length;
+  const trainingsHeld = (trainings as Training[]).length;
 
   const formatCurrency = (value: number) => {
     if (value >= 1000000) return `KES ${(value / 1000000).toFixed(1)}M`;

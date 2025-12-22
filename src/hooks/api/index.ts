@@ -32,6 +32,3 @@ export {
   useDeleteProduct,
   productKeys 
 } from './useProducts';
-
-// Utility hooks
-export * from './useApiWithFallback';

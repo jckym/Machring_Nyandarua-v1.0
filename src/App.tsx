@@ -13,6 +13,9 @@ import { Loader2 } from "lucide-react";
 // Pages
 import { Login } from "@/pages/Login";
 import { Dashboard } from "@/pages/Dashboard";
+import { AdminDashboard } from "@/pages/dashboard/AdminDashboard";
+import { ManagerDashboard } from "@/pages/dashboard/ManagerDashboard";
+import { TotDashboard } from "@/pages/dashboard/TotDashboard";
 import { Farmers } from "@/pages/Farmers";
 import { FarmerProfile } from "@/pages/FarmerProfile";
 import { Sales } from "@/pages/Sales";
@@ -78,6 +81,21 @@ const App = () => (
                 
                 <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
                   <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/dashboard/admin" element={
+                    <ProtectedRoute allowedRoles={['admin']}>
+                      <AdminDashboard />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/dashboard/manager" element={
+                    <ProtectedRoute allowedRoles={['manager', 'admin']}>
+                      <ManagerDashboard />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/dashboard/tot" element={
+                    <ProtectedRoute allowedRoles={['tot', 'manager', 'admin']}>
+                      <TotDashboard />
+                    </ProtectedRoute>
+                  } />
                   <Route path="/farmers" element={<Farmers />} />
                   <Route path="/farmers/:id" element={<FarmerProfile />} />
                   <Route path="/sales" element={<Sales />} />

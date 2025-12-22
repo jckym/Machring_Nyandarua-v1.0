@@ -20,6 +20,10 @@ export function useUsers(filters?: UserFilters) {
     queryFn: () => userService.getAll(filters),
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 10,
+    select: (response) => {
+      // Handle both array and ApiResponse formats
+      return Array.isArray(response) ? response : (response?.data || []);
+    },
   });
 }
 

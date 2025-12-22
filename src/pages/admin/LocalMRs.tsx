@@ -115,7 +115,7 @@ export function LocalMRs() {
         code: formData.code,
         subcounty: formData.subcounty,
         ward: formData.ward,
-        managerName: formData.managerName,
+        managerId: '', // Will be assigned separately or left empty
       },
       {
         onSuccess: () => {

@@ -1,94 +1,117 @@
 // src/contexts/NotificationContext.tsx
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { notificationService } from '@/lib/api'; // Your API service
 import { Notification } from '@/types';
+import { toast } from 'sonner';
 
 interface NotificationContextType {
   notifications: Notification[];
   unreadCount: number;
-  addNotification: (notification: Omit<Notification, 'id' | 'createdAt' | 'read'>) => void;
+  isLoading: boolean;
+  error: unknown;
+  addNotification: (data: Omit<Notification, 'id' | 'createdAt' | 'read'>) => void;
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
   deleteNotification: (id: string) => void;
-  clearAllNotifications: () => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'machinery_ring_notifications';
-
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const queryClient = useQueryClient();
 
-  // Load from localStorage on mount
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        // Ensure dates are properly revived
-        const revived = parsed.map((n: any) => ({
-          ...n,
-          createdAt: new Date(n.createdAt),
-        }));
-        setNotifications(revived);
-      }
-    } catch (error) {
-      console.error('Failed to load notifications from storage:', error);
-    }
-  }, []);
-
-  // Save to localStorage whenever notifications change
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications));
-    } catch (error) {
-      console.error('Failed to save notifications:', error);
-    }
-  }, [notifications]);
+  // Fetch notifications from API
+  const {
+    data: notifications = [],
+    isLoading,
+    error,
+  } = useQuery<Notification[]>({
+    queryKey: ['notifications'],
+    queryFn: () => notificationService.getAll(),
+    refetchInterval: 60000, // Refetch every minute
+    staleTime: 30000,
+  });
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  const addNotification = useCallback((
-    notification: Omit<Notification, 'id' | 'createdAt' | 'read'>
-  ) => {
-    const newNotification: Notification = {
-      ...notification,
-      id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      createdAt: new Date(),
-      read: false,
-    };
+  // Mutations
+  const addMutation = useMutation({
+    mutationFn: (data: Omit<Notification, 'id' | 'createdAt' | 'read'>) =>
+      notificationService.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      toast.success('Notification added');
+    },
+    onError: () => {
+      toast.error('Failed to add notification');
+    },
+  });
 
-    setNotifications(prev => [newNotification, ...prev]);
-  }, []);
+  const markReadMutation = useMutation({
+    mutationFn: (id: string) => notificationService.markAsRead(id),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['notifications'] });
+      const previous = queryClient.getQueryData<Notification[]>(['notifications']);
 
-  const markAsRead = useCallback((id: string) => {
-    setNotifications(prev =>
-      prev.map(n => (n.id === id ? { ...n, read: true } : n))
-    );
-  }, []);
+      queryClient.setQueryData<Notification[]>(['notifications'], (old = []) =>
+        old.map(n => (n.id === id ? { ...n, read: true } : n))
+      );
 
-  const markAllAsRead = useCallback(() => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-  }, []);
+      return { previous };
+    },
+    onError: (err, id, context) => {
+      queryClient.setQueryData(['notifications'], context?.previous);
+      toast.error('Failed to mark as read');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
 
-  const deleteNotification = useCallback((id: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
-  }, []);
+  const markAllReadMutation = useMutation({
+    mutationFn: () => notificationService.markAllAsRead(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      toast.success('All notifications marked as read');
+    },
+  });
 
-  const clearAllNotifications = useCallback(() => {
-    setNotifications([]);
-  }, []);
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => notificationService.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      toast.success('Notification deleted');
+    },
+  });
+
+  const addNotification = (data: Omit<Notification, 'id' | 'createdAt' | 'read'>) => {
+    addMutation.mutate(data);
+  };
+
+  const markAsRead = (id: string) => {
+    markReadMutation.mutate(id);
+  };
+
+  const markAllAsRead = () => {
+    markAllReadMutation.mutate();
+  };
+
+  const deleteNotification = (id: string) => {
+    deleteMutation.mutate(id);
+  };
 
   return (
     <NotificationContext.Provider
       value={{
         notifications,
         unreadCount,
+        isLoading,
+        error,
         addNotification,
         markAsRead,
         markAllAsRead,
         deleteNotification,
-        clearAllNotifications,
       }}
     >
       {children}

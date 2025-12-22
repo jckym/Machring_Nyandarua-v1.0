@@ -32,7 +32,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { useLocalMRs, useUsers, useFarmers, useApiWithFallback } from '@/hooks/api';
+import { useLocalMRs, useUsers, useFarmers } from '@/hooks/api';
 import { format } from 'date-fns';
 
 interface TOTPerformance {
@@ -53,15 +53,10 @@ export function TOTManagement() {
   const { user } = useAuth();
   const localMrId = user?.localMrId || 'mr-1';
 
-  // API hooks
-  const localMRsQuery = useLocalMRs();
-  const { data: localMRs } = useApiWithFallback(localMRsQuery, [] as { id: string; name: string; managerName?: string }[]);
-  
-  const usersQuery = useUsers();
-  const { data: users } = useApiWithFallback(usersQuery, [] as { id: string; name: string; role: string; email: string; phone: string; localMrId?: string; status: string }[]);
-  
-  const farmersQuery = useFarmers();
-  const { data: farmers } = useApiWithFallback(farmersQuery, [] as { id: string; registeredBy?: string }[]);
+  // API hooks - data is already normalized by select transforms
+  const { data: localMRs = [] } = useLocalMRs();
+  const { data: users = [] } = useUsers();
+  const { data: farmers = [] } = useFarmers();
 
   const localMr = (localMRs as any[]).find(mr => mr.id === localMrId);
   
@@ -426,34 +421,22 @@ export function TOTManagement() {
               </div>
 
               {/* Activity Stats */}
-              <div className="grid grid-cols-3 gap-4">
-                <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                  <Tractor className="w-5 h-5 text-secondary" />
-                  <div>
-                    <p className="font-semibold">{selectedTOTData.mechanisationJobsCompleted}</p>
-                    <p className="text-xs text-muted-foreground">Jobs Completed</p>
-                  </div>
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div className="p-3 rounded-lg bg-muted/50">
+                  <Tractor className="w-5 h-5 mx-auto text-muted-foreground mb-1" />
+                  <p className="font-semibold">{selectedTOTData.mechanisationJobsCompleted}</p>
+                  <p className="text-xs text-muted-foreground">Jobs</p>
                 </div>
-                <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                  <GraduationCap className="w-5 h-5 text-accent-foreground" />
-                  <div>
-                    <p className="font-semibold">{selectedTOTData.trainingsConducted}</p>
-                    <p className="text-xs text-muted-foreground">Trainings</p>
-                  </div>
+                <div className="p-3 rounded-lg bg-muted/50">
+                  <GraduationCap className="w-5 h-5 mx-auto text-muted-foreground mb-1" />
+                  <p className="font-semibold">{selectedTOTData.trainingsConducted}</p>
+                  <p className="text-xs text-muted-foreground">Trainings</p>
                 </div>
-                <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                  <MapPin className="w-5 h-5 text-primary" />
-                  <div>
-                    <p className="font-semibold">{selectedTOTData.visitsLogged}</p>
-                    <p className="text-xs text-muted-foreground">Visits Logged</p>
-                  </div>
+                <div className="p-3 rounded-lg bg-muted/50">
+                  <MapPin className="w-5 h-5 mx-auto text-muted-foreground mb-1" />
+                  <p className="font-semibold">{selectedTOTData.visitsLogged}</p>
+                  <p className="text-xs text-muted-foreground">Visits</p>
                 </div>
-              </div>
-
-              {/* Last Activity */}
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Calendar className="w-4 h-4" />
-                <span>Last Activity: {formatDate(selectedTOTData.lastActivityDate)}</span>
               </div>
             </div>
           )}

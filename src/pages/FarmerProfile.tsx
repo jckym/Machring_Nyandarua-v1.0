@@ -3,7 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useFarmers, useSales, useMechanisationJobs, useVisits, useTrainings, useLocalMRs, useApiWithFallback } from '@/hooks/api';
+import { useFarmers, useSales, useMechanisationJobs, useVisits, useTrainings, useLocalMRs } from '@/hooks/api';
 import { 
   ArrowLeft, Phone, Mail, MapPin, Calendar, ShoppingCart, Tractor, 
   GraduationCap, Users, Star, Edit, TrendingUp 
@@ -14,24 +14,13 @@ export function FarmerProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
   
-  // API hooks with fallback
-  const farmersQuery = useFarmers();
-  const { data: farmers } = useApiWithFallback(farmersQuery, [] as Farmer[]);
-  
-  const salesQuery = useSales();
-  const { data: sales } = useApiWithFallback(salesQuery, [] as Sale[]);
-  
-  const mechQuery = useMechanisationJobs();
-  const { data: mechJobs } = useApiWithFallback(mechQuery, [] as MechanisationJob[]);
-  
-  const visitsQuery = useVisits();
-  const { data: visits } = useApiWithFallback(visitsQuery, [] as Visit[]);
-  
-  const trainingsQuery = useTrainings();
-  const { data: trainings } = useApiWithFallback(trainingsQuery, [] as Training[]);
-  
-  const localMRsQuery = useLocalMRs();
-  const { data: localMRs } = useApiWithFallback(localMRsQuery, [] as { id: string; name: string }[]);
+  // API hooks - data is already normalized by select transforms
+  const { data: farmers = [] } = useFarmers();
+  const { data: sales = [] } = useSales();
+  const { data: mechJobs = [] } = useMechanisationJobs();
+  const { data: visits = [] } = useVisits();
+  const { data: trainings = [] } = useTrainings();
+  const { data: localMRs = [] } = useLocalMRs();
   
   const farmer = (farmers as Farmer[]).find(f => f.id === id);
   

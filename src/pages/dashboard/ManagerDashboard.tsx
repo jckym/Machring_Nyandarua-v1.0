@@ -19,7 +19,6 @@ import { useSales } from '@/hooks/api/useSales';
 import { useMechanisationJobs } from '@/hooks/api/useMechanisation';
 import { useTrainings } from '@/hooks/api/useTrainings';
 import { useVisits } from '@/hooks/api/useVisits';
-import { useApiWithFallback } from '@/hooks/api';
 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,38 +34,26 @@ export function ManagerDashboard() {
   // Fetch core data
   const { data: managerStatsResponse, isLoading: statsLoading } = useManagerDashboard(localMrId!);
   
-  const localMrQuery = useLocalMR(localMrId!);
-  const { data: localMr } = useApiWithFallback(localMrQuery, null as LocalMR | null);
-  
-  const totsQuery = useTotsByLocalMR(localMrId!);
-  const { data: totPerformance } = useApiWithFallback(totsQuery, [] as TOTPerformance[]);
-
-  const farmersQuery = useFarmers({ localMrId });
-  const { data: farmers, isLoading: farmersLoading } = useApiWithFallback(farmersQuery, [] as Farmer[]);
-  
-  const salesQuery = useSales({ localMrId });
-  const { data: sales, isLoading: salesLoading } = useApiWithFallback(salesQuery, [] as Sale[]);
-  
-  const jobsQuery = useMechanisationJobs({ localMrId });
-  const { data: jobs, isLoading: jobsLoading } = useApiWithFallback(jobsQuery, [] as MechanisationJob[]);
-  
-  const trainingsQuery = useTrainings({ localMrId });
-  const { data: trainings, isLoading: trainingsLoading } = useApiWithFallback(trainingsQuery, [] as Training[]);
-  
-  const visitsQuery = useVisits({ localMrId });
-  const { data: visits, isLoading: visitsLoading } = useApiWithFallback(visitsQuery, [] as Visit[]);
+  // API hooks - data is already normalized by select transforms
+  const { data: localMr } = useLocalMR(localMrId!);
+  const { data: totPerformance = [] } = useTotsByLocalMR(localMrId!);
+  const { data: farmers = [], isLoading: farmersLoading } = useFarmers({ localMrId });
+  const { data: sales = [], isLoading: salesLoading } = useSales({ localMrId });
+  const { data: jobs = [], isLoading: jobsLoading } = useMechanisationJobs({ localMrId });
+  const { data: trainings = [], isLoading: trainingsLoading } = useTrainings({ localMrId });
+  const { data: visits = [], isLoading: visitsLoading } = useVisits({ localMrId });
 
   // Unwrap manager stats
   const managerStats: ManagerStats | undefined = managerStatsResponse?.data;
 
   // Derived stats
-  const totalRevenue = sales
+  const totalRevenue = (sales as Sale[])
     .filter(s => s.status === 'completed')
     .reduce((acc, s) => acc + (s.total || 0), 0);
 
-  const completedJobs = jobs.filter(j => j.status === 'completed').length;
-  const pendingApprovals = jobs.filter(j => j.status === 'pending-approval').length;
-  const activeTots = totPerformance.filter(t => t.status === 'active').length;
+  const completedJobs = (jobs as MechanisationJob[]).filter(j => j.status === 'completed').length;
+  const pendingApprovals = (jobs as MechanisationJob[]).filter(j => j.status === 'pending-approval').length;
+  const activeTots = (totPerformance as TOTPerformance[]).filter(t => t.status === 'active').length;
 
   const formatCurrency = (value: number) => {
     if (value >= 1000000) return `KES ${(value / 1000000).toFixed(1)}M`;
@@ -114,7 +101,7 @@ export function ManagerDashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="font-heading text-2xl font-bold text-foreground">Local MR Dashboard</h1>
-          <p className="text-muted-foreground">{localMr.name} Overview</p>
+          <p className="text-muted-foreground">{(localMr as LocalMR).name} Overview</p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="forest" className="text-sm py-1 px-3">
@@ -133,7 +120,7 @@ export function ManagerDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 stagger-children">
         <StatCard
           title="Total Farmers"
-          value={farmers.length}
+          value={(farmers as Farmer[]).length}
           subtitle="In your Local MR"
           icon={Users}
           trend={{ value: 18, isPositive: true }}
@@ -148,7 +135,7 @@ export function ManagerDashboard() {
         />
         <StatCard
           title="Total Sales"
-          value={sales.length}
+          value={(sales as Sale[]).length}
           subtitle="This month"
           icon={ShoppingCart}
         />
@@ -168,7 +155,7 @@ export function ManagerDashboard() {
         />
         <StatCard
           title="Trainings"
-          value={trainings.length}
+          value={(trainings as Training[]).length}
           subtitle="Sessions held"
           icon={GraduationCap}
           variant="earth"
@@ -189,7 +176,7 @@ export function ManagerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {totPerformance.slice(0, 5).map((tot, index) => (
+                {(totPerformance as TOTPerformance[]).slice(0, 5).map((tot, index) => (
                   <div
                     key={tot.totId}
                     className="flex items-center justify-between p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors animate-fade-in"
@@ -240,15 +227,15 @@ export function ManagerDashboard() {
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="opacity-80">Manager</span>
-                  <span className="font-semibold">{localMr.managerName}</span>
+                  <span className="font-semibold">{(localMr as LocalMR).managerName}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="opacity-80">Location</span>
-                  <span className="font-semibold">{localMr.subcounty}, {localMr.ward}</span>
+                  <span className="font-semibold">{(localMr as LocalMR).subcounty}, {(localMr as LocalMR).ward}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="opacity-80">Visits This Month</span>
-                  <span className="font-semibold">{visits.length}</span>
+                  <span className="font-semibold">{(visits as Visit[]).length}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="opacity-80">Pending Jobs</span>

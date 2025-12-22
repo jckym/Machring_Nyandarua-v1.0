@@ -16,11 +16,8 @@ interface SaleFormDialogProps { open: boolean; onOpenChange: (open: boolean) => 
 export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogProps) {
   const { toast } = useToast();
   const [formData, setFormData] = useState({ farmerId: '', productId: '', quantity: 1, date: new Date().toISOString().split('T')[0] });
-  const { data: farmersData, isLoading: farmersLoading, error: farmersError } = useFarmers();
-  const { data: productsData, isLoading: productsLoading, error: productsError } = useProducts();
-  
-  const farmers: Farmer[] = Array.isArray(farmersData) ? farmersData : (farmersData?.data || []);
-  const products: Product[] = Array.isArray(productsData) ? productsData : (productsData?.data || []);
+  const { data: farmers = [], isLoading: farmersLoading, error: farmersError } = useFarmers();
+  const { data: products = [], isLoading: productsLoading, error: productsError } = useProducts();
 
   const selectedProduct = useMemo(() => products.find((p) => p.id === formData.productId), [formData.productId, products]);
   const selectedFarmer = useMemo(() => farmers.find((f) => f.id === formData.farmerId), [formData.farmerId, farmers]);

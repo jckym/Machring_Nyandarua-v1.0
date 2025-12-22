@@ -2,6 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { machineryService, CreateMachineryDto, UpdateMachineryDto, MachineryFilters } from '@/lib/api';
 import { toast } from 'sonner';
+import { Machinery } from '@/types';
 
 export const machineryKeys = {
   all: ['machinery'] as const,
@@ -18,7 +19,8 @@ export function useMachinery(filters?: MachineryFilters) {
   return useQuery({
     queryKey: machineryKeys.list(filters || {}),
     queryFn: () => machineryService.getAll(filters),
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    select: (response) => (response?.data ?? []) as Machinery[],
+    staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 15,
   });
 }
@@ -30,6 +32,7 @@ export function useMachineryItem(id: string) {
   return useQuery({
     queryKey: machineryKeys.detail(id),
     queryFn: () => machineryService.getById(id),
+    select: (response) => response?.data as Machinery | undefined,
     enabled: !!id,
     staleTime: 1000 * 60 * 2,
   });

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { saleService, CreateSaleDto, UpdateSaleDto, SaleFilters } from '@/lib/api';
 import { toast } from 'sonner';
+import { Sale } from '@/types';
 
 export const saleKeys = {
   all: ['sales'] as const,
@@ -16,6 +17,7 @@ export function useSales(filters?: SaleFilters) {
   return useQuery({
     queryKey: saleKeys.list(filters || {}),
     queryFn: () => saleService.getAll(filters),
+    select: (response) => (response?.data ?? []) as Sale[],
   });
 }
 
@@ -23,6 +25,7 @@ export function useSale(id: string) {
   return useQuery({
     queryKey: saleKeys.detail(id),
     queryFn: () => saleService.getById(id),
+    select: (response) => response?.data as Sale | undefined,
     enabled: !!id,
   });
 }
@@ -31,6 +34,7 @@ export function useSalesStats(filters?: { localMrId?: string; totId?: string; st
   return useQuery({
     queryKey: saleKeys.stats(filters),
     queryFn: () => saleService.getStats(filters),
+    select: (response) => response?.data,
   });
 }
 
@@ -38,6 +42,7 @@ export function useMonthlySales(year?: number) {
   return useQuery({
     queryKey: saleKeys.monthly(year),
     queryFn: () => saleService.getMonthlyData(year),
+    select: (response) => response?.data,
   });
 }
 

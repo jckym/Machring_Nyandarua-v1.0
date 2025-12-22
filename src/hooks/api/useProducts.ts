@@ -2,6 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { productService, CreateProductDto, UpdateProductDto, ProductFilters } from '@/lib/api';
 import { toast } from 'sonner';
+import { Product } from '@/types';
 
 export const productKeys = {
   all: ['products'] as const,
@@ -12,45 +13,36 @@ export const productKeys = {
   performance: () => [...productKeys.all, 'performance'] as const,
 };
 
-/**
- * Fetch products list - supports filtering (e.g., category, inStock)
- */
 export function useProducts(filters?: ProductFilters) {
   return useQuery({
     queryKey: productKeys.list(filters || {}),
     queryFn: () => productService.getAll(filters),
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    select: (response) => (response?.data ?? []) as Product[],
+    staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 10,
   });
 }
 
-/**
- * Fetch single product
- */
 export function useProduct(id: string) {
   return useQuery({
     queryKey: productKeys.detail(id),
     queryFn: () => productService.getById(id),
+    select: (response) => response?.data as Product | undefined,
     enabled: !!id,
     staleTime: 1000 * 60 * 2,
   });
 }
 
-/**
- * Fetch product performance (for charts/dashboard)
- */
 export function useProductPerformance() {
   return useQuery({
     queryKey: productKeys.performance(),
     queryFn: () => productService.getPerformance(),
-    staleTime: 1000 * 60 * 15, // Performance changes less frequently
+    select: (response) => response?.data,
+    staleTime: 1000 * 60 * 15,
     gcTime: 1000 * 60 * 30,
   });
 }
 
-/**
- * Create product (admin only)
- */
 export function useCreateProduct() {
   const queryClient = useQueryClient();
 
@@ -58,15 +50,11 @@ export function useCreateProduct() {
     mutationFn: (data: CreateProductDto) => productService.create(data),
     onMutate: async (newProduct) => {
       await queryClient.cancelQueries({ queryKey: productKeys.all });
-
       const previousProducts = queryClient.getQueryData(productKeys.lists());
-
-      // Optimistically add
       queryClient.setQueryData(productKeys.lists(), (old: any[] = []) => [
         { ...newProduct, id: 'temp-id', inStock: 0 },
         ...old,
       ]);
-
       return { previousProducts };
     },
     onSuccess: () => {
@@ -83,36 +71,26 @@ export function useCreateProduct() {
   });
 }
 
-/**
- * Update product (price, commission, name, etc.)
- */
 export function useUpdateProduct() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateProductDto }) =>
       productService.update(id, data),
-
     onMutate: async ({ id, data }) => {
       await queryClient.cancelQueries({ queryKey: productKeys.all });
-
       const previousProduct = queryClient.getQueryData(productKeys.detail(id));
       const previousList = queryClient.getQueryData(productKeys.lists());
-
-      // Optimistically update detail
       queryClient.setQueryData(productKeys.detail(id), (old: any) => ({ ...old, ...data }));
-
-      // Optimistically update list
       queryClient.setQueryData(productKeys.lists(), (old: any[] = []) =>
         old.map((p) => (p.id === id ? { ...p, ...data } : p))
       );
-
       return { previousProduct, previousList };
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: productKeys.all });
       queryClient.invalidateQueries({ queryKey: productKeys.detail(variables.id) });
-      queryClient.invalidateQueries({ queryKey: productKeys.performance() }); // Commission/price changes affect charts
+      queryClient.invalidateQueries({ queryKey: productKeys.performance() });
       toast.success('Product updated successfully');
     },
     onError: (error: Error, variables, context) => {
@@ -127,28 +105,20 @@ export function useUpdateProduct() {
   });
 }
 
-/**
- * Update product stock (frequent operation)
- */
 export function useUpdateProductStock() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({ id, stock }: { id: string; stock: number }) =>
       productService.updateStock(id, stock),
-
     onMutate: async ({ id, stock }) => {
       await queryClient.cancelQueries({ queryKey: productKeys.all });
-
       const previousList = queryClient.getQueryData(productKeys.lists());
       const previousDetail = queryClient.getQueryData(productKeys.detail(id));
-
-      // Optimistically update stock
       queryClient.setQueryData(productKeys.lists(), (old: any[] = []) =>
         old.map((p) => (p.id === id ? { ...p, inStock: stock } : p))
       );
       queryClient.setQueryData(productKeys.detail(id), (old: any) => ({ ...old, inStock: stock }));
-
       return { previousList, previousDetail };
     },
     onSuccess: () => {
@@ -167,24 +137,17 @@ export function useUpdateProductStock() {
   });
 }
 
-/**
- * Delete product (admin only)
- */
 export function useDeleteProduct() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (id: string) => productService.delete(id),
-
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: productKeys.all });
-
       const previousList = queryClient.getQueryData(productKeys.lists());
-
       queryClient.setQueryData(productKeys.lists(), (old: any[] = []) =>
         old.filter((p) => p.id !== id)
       );
-
       return { previousList };
     },
     onSuccess: () => {

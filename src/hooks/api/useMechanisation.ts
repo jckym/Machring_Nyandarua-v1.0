@@ -8,6 +8,7 @@ import {
   CompletionReportDto,
 } from '@/lib/api';
 import { toast } from 'sonner';
+import { MechanisationJob } from '@/types';
 
 export const mechanisationKeys = {
   all: ['mechanisation'] as const,
@@ -25,7 +26,8 @@ export function useMechanisationJobs(filters?: MechanisationFilters) {
   return useQuery({
     queryKey: mechanisationKeys.list(filters || {}),
     queryFn: () => mechanisationService.getAll(filters),
-    staleTime: 1000 * 60 * 3, // 3 minutes
+    select: (response) => (response?.data ?? []) as MechanisationJob[],
+    staleTime: 1000 * 60 * 3,
     gcTime: 1000 * 60 * 10,
   });
 }
@@ -37,6 +39,7 @@ export function useMechanisationJob(id: string) {
   return useQuery({
     queryKey: mechanisationKeys.detail(id),
     queryFn: () => mechanisationService.getById(id),
+    select: (response) => response?.data as MechanisationJob | undefined,
     enabled: !!id,
     staleTime: 1000 * 60 * 2,
   });
@@ -49,6 +52,7 @@ export function usePendingMechanisation(localMrId?: string) {
   return useQuery({
     queryKey: mechanisationKeys.pending(localMrId),
     queryFn: () => mechanisationService.getPendingApprovals(localMrId),
+    select: (response) => (response?.data ?? []) as MechanisationJob[],
     staleTime: 1000 * 60 * 2,
   });
 }

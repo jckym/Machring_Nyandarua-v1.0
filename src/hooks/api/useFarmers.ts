@@ -13,20 +13,32 @@ export const farmerKeys = {
   pending: () => [...farmerKeys.all, 'pending'] as const,
 };
 
-interface UseFarmersOptions {
+export interface UseFarmersOptions {
   filters?: FarmerFilters;
+  // Also support direct filter properties for convenience
+  localMrId?: string;
+  search?: string;
+  status?: string;
 }
 
 /**
  * Fetch farmers list - supports filtering (e.g., by localMrId, status)
  */
 export function useFarmers(options: UseFarmersOptions = {}) {
-  const { filters = {} } = options;
+  const { filters = {}, localMrId, search, status } = options;
+  
+  // Merge direct properties with filters object
+  const mergedFilters: FarmerFilters = {
+    ...filters,
+    ...(localMrId && { localMrId }),
+    ...(search && { search }),
+    ...(status && { status }),
+  };
 
   return useQuery({
-    queryKey: farmerKeys.list(filters),
-    queryFn: () => farmerService.getAll(filters),
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    queryKey: farmerKeys.list(mergedFilters),
+    queryFn: () => farmerService.getAll(mergedFilters),
+    staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 10,
   });
 }

@@ -1,10 +1,10 @@
-// src/components/DashboardStats.tsx
+// src/components/dashboard/DashboardStats.tsx
 import { StatCard } from './StatCard';
 import { Users, ShoppingCart, Tractor, TrendingUp } from 'lucide-react';
-import { useAdminDashboard } from '@/hooks/api/useDashboard';
+import { useAdminDashboard, AdminStats } from '@/hooks/api/useDashboard';
 
 export function DashboardStats() {
-  const { data: stats, isLoading, error } = useAdminDashboard();
+  const { data: response, isLoading, error } = useAdminDashboard();
 
   if (isLoading) {
     return (
@@ -18,6 +18,8 @@ export function DashboardStats() {
       </div>
     );
   }
+
+  const stats: AdminStats | undefined = response?.data;
 
   if (error || !stats) {
     return (

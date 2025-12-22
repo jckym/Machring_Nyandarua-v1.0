@@ -1,4 +1,4 @@
-// src/pages/AdminDashboard.tsx or src/components/AdminDashboard.tsx
+// src/pages/dashboard/AdminDashboard.tsx
 import { useEffect, useState } from 'react';
 import { 
   Users, ShoppingCart, Tractor, Building2, 
@@ -11,36 +11,33 @@ import { SalesChart } from '@/components/dashboard/SalesChart';
 import { ProductChart } from '@/components/dashboard/ProductChart';
 import { TopPerformers } from '@/components/dashboard/TopPerformers';
 
-import { useAdminDashboard } from '@/hooks/api/useDashboard'; // Real hook (no fallback)
-import { useMechanisationJobs, useTrainings } from '@/hooks/api';
-import { useLocalMRs } from '@/hooks/api/useLocalMRs'; // New hook for MR data
+import { useAdminDashboard, AdminStats } from '@/hooks/api/useDashboard';
+import { useMechanisationJobs, useTrainings, useLocalMRs, useApiWithFallback } from '@/hooks/api';
 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { AlertCircle } from 'lucide-react';
-import api from '@/services/api';
-
-interface LocalMR {
-  _id: string;
-  code: string;
-  name: string;
-  subcounty: string;
-  ward: string;
-  managerName: string;
-  totalTots: number;
-  totalFarmers: number;
-}
+import { LocalMR, MechanisationJob, Training } from '@/types';
 
 export function AdminDashboard() {
-  const { data: stats, isLoading: statsLoading, error: statsError } = useAdminDashboard();
-  const { data: mechanisationJobs = [], isLoading: jobsLoading } = useMechanisationJobs();
-  const { data: trainings = [], isLoading: trainingsLoading } = useTrainings();
-  const { data: localMRs = [], isLoading: mrsLoading } = useLocalMRs(); // Fetch real MRs
+  const { data: statsResponse, isLoading: statsLoading, error: statsError } = useAdminDashboard();
+  
+  const mechanisationQuery = useMechanisationJobs();
+  const { data: mechanisationJobs } = useApiWithFallback(mechanisationQuery, [] as MechanisationJob[]);
+  
+  const trainingsQuery = useTrainings();
+  const { data: trainings } = useApiWithFallback(trainingsQuery, [] as Training[]);
+  
+  const localMRsQuery = useLocalMRs();
+  const { data: localMRs } = useApiWithFallback(localMRsQuery, [] as LocalMR[]);
 
   const [barData, setBarData] = useState<any[]>([]);
   const [topMRs, setTopMRs] = useState<LocalMR[]>([]);
+
+  // Unwrap stats from ApiResponse
+  const stats: AdminStats | undefined = statsResponse?.data;
 
   useEffect(() => {
     if (localMRs.length > 0) {
@@ -50,7 +47,7 @@ export function AdminDashboard() {
       const chartData = top5.map(mr => ({
         name: mr.name.split(' ')[0],
         farmers: mr.totalFarmers,
-        tots: mr.totalTots * 10, // Scaled for visibility
+        tots: mr.totalTots * 10,
       }));
       setBarData(chartData);
     }
@@ -64,8 +61,7 @@ export function AdminDashboard() {
     return `KES ${(value / 1000).toFixed(0)}K`;
   };
 
-  // Loading State
-  if (statsLoading || jobsLoading || trainingsLoading || mrsLoading) {
+  if (statsLoading) {
     return (
       <div className="space-y-6">
         <div className="animate-pulse">
@@ -81,7 +77,6 @@ export function AdminDashboard() {
     );
   }
 
-  // Error State
   if (statsError || !stats) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
@@ -230,7 +225,7 @@ export function AdminDashboard() {
               <div className="space-y-3">
                 {topMRs.map((mr, index) => (
                   <div
-                    key={mr._id}
+                    key={mr.id}
                     className="flex items-center justify-between p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors animate-fade-in"
                     style={{ animationDelay: `${index * 0.1}s` }}
                   >

@@ -1,4 +1,4 @@
-// src/pages/ManagerDashboard.tsx or src/components/ManagerDashboard.tsx
+// src/pages/dashboard/ManagerDashboard.tsx
 import React from 'react';
 import { 
   Users, ShoppingCart, Tractor, Building2, 
@@ -11,35 +11,52 @@ import { SalesChart } from '@/components/dashboard/SalesChart';
 import { ProductChart } from '@/components/dashboard/ProductChart';
 import { TopPerformers } from '@/components/dashboard/TopPerformers';
 
-import { useManagerDashboard } from '@/hooks/api/useDashboard'; // Real hook
-import { useLocalMR } from '@/hooks/api/useLocalMRs'; // For Local MR details
-import { useTotsByLocalMR } from '@/hooks/api/useTots'; // Real TOTs with performance
+import { useManagerDashboard, ManagerStats } from '@/hooks/api/useDashboard';
+import { useLocalMR, useTotsByLocalMR } from '@/hooks/api/useLocalMRs';
 import { useFarmers } from '@/hooks/api/useFarmers';
 import { useSales } from '@/hooks/api/useSales';
-import { useMechanisationJobs } from '@/hooks/api/useMechanisationJobs';
+import { useMechanisationJobs } from '@/hooks/api/useMechanisation';
 import { useTrainings } from '@/hooks/api/useTrainings';
 import { useVisits } from '@/hooks/api/useVisits';
+import { useApiWithFallback } from '@/hooks/api';
 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { Farmer, Sale, MechanisationJob, Training, Visit, LocalMR, TOTPerformance } from '@/types';
 
 export function ManagerDashboard() {
   const { user } = useAuth();
   const localMrId = user?.localMrId;
 
   // Fetch core data
-  const { data: managerStats, isLoading: statsLoading } = useManagerDashboard(localMrId!);
-  const { data: localMr, isLoading: mrLoading } = useLocalMR(localMrId!);
-  const { data: totPerformance = [], isLoading: totsLoading } = useTotsByLocalMR(localMrId!);
+  const { data: managerStatsResponse, isLoading: statsLoading } = useManagerDashboard(localMrId!);
+  
+  const localMrQuery = useLocalMR(localMrId!);
+  const { data: localMr } = useApiWithFallback(localMrQuery, null as LocalMR | null);
+  
+  const totsQuery = useTotsByLocalMR(localMrId!);
+  const { data: totPerformance } = useApiWithFallback(totsQuery, [] as TOTPerformance[]);
 
-  const { data: farmers = [], isLoading: farmersLoading } = useFarmers({ localMrId });
-  const { data: sales = [], isLoading: salesLoading } = useSales({ localMrId });
-  const { data: jobs = [], isLoading: jobsLoading } = useMechanisationJobs({ localMrId });
-  const { data: trainings = [], isLoading: trainingsLoading } = useTrainings({ localMrId });
-  const { data: visits = [], isLoading: visitsLoading } = useVisits({ localMrId });
+  const farmersQuery = useFarmers({ localMrId });
+  const { data: farmers, isLoading: farmersLoading } = useApiWithFallback(farmersQuery, [] as Farmer[]);
+  
+  const salesQuery = useSales({ localMrId });
+  const { data: sales, isLoading: salesLoading } = useApiWithFallback(salesQuery, [] as Sale[]);
+  
+  const jobsQuery = useMechanisationJobs({ localMrId });
+  const { data: jobs, isLoading: jobsLoading } = useApiWithFallback(jobsQuery, [] as MechanisationJob[]);
+  
+  const trainingsQuery = useTrainings({ localMrId });
+  const { data: trainings, isLoading: trainingsLoading } = useApiWithFallback(trainingsQuery, [] as Training[]);
+  
+  const visitsQuery = useVisits({ localMrId });
+  const { data: visits, isLoading: visitsLoading } = useApiWithFallback(visitsQuery, [] as Visit[]);
+
+  // Unwrap manager stats
+  const managerStats: ManagerStats | undefined = managerStatsResponse?.data;
 
   // Derived stats
   const totalRevenue = sales
@@ -55,8 +72,7 @@ export function ManagerDashboard() {
     return `KES ${(value / 1000).toFixed(0)}K`;
   };
 
-  const isLoading = statsLoading || mrLoading || totsLoading || farmersLoading || 
-                    salesLoading || jobsLoading || trainingsLoading || visitsLoading;
+  const isLoading = statsLoading || farmersLoading || salesLoading || jobsLoading || trainingsLoading || visitsLoading;
 
   if (!localMrId) {
     return (
@@ -172,18 +188,18 @@ export function ManagerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {totPerformance.slice(0, 5).map((tot: any, index: number) => (
+                {totPerformance.slice(0, 5).map((tot, index) => (
                   <div
-                    key={tot._id || tot.totId}
+                    key={tot.totId}
                     className="flex items-center justify-between p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors animate-fade-in"
                     style={{ animationDelay: `${index * 0.1}s` }}
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
-                        {tot.name.split(' ').map((n: string) => n[0]).join('')}
+                        {tot.totName.split(' ').map((n: string) => n[0]).join('')}
                       </div>
                       <div>
-                        <p className="font-medium text-sm">{tot.name}</p>
+                        <p className="font-medium text-sm">{tot.totName}</p>
                         <p className="text-xs text-muted-foreground">{tot.phone}</p>
                       </div>
                     </div>

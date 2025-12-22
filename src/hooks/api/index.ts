@@ -5,16 +5,33 @@
 export * from './useFarmers';
 export * from './useSales';
 export * from './useMechanisation';
-export * from './useProducts';
-export * from './useNotifications';
-export * from './useDashboard';
-
-// Additional entities
 export * from './useTrainings';
 export * from './useVisits';
 export * from './useMachinery';
 export * from './useLocalMRs';
 export * from './useUsers';
+export * from './useNotifications';
 
-// No more fallbacks — everything is real API-driven
-// Removed: export * from './useApiWithFallback';
+// Dashboard hooks (note: useProductPerformance is also in useDashboard)
+export { 
+  useAdminDashboard, 
+  useManagerDashboard, 
+  useTotDashboard, 
+  useMonthlySalesData, 
+  useTopPerformers,
+  useProductPerformance as useDashboardProductPerformance 
+} from './useDashboard';
+
+// Products - export all except useProductPerformance to avoid conflict
+export { 
+  useProducts, 
+  useProduct, 
+  useCreateProduct, 
+  useUpdateProduct, 
+  useUpdateProductStock, 
+  useDeleteProduct,
+  productKeys 
+} from './useProducts';
+
+// Utility hooks
+export * from './useApiWithFallback';

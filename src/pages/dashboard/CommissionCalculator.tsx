@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Download, Plus, Trash2 } from 'lucide-react';
-import { useProducts, useApiWithFallback } from '@/hooks/api';
+import { useProducts } from '@/hooks/api';
 import { toast } from 'sonner';
 import { Product } from '@/types';
 
@@ -22,10 +22,10 @@ export function CommissionCalculator() {
   const [selectedProductId, setSelectedProductId] = useState('');
   const [quantity, setQuantity] = useState(1);
 
-  const productsQuery = useProducts();
-  const { data: products, isLoading } = useApiWithFallback(productsQuery, [] as Product[]);
+  // API hook - data is already normalized by select transform
+  const { data: products = [], isLoading } = useProducts();
 
-  const availableProducts = products.filter(p => p.commission > 0);
+  const availableProducts = (products as Product[]).filter(p => p.commission > 0);
 
   const addProduct = () => {
     if (!selectedProductId || quantity < 1) {

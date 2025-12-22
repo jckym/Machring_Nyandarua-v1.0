@@ -11,10 +11,10 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { 
-  Download, Building2, Users, TrendingUp, ChevronRight, 
+  Building2, Users, TrendingUp, ChevronRight, 
   ArrowLeft, FileText, FileSpreadsheet, Calculator 
 } from 'lucide-react';
-import { useLocalMRs, useUsers, useApiWithFallback } from '@/hooks/api';
+import { useLocalMRs, useUsers } from '@/hooks/api';
 import { toast } from 'sonner';
 
 type ViewMode = 'local-mrs' | 'tots' | 'tot-detail';
@@ -53,12 +53,9 @@ export function CommissionCalculator() {
   const [viewMode, setViewMode] = useState<ViewMode>('local-mrs');
   const [selectedContext, setSelectedContext] = useState<SelectedContext>({});
 
-  // API hooks
-  const localMRsQuery = useLocalMRs();
-  const { data: localMRs } = useApiWithFallback(localMRsQuery, [] as { id: string; name: string; managerName?: string; code?: string }[]);
-  
-  const usersQuery = useUsers();
-  const { data: users } = useApiWithFallback(usersQuery, [] as { id: string; name: string; role: string; phone?: string; localMrId?: string; status: string }[]);
+  // API hooks - data is already normalized by select transforms
+  const { data: localMRs = [] } = useLocalMRs();
+  const { data: users = [] } = useUsers();
 
   const formatCurrency = (value: number) => `KES ${value.toLocaleString()}`;
 

@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import { exportFarmersToExcel, exportFarmersToPDF } from '@/lib/exportUtils';
 import { FarmerFormDialog } from '@/components/forms/FarmerFormDialog';
 import { Farmer } from '@/types';
-import { useFarmers, useCreateFarmer, useUpdateFarmer, useApiWithFallback } from '@/hooks/api';
+import { useFarmers, useCreateFarmer, useUpdateFarmer, useLocalMRs } from '@/hooks/api';
 import {
   Search,
   Plus,
@@ -26,7 +26,6 @@ import {
   Eye,
   CheckCircle,
   XCircle,
-  WifiOff,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -74,30 +73,15 @@ export function Farmers() {
   const [editingFarmer, setEditingFarmer] = useState<Farmer | null>(null);
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
   const [previewRequest, setPreviewRequest] = useState<PendingRequest | null>(null);
-  const [localFarmers, setLocalFarmers] = useState<Farmer[]>([]);
 
-  // Fallback data for Local MRs
-  const fallbackLocalMRs = [
-    { id: 'mr-1', name: 'Nakuru County MR', code: 'NKR-001' },
-    { id: 'mr-2', name: 'Eldoret MR', code: 'ELD-001' },
-    { id: 'mr-3', name: 'Kisumu MR', code: 'KSM-001' },
-  ];
-
-  // API hooks with fallback
-  const farmersQuery = useFarmers({ search: searchQuery, localMrId: localMrFilter !== 'all' ? localMrFilter : undefined });
-  const { data: farmers, isLoading, isUsingFallback } = useApiWithFallback(
-    farmersQuery,
-    [] as Farmer[]
-  );
+  // API hooks
+  const { data: farmers = [], isLoading } = useFarmers({ 
+    search: searchQuery, 
+    localMrId: localMrFilter !== 'all' ? localMrFilter : undefined 
+  });
+  const { data: localMRs = [] } = useLocalMRs();
   const createFarmer = useCreateFarmer();
   const updateFarmer = useUpdateFarmer();
-
-  // Sync API data or fallback to local state
-  useEffect(() => {
-    if (farmers && Array.isArray(farmers)) {
-      setLocalFarmers(farmers);
-    }
-  }, [farmers]);
 
   // Auto-open add modal from Quick Actions
   useEffect(() => {
@@ -108,7 +92,7 @@ export function Farmers() {
     }
   }, [searchParams, setSearchParams]);
 
-  const filteredFarmers = localFarmers.filter(farmer => {
+  const filteredFarmers = farmers.filter(farmer => {
     const matchesSearch = farmer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       farmer.location.village.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesLocalMr = localMrFilter === 'all' || farmer.localMrId === localMrFilter;
@@ -136,29 +120,9 @@ export function Farmers() {
   const handleSubmitRequest = (data: Partial<Farmer>, type: 'add' | 'edit', originalFarmer?: Farmer) => {
     if (user?.role === 'manager' || user?.role === 'admin') {
       if (type === 'add') {
-        if (!isUsingFallback) {
-          createFarmer.mutate(data as any);
-        } else {
-          const newFarmer: Farmer = {
-            id: `farmer-${Date.now()}`,
-            ...data as any,
-            createdAt: new Date(),
-            farmerRating: 'Active',
-            totalPurchases: 0,
-            mechanisationCount: 0,
-            trainingsAttended: 0,
-            visitsCount: 0,
-          };
-          setLocalFarmers(prev => [...prev, newFarmer]);
-          toast.success('Farmer added successfully (offline mode)');
-        }
+        createFarmer.mutate(data as any);
       } else if (type === 'edit' && originalFarmer) {
-        if (!isUsingFallback) {
-          updateFarmer.mutate({ id: originalFarmer.id, data: data as any });
-        } else {
-          setLocalFarmers(prev => prev.map(f => f.id === originalFarmer.id ? { ...f, ...data } : f));
-          toast.success('Farmer updated successfully (offline mode)');
-        }
+        updateFarmer.mutate({ id: originalFarmer.id, data: data as any });
       }
     } else {
       const request: PendingRequest = {
@@ -186,19 +150,9 @@ export function Farmers() {
     if (!req) return;
 
     if (req.type === 'add') {
-      const newFarmer: Farmer = {
-        id: `farmer-${Date.now()}`,
-        ...req.data as any,
-        createdAt: new Date(),
-        farmerRating: 'Active',
-        totalPurchases: 0,
-        mechanisationCount: 0,
-        trainingsAttended: 0,
-        visitsCount: 0,
-      };
-      setLocalFarmers(prev => [...prev, newFarmer]);
+      createFarmer.mutate(req.data as any);
     } else if (req.type === 'edit' && req.farmerId) {
-      setLocalFarmers(prev => prev.map(f => f.id === req.farmerId ? { ...f, ...req.data } : f));
+      updateFarmer.mutate({ id: req.farmerId, data: req.data as any });
     }
 
     setPendingRequests(prev => prev.map(r =>
@@ -255,14 +209,6 @@ export function Farmers() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Offline Banner */}
-      {isUsingFallback && (
-        <div className="bg-warning/10 border border-warning/20 rounded-lg p-3 flex items-center gap-2 text-warning">
-          <WifiOff className="w-4 h-4" />
-          <span className="text-sm">Using offline data. Changes will sync when connection is restored.</span>
-        </div>
-      )}
-
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
@@ -310,7 +256,7 @@ export function Farmers() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Local MRs</SelectItem>
-                {fallbackLocalMRs.map(mr => (
+                {localMRs.map(mr => (
                   <SelectItem key={mr.id} value={mr.id}>{mr.name}</SelectItem>
                 ))}
               </SelectContent>
@@ -355,7 +301,7 @@ export function Farmers() {
                   {pendingToReview.map(req => {
                     const farmerName = req.type === 'add'
                       ? (req.data as any).name || 'New Farmer'
-                      : localFarmers.find(f => f.id === req.farmerId)?.name || 'Unknown';
+                      : farmers.find(f => f.id === req.farmerId)?.name || 'Unknown';
 
                     return (
                       <tr key={req.id} className="border-b hover:bg-orange-50">
@@ -453,10 +399,10 @@ export function Farmers() {
               <thead>
                 <tr className="border-b border-border">
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Farmer</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground hidden md:table-cell">Location</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground hidden lg:table-cell">Value Chain</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Location</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Category</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground hidden sm:table-cell">Rating</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Rating</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Value Chain</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Actions</th>
                 </tr>
               </thead>
@@ -464,9 +410,8 @@ export function Farmers() {
                 {filteredFarmers.map((farmer, index) => (
                   <tr 
                     key={farmer.id}
-                    className="border-b border-border/50 hover:bg-muted/50 transition-colors cursor-pointer animate-fade-in"
-                    style={{ animationDelay: `${index * 0.03}s` }}
-                    onClick={() => navigate(`/farmers/${farmer.id}`)}
+                    className="border-b border-border/50 hover:bg-muted/50 transition-colors animate-fade-in"
+                    style={{ animationDelay: `${index * 0.05}s` }}
                   >
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
@@ -482,26 +427,25 @@ export function Farmers() {
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 px-4 hidden md:table-cell">
+                    <td className="py-3 px-4">
                       <div className="flex items-center gap-1 text-sm text-muted-foreground">
                         <MapPin className="w-3 h-3" />
-                        {farmer.location.village}, {farmer.location.subcounty}
+                        {farmer.location.village}, {farmer.location.county}
                       </div>
                     </td>
-                    <td className="py-3 px-4 hidden lg:table-cell text-sm">{farmer.valueChain}</td>
                     <td className="py-3 px-4">
-                      <Badge variant={getCategoryColor(farmer.farmerCategory) as any} className="text-xs">
-                        {farmer.farmerCategory}
-                      </Badge>
+                      <Badge variant={getCategoryColor(farmer.farmerCategory) as any}>{farmer.farmerCategory}</Badge>
                     </td>
-                    <td className="py-3 px-4 hidden sm:table-cell">
-                      <Badge variant={getRatingColor(farmer.farmerRating) as any} className="text-xs">
+                    <td className="py-3 px-4">
+                      <Badge variant={getRatingColor(farmer.farmerRating) as any} className="flex items-center gap-1 w-fit">
+                        <Star className="w-3 h-3" />
                         {farmer.farmerRating}
                       </Badge>
                     </td>
+                    <td className="py-3 px-4 text-sm">{farmer.valueChain}</td>
                     <td className="py-3 px-4">
-                      <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/farmers/${farmer.id}`); }}>
-                        View
+                      <Button variant="ghost" size="sm" onClick={() => navigate(`/farmers/${farmer.id}`)}>
+                        <Eye className="w-4 h-4 mr-1" /> View
                       </Button>
                     </td>
                   </tr>
@@ -517,6 +461,7 @@ export function Farmers() {
         open={isFormOpen}
         onOpenChange={setIsFormOpen}
         onSubmit={(data) => handleSubmitRequest(data, editingFarmer ? 'edit' : 'add', editingFarmer || undefined)}
+        editingFarmer={editingFarmer}
       />
 
       {/* Preview Request Dialog */}
@@ -527,25 +472,11 @@ export function Farmers() {
           </DialogHeader>
           {previewRequest && (
             <div className="space-y-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Type</p>
-                <p className="font-medium">{previewRequest.type === 'add' ? 'New Registration' : 'Edit'}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Farmer Name</p>
-                <p className="font-medium">{(previewRequest.data as any).name || 'N/A'}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Requested By</p>
-                <p className="font-medium">{previewRequest.requestedBy}</p>
-              </div>
-              <div className="flex gap-2 pt-4">
-                <Button variant="destructive" className="flex-1" onClick={() => { rejectRequest(previewRequest.id); setPreviewRequest(null); }}>
-                  Reject
-                </Button>
-                <Button className="flex-1" onClick={() => { approveRequest(previewRequest.id); setPreviewRequest(null); }}>
-                  Approve
-                </Button>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div><span className="text-muted-foreground">Name:</span> {(previewRequest.data as any).name}</div>
+                <div><span className="text-muted-foreground">Phone:</span> {(previewRequest.data as any).phone}</div>
+                <div><span className="text-muted-foreground">Value Chain:</span> {(previewRequest.data as any).valueChain}</div>
+                <div><span className="text-muted-foreground">Category:</span> {(previewRequest.data as any).farmerCategory}</div>
               </div>
             </div>
           )}

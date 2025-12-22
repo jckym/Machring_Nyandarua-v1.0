@@ -19,11 +19,9 @@ const serviceTypes = [{ value: 'ploughing', label: 'Ploughing' }, { value: 'harr
 export function MechanisationFormDialog({ open, onOpenChange, onSubmit }: MechanisationFormDialogProps) {
   const { toast } = useToast();
   const [formData, setFormData] = useState({ farmerId: '', machineryId: '', serviceType: '' as MechanisationJob['serviceType'], acreage: 1, scheduledDate: '', notes: '' });
-  const { data: farmersData, isLoading: farmersLoading, error: farmersError } = useFarmers();
-  const { data: machineryData, isLoading: machineryLoading, error: machineryError } = useMachinery();
+  const { data: farmers = [], isLoading: farmersLoading, error: farmersError } = useFarmers();
+  const { data: machinery = [], isLoading: machineryLoading, error: machineryError } = useMachinery();
   
-  const farmers: Farmer[] = Array.isArray(farmersData) ? farmersData : (farmersData?.data || []);
-  const machinery: Machinery[] = Array.isArray(machineryData) ? machineryData : (machineryData?.data || []);
   const availableMachinery = machinery.filter((m) => m.status === 'available');
 
   const selectedMachinery = useMemo(() => machinery.find((m) => m.id === formData.machineryId), [formData.machineryId, machinery]);

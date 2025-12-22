@@ -2,6 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { farmerService, CreateFarmerDto, UpdateFarmerDto, FarmerFilters } from '@/lib/api';
 import { toast } from 'sonner';
+import { Farmer } from '@/types';
 
 export const farmerKeys = {
   all: ['farmers'] as const,
@@ -15,7 +16,6 @@ export const farmerKeys = {
 
 export interface UseFarmersOptions {
   filters?: FarmerFilters;
-  // Also support direct filter properties for convenience
   localMrId?: string;
   search?: string;
   status?: string;
@@ -27,7 +27,6 @@ export interface UseFarmersOptions {
 export function useFarmers(options: UseFarmersOptions = {}) {
   const { filters = {}, localMrId, search, status } = options;
   
-  // Merge direct properties with filters object
   const mergedFilters: FarmerFilters = {
     ...filters,
     ...(localMrId && { localMrId }),
@@ -38,6 +37,7 @@ export function useFarmers(options: UseFarmersOptions = {}) {
   return useQuery({
     queryKey: farmerKeys.list(mergedFilters),
     queryFn: () => farmerService.getAll(mergedFilters),
+    select: (response) => (response?.data ?? []) as Farmer[],
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 10,
   });
@@ -50,6 +50,7 @@ export function useFarmer(id: string) {
   return useQuery({
     queryKey: farmerKeys.detail(id),
     queryFn: () => farmerService.getById(id),
+    select: (response) => response?.data as Farmer | undefined,
     enabled: !!id,
     staleTime: 1000 * 60 * 2,
   });
@@ -62,6 +63,7 @@ export function useFarmerActivity(id: string) {
   return useQuery({
     queryKey: farmerKeys.activity(id),
     queryFn: () => farmerService.getActivitySummary(id),
+    select: (response) => response?.data,
     enabled: !!id,
     staleTime: 1000 * 60 * 10,
   });
@@ -77,15 +79,11 @@ export function useCreateFarmer() {
     mutationFn: (data: CreateFarmerDto) => farmerService.create(data),
     onMutate: async (newFarmer) => {
       await queryClient.cancelQueries({ queryKey: farmerKeys.all });
-
       const previousFarmers = queryClient.getQueryData(farmerKeys.lists());
-
-      // Optimistically add
       queryClient.setQueryData(farmerKeys.lists(), (old: any[] = []) => [
         { ...newFarmer, id: 'temp-id', status: 'approved' },
         ...old,
       ]);
-
       return { previousFarmers };
     },
     onSuccess: () => {
@@ -113,17 +111,13 @@ export function useUpdateFarmer() {
 
     onMutate: async ({ id, data }) => {
       await queryClient.cancelQueries({ queryKey: farmerKeys.all });
-
       const previousFarmer = queryClient.getQueryData(farmerKeys.detail(id));
       const previousList = queryClient.getQueryData(farmerKeys.lists());
-
-      // Optimistically update detail view
       queryClient.setQueryData(farmerKeys.detail(id), (old: any) => ({
         ...old,
         ...data,
         hasPendingEdit: true,
       }));
-
       return { previousFarmer, previousList };
     },
     onSuccess: () => {

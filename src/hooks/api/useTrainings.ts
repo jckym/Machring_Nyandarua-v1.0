@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { trainingService, CreateTrainingDto, UpdateTrainingDto, TrainingFilters } from '@/lib/api';
 import { toast } from 'sonner';
+import { Training } from '@/types';
 
 export const trainingKeys = {
   all: ['trainings'] as const,
@@ -14,6 +15,7 @@ export function useTrainings(filters?: TrainingFilters) {
   return useQuery({
     queryKey: trainingKeys.list(filters || {}),
     queryFn: () => trainingService.getAll(filters),
+    select: (response) => (response?.data ?? []) as Training[],
   });
 }
 
@@ -21,6 +23,7 @@ export function useTraining(id: string) {
   return useQuery({
     queryKey: trainingKeys.detail(id),
     queryFn: () => trainingService.getById(id),
+    select: (response) => response?.data as Training | undefined,
     enabled: !!id,
   });
 }

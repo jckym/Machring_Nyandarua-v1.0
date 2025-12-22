@@ -34,6 +34,10 @@ export function useUser(id: string) {
   return useQuery({
     queryKey: userKeys.detail(id),
     queryFn: () => userService.getById(id),
+    select: (response) => {
+      const data = Array.isArray(response) ? response[0] : (response?.data);
+      return data;
+    },
     enabled: !!id,
     staleTime: 1000 * 60 * 2,
   });

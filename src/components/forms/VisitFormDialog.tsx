@@ -19,8 +19,7 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
   const [gpsLocation, setGpsLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [isLoadingGps, setIsLoadingGps] = useState(false);
-  const { data: farmersData, isLoading: farmersLoading, error: farmersError } = useFarmers();
-  const farmers: Farmer[] = Array.isArray(farmersData) ? farmersData : (farmersData?.data || []);
+  const { data: farmers = [], isLoading: farmersLoading, error: farmersError } = useFarmers();
 
   const captureLocation = () => {
     if (!('geolocation' in navigator)) { setGpsError('Geolocation not supported'); return; }

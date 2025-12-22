@@ -60,8 +60,12 @@ export function useLocalMR(id: string) {
   return useQuery({
     queryKey: localMrKeys.detail(id),
     queryFn: () => localMrService.getById(id),
+    select: (response) => {
+      const data = Array.isArray(response) ? response[0] : (response?.data);
+      return data as LocalMR | undefined;
+    },
     enabled: !!id,
-    staleTime: 1000 * 60 * 2, // 2 minutes
+    staleTime: 1000 * 60 * 2,
   });
 }
 
@@ -72,8 +76,9 @@ export function useLocalMRStats(id: string) {
   return useQuery({
     queryKey: localMrKeys.statsById(id),
     queryFn: () => localMrService.getStats(id),
+    select: (response) => response?.data,
     enabled: !!id,
-    staleTime: 1000 * 60 * 10, // Stats change less often
+    staleTime: 1000 * 60 * 10,
   });
 }
 

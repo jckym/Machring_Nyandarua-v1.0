@@ -1,6 +1,8 @@
+// src/hooks/api/useVisits.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { visitService, CreateVisitDto, UpdateVisitDto, VisitFilters } from '@/lib/api';
 import { toast } from 'sonner';
+import { Visit } from '@/types';
 
 export const visitKeys = {
   all: ['visits'] as const,
@@ -14,6 +16,7 @@ export function useVisits(filters?: VisitFilters) {
   return useQuery({
     queryKey: visitKeys.list(filters || {}),
     queryFn: () => visitService.getAll(filters),
+    select: (response) => (response?.data ?? []) as Visit[],
   });
 }
 
@@ -21,6 +24,7 @@ export function useVisit(id: string) {
   return useQuery({
     queryKey: visitKeys.detail(id),
     queryFn: () => visitService.getById(id),
+    select: (response) => response?.data as Visit | undefined,
     enabled: !!id,
   });
 }

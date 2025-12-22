@@ -12,6 +12,8 @@ import { Loader2 } from "lucide-react";
 
 // Pages
 import { Login } from "@/pages/Login";
+import { ForgotPassword } from "@/pages/ForgotPassword";
+import { ResetPassword } from "@/pages/ResetPassword";
 import { Dashboard } from "@/pages/Dashboard";
 import { AdminDashboard } from "@/pages/dashboard/AdminDashboard";
 import { ManagerDashboard } from "@/pages/dashboard/ManagerDashboard";
@@ -77,6 +79,8 @@ const App = () => (
             <NotificationProvider>
               <Routes>
                 <Route path="/login" element={<Login />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 
                 <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>

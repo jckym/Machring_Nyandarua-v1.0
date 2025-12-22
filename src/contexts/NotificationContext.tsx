@@ -1,13 +1,6 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+// src/contexts/NotificationContext.tsx
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { Notification } from '@/types';
-
-// Embedded fallback notifications data
-const fallbackNotifications: Notification[] = [
-  { id: 'notif-1', type: 'mechanisation_pending', title: 'Mechanisation Approval Required', message: 'Grace Wangui has requested harvesting service', read: false, createdAt: new Date('2025-06-15'), localMrId: 'mr-3', localMrName: 'Eldoret Valley MR' },
-  { id: 'notif-2', type: 'sale_completed', title: 'Sale Completed', message: 'Peter Kamau purchased Maize Seeds', read: false, createdAt: new Date('2025-06-15'), localMrId: 'mr-1', localMrName: 'Nakuru Central MR' },
-  { id: 'notif-3', type: 'training_reminder', title: 'Training Tomorrow', message: 'Soil Health Management training scheduled', read: true, createdAt: new Date('2025-06-19'), localMrId: 'mr-1', localMrName: 'Nakuru Central MR' },
-  { id: 'notif-4', type: 'support_request', title: 'Support Request', message: 'TOT Samuel Mwangi reported login issue', read: false, createdAt: new Date('2025-06-14'), reportedBy: 'tot-1', issueType: 'Technical', resolutionStatus: 'pending' },
-];
 
 interface NotificationContextType {
   notifications: Notification[];
@@ -16,22 +9,55 @@ interface NotificationContextType {
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
   deleteNotification: (id: string) => void;
+  clearAllNotifications: () => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
+const STORAGE_KEY = 'machinery_ring_notifications';
+
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const [notifications, setNotifications] = useState<Notification[]>(fallbackNotifications);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // Ensure dates are properly revived
+        const revived = parsed.map((n: any) => ({
+          ...n,
+          createdAt: new Date(n.createdAt),
+        }));
+        setNotifications(revived);
+      }
+    } catch (error) {
+      console.error('Failed to load notifications from storage:', error);
+    }
+  }, []);
+
+  // Save to localStorage whenever notifications change
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications));
+    } catch (error) {
+      console.error('Failed to save notifications:', error);
+    }
+  }, [notifications]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  const addNotification = useCallback((notification: Omit<Notification, 'id' | 'createdAt' | 'read'>) => {
+  const addNotification = useCallback((
+    notification: Omit<Notification, 'id' | 'createdAt' | 'read'>
+  ) => {
     const newNotification: Notification = {
       ...notification,
-      id: `notif-${Date.now()}`,
+      id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       createdAt: new Date(),
       read: false,
     };
+
     setNotifications(prev => [newNotification, ...prev]);
   }, []);
 
@@ -49,6 +75,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     setNotifications(prev => prev.filter(n => n.id !== id));
   }, []);
 
+  const clearAllNotifications = useCallback(() => {
+    setNotifications([]);
+  }, []);
+
   return (
     <NotificationContext.Provider
       value={{
@@ -58,6 +88,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         markAsRead,
         markAllAsRead,
         deleteNotification,
+        clearAllNotifications,
       }}
     >
       {children}
@@ -65,7 +96,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useNotifications() {
+export function useNotifications(): NotificationContextType {
   const context = useContext(NotificationContext);
   if (!context) {
     throw new Error('useNotifications must be used within a NotificationProvider');

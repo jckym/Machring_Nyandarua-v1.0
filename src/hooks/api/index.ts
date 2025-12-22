@@ -1,3 +1,4 @@
+// src/hooks/api/index.ts
 // API Hooks - Re-export all hooks for easy importing
 
 // Core entities
@@ -15,5 +16,5 @@ export * from './useMachinery';
 export * from './useLocalMRs';
 export * from './useUsers';
 
-// Utilities
-export * from './useApiWithFallback';
+// No more fallbacks — everything is real API-driven
+// Removed: export * from './useApiWithFallback';

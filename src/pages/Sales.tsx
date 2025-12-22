@@ -1,17 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Search, Plus, TrendingUp, Calendar, Download, Package, CheckCircle, MoreVertical, FileSpreadsheet, FileText, WifiOff } from 'lucide-react';
+import { Search, Plus, TrendingUp, Calendar, Download, Package, CheckCircle, MoreVertical, FileSpreadsheet, FileText } from 'lucide-react';
 import { exportSalesToExcel, exportSalesToPDF } from '@/lib/exportUtils';
 import { SaleFormDialog } from '@/components/forms/SaleFormDialog';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Sale } from '@/types';
-import { useSales, useCreateSale, useApiWithFallback } from '@/hooks/api';
+import { useSales, useCreateSale, useProducts } from '@/hooks/api';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,31 +29,17 @@ import {
 export function Sales() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [localSales, setLocalSales] = useState<Sale[]>([]);
   const [productFilter, setProductFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const { addNotification } = useNotifications();
   const { user } = useAuth();
 
-  // Fallback products for filter dropdown
-  const fallbackProducts = [
-    { id: 'prod-1', name: 'Maize Seeds (10kg)' },
-    { id: 'prod-2', name: 'DAP Fertilizer (50kg)' },
-    { id: 'prod-3', name: 'Herbicide (5L)' },
-  ];
-
-  // API hooks with fallback
-  const salesQuery = useSales();
-  const { data: sales, isLoading, isUsingFallback } = useApiWithFallback(salesQuery, [] as Sale[]);
+  // API hooks
+  const { data: sales = [], isLoading } = useSales();
+  const { data: products = [] } = useProducts();
   const createSale = useCreateSale();
 
-  useEffect(() => {
-    if (sales && Array.isArray(sales)) {
-      setLocalSales(sales);
-    }
-  }, [sales]);
-
-  const filteredSales = localSales.filter(sale => {
+  const filteredSales = sales.filter(sale => {
     const matchesSearch = sale.farmerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       sale.productName.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesProduct = productFilter === 'all' || sale.productId === productFilter;
@@ -61,36 +47,15 @@ export function Sales() {
     return matchesSearch && matchesProduct && matchesStatus;
   });
 
-  const totalRevenue = localSales.reduce((acc, sale) => acc + sale.total, 0);
-  const totalCommission = localSales.filter(s => s.status === 'completed').reduce((acc, sale) => acc + sale.commissionAmount, 0);
+  const totalRevenue = sales.reduce((acc, sale) => acc + sale.total, 0);
+  const totalCommission = sales.filter(s => s.status === 'completed').reduce((acc, sale) => acc + sale.commissionAmount, 0);
 
   const handleAddSale = (data: Partial<Sale>) => {
-    if (!isUsingFallback) {
-      createSale.mutate(data as any);
-    } else {
-      const newSale: Sale = {
-        id: `sale-${Date.now()}`,
-        ...data as any,
-        status: 'pending',
-      };
-      setLocalSales(prev => [...prev, newSale]);
-      toast.success('Sale recorded successfully (offline mode)');
-    }
+    createSale.mutate(data as any);
     addNotification({
       title: 'New Sale Recorded',
       message: `Sale recorded`,
       type: 'sale',
-    });
-  };
-
-  const handleCompleteSale = (saleId: string) => {
-    setLocalSales(prev => prev.map(s => s.id === saleId ? { ...s, status: 'completed' as const } : s));
-    const sale = localSales.find(s => s.id === saleId);
-    toast.success('Sale marked as completed');
-    addNotification({
-      title: 'Sale Completed',
-      message: `Commission of KES ${sale?.commissionAmount.toLocaleString()} awarded`,
-      type: 'commission',
     });
   };
 
@@ -131,14 +96,6 @@ export function Sales() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Offline Banner */}
-      {isUsingFallback && (
-        <div className="bg-warning/10 border border-warning/20 rounded-lg p-3 flex items-center gap-2 text-warning">
-          <WifiOff className="w-4 h-4" />
-          <span className="text-sm">Using offline data. Changes will sync when connection is restored.</span>
-        </div>
-      )}
-
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
@@ -190,7 +147,7 @@ export function Sales() {
               <Package className="w-4 h-4 sm:w-5 sm:h-5 text-accent-foreground" />
             </div>
             <div>
-              <p className="text-lg sm:text-2xl font-bold font-heading text-accent-foreground">{localSales.length}</p>
+              <p className="text-lg sm:text-2xl font-bold font-heading text-accent-foreground">{sales.length}</p>
               <p className="text-xs sm:text-sm text-muted-foreground">Total Sales</p>
             </div>
           </div>
@@ -213,7 +170,7 @@ export function Sales() {
             </div>
             <div>
               <p className="text-lg sm:text-2xl font-bold font-heading text-emerald-700">
-                {localSales.filter(s => s.status === 'completed').length}
+                {sales.filter(s => s.status === 'completed').length}
               </p>
               <p className="text-xs sm:text-sm text-muted-foreground">Completed</p>
             </div>
@@ -240,7 +197,7 @@ export function Sales() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Products</SelectItem>
-                {fallbackProducts.map(product => (
+                {products.map(product => (
                   <SelectItem key={product.id} value={product.id}>{product.name}</SelectItem>
                 ))}
               </SelectContent>
@@ -300,24 +257,7 @@ export function Sales() {
                     <td className="py-3 px-4 text-sm font-semibold text-primary">{formatCurrency(sale.total)}</td>
                     <td className="py-3 px-4 text-sm text-emerald-600 font-medium">{formatCurrency(sale.commissionAmount)}</td>
                     <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <Badge variant={getStatusColor(sale.status) as any}>{sale.status}</Badge>
-                        {isManager && sale.status === 'pending' && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon-sm" className="h-7 w-7">
-                                <MoreVertical className="w-3 h-3" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleCompleteSale(sale.id)}>
-                                <CheckCircle className="w-4 h-4 mr-2 text-emerald-600" />
-                                Mark Completed
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
-                      </div>
+                      <Badge variant={getStatusColor(sale.status) as any}>{sale.status}</Badge>
                     </td>
                   </tr>
                 ))}

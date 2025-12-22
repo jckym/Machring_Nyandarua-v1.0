@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, Tractor, CheckCircle, Clock, MoreVertical, Wrench, WifiOff } from 'lucide-react';
+import { Plus, Tractor, CheckCircle, Clock, MoreVertical, Wrench } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
-import { useMachinery, useCreateMachinery, useUpdateMachineryStatus, useApiWithFallback } from '@/hooks/api';
+import { useMachinery, useCreateMachinery, useUpdateMachineryStatus } from '@/hooks/api';
 import {
   Dialog,
   DialogContent,
@@ -67,7 +67,6 @@ const formatCurrency = (value: number) => `KES ${value.toLocaleString()}`;
 export function Machinery() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [localMachinery, setLocalMachinery] = useState<MachineryItem[]>([]);
 
   const [newMachinery, setNewMachinery] = useState<{
     name: string;
@@ -87,26 +86,19 @@ export function Machinery() {
   const { addNotification } = useNotifications();
   const isAdmin = user?.role === 'admin';
 
-  // API hooks with fallback
-  const machineryQuery = useMachinery();
-  const { data: machinery, isLoading, isUsingFallback } = useApiWithFallback(machineryQuery, [] as MachineryItem[]);
+  // API hooks
+  const { data: machinery = [], isLoading } = useMachinery();
   const createMachinery = useCreateMachinery();
   const updateStatus = useUpdateMachineryStatus();
 
-  useEffect(() => {
-    if (machinery && Array.isArray(machinery)) {
-      setLocalMachinery(machinery);
-    }
-  }, [machinery]);
-
-  const filteredMachinery = localMachinery.filter(m =>
+  const filteredMachinery = machinery.filter(m =>
     m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     m.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const availableCount = localMachinery.filter(m => m.status === 'available').length;
-  const bookedCount = localMachinery.filter(m => m.status === 'booked').length;
-  const maintenanceCount = localMachinery.filter(m => m.status === 'maintenance').length;
+  const availableCount = machinery.filter(m => m.status === 'available').length;
+  const bookedCount = machinery.filter(m => m.status === 'booked').length;
+  const maintenanceCount = machinery.filter(m => m.status === 'maintenance').length;
 
   const handleAddMachinery = () => {
     if (!newMachinery.name || !newMachinery.category || !newMachinery.pricePerAcre) {
@@ -114,8 +106,7 @@ export function Machinery() {
       return;
     }
 
-    const newItem: MachineryItem = {
-      id: `mach-${Date.now()}`,
+    const newItem = {
       name: newMachinery.name,
       category: newMachinery.category,
       status: newMachinery.status,
@@ -123,12 +114,7 @@ export function Machinery() {
       description: newMachinery.description,
     };
 
-    if (!isUsingFallback) {
-      createMachinery.mutate(newItem as any);
-    } else {
-      setLocalMachinery(prev => [...prev, newItem]);
-      toast.success('Machinery added successfully (offline mode)');
-    }
+    createMachinery.mutate(newItem as any);
 
     setIsAddDialogOpen(false);
     setNewMachinery({
@@ -147,14 +133,7 @@ export function Machinery() {
   };
 
   const handleStatusChange = (machineryId: string, newStatus: MachineryStatus) => {
-    if (!isUsingFallback) {
-      updateStatus.mutate({ id: machineryId, status: newStatus });
-    } else {
-      setLocalMachinery(prev =>
-        prev.map(m => m.id === machineryId ? { ...m, status: newStatus } : m)
-      );
-      toast.success('Status updated (offline mode)');
-    }
+    updateStatus.mutate({ id: machineryId, status: newStatus });
   };
 
   if (isLoading) {
@@ -176,14 +155,6 @@ export function Machinery() {
 
   return (
     <div className="space-y-6">
-      {/* Offline Banner */}
-      {isUsingFallback && (
-        <div className="bg-warning/10 border border-warning/20 rounded-lg p-3 flex items-center gap-2 text-warning">
-          <WifiOff className="w-4 h-4" />
-          <span className="text-sm">Using offline data. Changes will sync when connection is restored.</span>
-        </div>
-      )}
-
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>

@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Search, Plus, GraduationCap, Calendar, MapPin, Users, Clock, Filter, Download, FileSpreadsheet, FileText, WifiOff } from 'lucide-react';
+import { Search, Plus, GraduationCap, Calendar, MapPin, Users, Clock, Filter, Download, FileSpreadsheet, FileText } from 'lucide-react';
 import { exportTrainingsToExcel, exportTrainingsToPDF } from '@/lib/exportUtils';
 import {
   DropdownMenu,
@@ -16,45 +16,27 @@ import { TrainingFormDialog } from '@/components/forms/TrainingFormDialog';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { toast } from 'sonner';
 import { Training } from '@/types';
-import { useTrainings, useCreateTraining, useApiWithFallback } from '@/hooks/api';
+import { useTrainings, useCreateTraining } from '@/hooks/api';
 
 export function Trainings() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [localTrainings, setLocalTrainings] = useState<Training[]>([]);
   const { addNotification } = useNotifications();
 
-  // API hooks with fallback
-  const trainingsQuery = useTrainings();
-  const { data: trainings, isLoading, isUsingFallback } = useApiWithFallback(trainingsQuery, [] as Training[]);
+  // API hooks
+  const { data: trainings = [], isLoading } = useTrainings();
   const createTraining = useCreateTraining();
 
-  useEffect(() => {
-    if (trainings && Array.isArray(trainings)) {
-      setLocalTrainings(trainings);
-    }
-  }, [trainings]);
-
-  const filteredTrainings = localTrainings.filter(training =>
+  const filteredTrainings = trainings.filter(training =>
     training.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     training.type.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const totalAttendees = localTrainings.reduce((acc, t) => acc + t.attendees.length, 0);
-  const totalHours = localTrainings.reduce((acc, t) => acc + t.duration, 0);
+  const totalAttendees = trainings.reduce((acc, t) => acc + t.attendees.length, 0);
+  const totalHours = trainings.reduce((acc, t) => acc + t.duration, 0);
 
   const handleAddTraining = (data: Partial<Training>) => {
-    if (!isUsingFallback) {
-      createTraining.mutate(data as any);
-    } else {
-      const newTraining: Training = {
-        id: `training-${Date.now()}`,
-        ...data as any,
-        attendees: [],
-      };
-      setLocalTrainings(prev => [...prev, newTraining]);
-      toast.success('Training scheduled successfully (offline mode)');
-    }
+    createTraining.mutate(data as any);
     addNotification({
       title: 'New Training Scheduled',
       message: `Training scheduled`,
@@ -98,14 +80,6 @@ export function Trainings() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Offline Banner */}
-      {isUsingFallback && (
-        <div className="bg-warning/10 border border-warning/20 rounded-lg p-3 flex items-center gap-2 text-warning">
-          <WifiOff className="w-4 h-4" />
-          <span className="text-sm">Using offline data. Changes will sync when connection is restored.</span>
-        </div>
-      )}
-
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
@@ -146,7 +120,7 @@ export function Trainings() {
               <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
-              <p className="text-lg sm:text-2xl font-bold font-heading">{localTrainings.length}</p>
+              <p className="text-lg sm:text-2xl font-bold font-heading">{trainings.length}</p>
               <p className="text-xs sm:text-sm opacity-80">Sessions</p>
             </div>
           </div>
@@ -180,7 +154,7 @@ export function Trainings() {
             </div>
             <div>
               <p className="text-lg sm:text-2xl font-bold font-heading text-emerald-700">
-                {localTrainings.filter(t => t.status === 'Upcoming').length}
+                {trainings.filter(t => t.status === 'Upcoming').length}
               </p>
               <p className="text-xs sm:text-sm text-muted-foreground">Upcoming</p>
             </div>

@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Search, Plus, MapPin, Calendar, Filter, Camera, MessageSquare, Download, FileSpreadsheet, FileText, WifiOff } from 'lucide-react';
+import { Search, Plus, MapPin, Calendar, Filter, Camera, MessageSquare, Download, FileSpreadsheet, FileText } from 'lucide-react';
 import { exportVisitsToExcel, exportVisitsToPDF } from '@/lib/exportUtils';
 import {
   DropdownMenu,
@@ -16,41 +16,24 @@ import { VisitFormDialog } from '@/components/forms/VisitFormDialog';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { toast } from 'sonner';
 import { Visit } from '@/types';
-import { useVisits, useCreateVisit, useApiWithFallback } from '@/hooks/api';
+import { useVisits, useCreateVisit } from '@/hooks/api';
 
 export function Visits() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [localVisits, setLocalVisits] = useState<Visit[]>([]);
   const { addNotification } = useNotifications();
 
-  // API hooks with fallback
-  const visitsQuery = useVisits();
-  const { data: visits, isLoading, isUsingFallback } = useApiWithFallback(visitsQuery, [] as Visit[]);
+  // API hooks
+  const { data: visits = [], isLoading } = useVisits();
   const createVisit = useCreateVisit();
 
-  useEffect(() => {
-    if (visits && Array.isArray(visits)) {
-      setLocalVisits(visits);
-    }
-  }, [visits]);
-
-  const filteredVisits = localVisits.filter(visit =>
+  const filteredVisits = visits.filter(visit =>
     visit.farmerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     visit.purpose.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleAddVisit = (data: Partial<Visit>) => {
-    if (!isUsingFallback) {
-      createVisit.mutate(data as any);
-    } else {
-      const newVisit: Visit = {
-        id: `visit-${Date.now()}`,
-        ...data as any,
-      };
-      setLocalVisits(prev => [newVisit, ...prev]);
-      toast.success('Visit logged successfully (offline mode)');
-    }
+    createVisit.mutate(data as any);
     addNotification({
       title: 'Field Visit Logged',
       message: `Visit recorded`,
@@ -67,7 +50,7 @@ export function Visits() {
   };
 
   // Calculate stats
-  const thisWeekVisits = localVisits.filter(v => {
+  const thisWeekVisits = visits.filter(v => {
     const visitDate = new Date(v.date);
     const now = new Date();
     const weekStart = new Date(now.setDate(now.getDate() - now.getDay()));
@@ -75,8 +58,8 @@ export function Visits() {
   }).length;
 
   const withPhotos = 0; // Photo URLs not in type - will show 0 for now
-  const gpsTagged = localVisits.filter(v => v.gpsLocation).length;
-  const gpsPercentage = localVisits.length > 0 ? Math.round((gpsTagged / localVisits.length) * 100) : 0;
+  const gpsTagged = visits.filter(v => v.gpsLocation).length;
+  const gpsPercentage = visits.length > 0 ? Math.round((gpsTagged / visits.length) * 100) : 0;
 
   if (isLoading) {
     return (
@@ -97,14 +80,6 @@ export function Visits() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Offline Banner */}
-      {isUsingFallback && (
-        <div className="bg-warning/10 border border-warning/20 rounded-lg p-3 flex items-center gap-2 text-warning">
-          <WifiOff className="w-4 h-4" />
-          <span className="text-sm">Using offline data. Changes will sync when connection is restored.</span>
-        </div>
-      )}
-
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
@@ -145,7 +120,7 @@ export function Visits() {
               <MapPin className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
-              <p className="text-lg sm:text-2xl font-bold font-heading">{localVisits.length}</p>
+              <p className="text-lg sm:text-2xl font-bold font-heading">{visits.length}</p>
               <p className="text-xs sm:text-sm opacity-80">Total Visits</p>
             </div>
           </div>

@@ -12,7 +12,8 @@ import { ProductChart } from '@/components/dashboard/ProductChart';
 import { TopPerformers } from '@/components/dashboard/TopPerformers';
 
 import { useManagerDashboard, ManagerStats } from '@/hooks/api/useDashboard';
-import { useLocalMR, useTotsByLocalMR } from '@/hooks/api/useLocalMRs';
+import { useLocalMR } from '@/hooks/api/useLocalMRs';
+import { useTotsByLocalMR } from '@/hooks/api/useTotsByLocalMR';
 import { useFarmers } from '@/hooks/api/useFarmers';
 import { useSales } from '@/hooks/api/useSales';
 import { useMechanisationJobs } from '@/hooks/api/useMechanisation';

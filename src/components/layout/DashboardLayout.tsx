@@ -10,7 +10,7 @@ import { Loader2, Leaf } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function DashboardLayout() {
-  const { user, isLoading, isAuthenticated, isFirstLogin } = useAuth();
+  const { user, isLoading, isAuthenticated } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -66,30 +66,6 @@ export function DashboardLayout() {
     }
   }, [user, location.pathname, navigate]);
 
-  // Welcome toast on first login
-  useEffect(() => {
-    if (isFirstLogin && user) {
-      toast.success(
-        <div className="flex items-center gap-3">
-          <div className="bg-emerald-100 p-2 rounded-full">
-            <Leaf className="w-5 h-5 text-emerald-700" />
-          </div>
-          <div>
-            <p className="font-medium">Welcome, {user.name}!</p>
-            <p className="text-sm text-muted-foreground">
-              {user.role === 'tot' && 'Start registering farmers and recording sales to earn commissions'}
-              {user.role === 'manager' && 'Monitor your Local MR performance and approve bookings'}
-              {user.role === 'admin' && 'Manage the entire organization and product catalog'}
-            </p>
-          </div>
-        </div>,
-        {
-          duration: 8000,
-          position: 'top-center',
-        }
-      );
-    }
-  }, [isFirstLogin, user, toast]);
 
   return (
     <div className="flex min-h-screen w-full bg-background">

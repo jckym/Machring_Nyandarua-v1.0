@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -16,8 +17,11 @@ import {
   CheckCircle, 
   MessageSquare,
   Upload,
-  Send
+  Send,
+  Inbox
 } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiClient } from '@/lib/api/client';
 
 interface SupportRequest {
   id: string;
@@ -29,43 +33,52 @@ interface SupportRequest {
   updatedAt: Date;
 }
 
-const mockRequests: SupportRequest[] = [
-  {
-    id: 'SR-001',
-    category: 'System Failure',
-    priority: 'high',
-    description: 'Unable to sync sales data from mobile app',
-    status: 'in-progress',
-    createdAt: new Date('2024-12-08'),
-    updatedAt: new Date('2024-12-09'),
-  },
-  {
-    id: 'SR-002',
-    category: 'Missing Data',
-    priority: 'medium',
-    description: 'Farmer records from last week not showing',
-    status: 'open',
-    createdAt: new Date('2024-12-07'),
-    updatedAt: new Date('2024-12-07'),
-  },
-  {
-    id: 'SR-003',
-    category: 'Permission Error',
-    priority: 'low',
-    description: 'Cannot access reports section',
-    status: 'closed',
-    createdAt: new Date('2024-12-01'),
-    updatedAt: new Date('2024-12-03'),
-  },
-];
+// API service for support requests
+const supportService = {
+  getAll: () => apiClient.get<SupportRequest[]>('/support'),
+  create: (data: { category: string; priority: string; description: string }) => 
+    apiClient.post<SupportRequest>('/support', data),
+};
 
 export function Support() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [category, setCategory] = useState('');
   const [priority, setPriority] = useState('medium');
   const [description, setDescription] = useState('');
+
+  // Fetch support requests
+  const { data: requestsResponse, isLoading, error } = useQuery({
+    queryKey: ['supportRequests'],
+    queryFn: () => supportService.getAll(),
+  });
+
+  const requests: SupportRequest[] = requestsResponse?.data ?? [];
+
+  // Create mutation
+  const createMutation = useMutation({
+    mutationFn: supportService.create,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['supportRequests'] });
+      toast({
+        title: 'Request Submitted',
+        description: 'Your support request has been sent to the admin team.',
+      });
+      setShowForm(false);
+      setCategory('');
+      setDescription('');
+      setPriority('medium');
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to submit support request. Please try again.',
+        variant: 'destructive',
+      });
+    },
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,15 +92,7 @@ export function Support() {
       return;
     }
 
-    toast({
-      title: 'Request Submitted',
-      description: 'Your support request has been sent to the admin team.',
-    });
-    
-    setShowForm(false);
-    setCategory('');
-    setDescription('');
-    setPriority('medium');
+    createMutation.mutate({ category, priority, description });
   };
 
   const getStatusIcon = (status: string) => {
@@ -134,8 +139,24 @@ export function Support() {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
-    }).format(date);
+    }).format(new Date(date));
   };
+
+  const openCount = requests.filter(r => r.status === 'open').length;
+  const inProgressCount = requests.filter(r => r.status === 'in-progress').length;
+  const closedCount = requests.filter(r => r.status === 'closed').length;
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-48" />
+        <div className="grid grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24" />)}
+        </div>
+        <Skeleton className="h-64" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -159,9 +180,7 @@ export function Support() {
               <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-700" />
             </div>
             <div>
-              <p className="text-lg sm:text-2xl font-bold font-heading text-amber-700">
-                {mockRequests.filter(r => r.status === 'open').length}
-              </p>
+              <p className="text-lg sm:text-2xl font-bold font-heading text-amber-700">{openCount}</p>
               <p className="text-xs sm:text-sm text-muted-foreground">Open</p>
             </div>
           </div>
@@ -172,9 +191,7 @@ export function Support() {
               <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-blue-700" />
             </div>
             <div>
-              <p className="text-lg sm:text-2xl font-bold font-heading text-blue-700">
-                {mockRequests.filter(r => r.status === 'in-progress').length}
-              </p>
+              <p className="text-lg sm:text-2xl font-bold font-heading text-blue-700">{inProgressCount}</p>
               <p className="text-xs sm:text-sm text-muted-foreground">In Progress</p>
             </div>
           </div>
@@ -185,9 +202,7 @@ export function Support() {
               <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-700" />
             </div>
             <div>
-              <p className="text-lg sm:text-2xl font-bold font-heading text-emerald-700">
-                {mockRequests.filter(r => r.status === 'closed').length}
-              </p>
+              <p className="text-lg sm:text-2xl font-bold font-heading text-emerald-700">{closedCount}</p>
               <p className="text-xs sm:text-sm text-muted-foreground">Resolved</p>
             </div>
           </div>
@@ -198,9 +213,7 @@ export function Support() {
               <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
             </div>
             <div>
-              <p className="text-lg sm:text-2xl font-bold font-heading text-primary">
-                {mockRequests.length}
-              </p>
+              <p className="text-lg sm:text-2xl font-bold font-heading text-primary">{requests.length}</p>
               <p className="text-xs sm:text-sm text-muted-foreground">Total</p>
             </div>
           </div>
@@ -270,9 +283,14 @@ export function Support() {
                 </div>
               </div>
               <div className="flex flex-col sm:flex-row gap-3">
-                <Button type="submit" variant="forest" className="flex-1">
+                <Button 
+                  type="submit" 
+                  variant="forest" 
+                  className="flex-1"
+                  disabled={createMutation.isPending}
+                >
                   <Send className="w-4 h-4 mr-2" />
-                  Submit Request
+                  {createMutation.isPending ? 'Submitting...' : 'Submit Request'}
                 </Button>
                 <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
                   Cancel
@@ -289,35 +307,43 @@ export function Support() {
           <CardTitle className="text-lg">My Requests</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {mockRequests.map((request, index) => (
-              <div
-                key={request.id}
-                className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors gap-4 animate-fade-in"
-                style={{ animationDelay: `${index * 0.05}s` }}
-              >
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    {getStatusIcon(request.status)}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <span className="font-medium text-sm">{request.id}</span>
-                      {getStatusBadge(request.status)}
-                      {getPriorityBadge(request.priority)}
+          {requests.length === 0 ? (
+            <div className="text-center py-12">
+              <Inbox className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">No support requests yet</p>
+              <p className="text-sm text-muted-foreground mt-1">Click "New Request" to report an issue</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {requests.map((request, index) => (
+                <div
+                  key={request.id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors gap-4 animate-fade-in"
+                  style={{ animationDelay: `${index * 0.05}s` }}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      {getStatusIcon(request.status)}
                     </div>
-                    <p className="text-sm text-muted-foreground">{request.description}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Created {formatDate(request.createdAt)} • Updated {formatDate(request.updatedAt)}
-                    </p>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <span className="font-medium text-sm">{request.id}</span>
+                        {getStatusBadge(request.status)}
+                        {getPriorityBadge(request.priority)}
+                      </div>
+                      <p className="text-sm text-muted-foreground">{request.description}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Created {formatDate(request.createdAt)} • Updated {formatDate(request.updatedAt)}
+                      </p>
+                    </div>
                   </div>
+                  <Button variant="outline" size="sm" className="flex-shrink-0">
+                    View Details
+                  </Button>
                 </div>
-                <Button variant="outline" size="sm" className="flex-shrink-0">
-                  View Details
-                </Button>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

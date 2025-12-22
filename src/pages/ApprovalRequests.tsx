@@ -3,11 +3,12 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import { FarmerApprovalRequest } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { toast } from 'sonner';
-import { Search, CheckCircle, XCircle, Clock, User, MapPin } from 'lucide-react';
+import { Search, CheckCircle, XCircle, Clock, User, MapPin, Inbox } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -25,38 +26,66 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-
-// Fallback mock data
-const mockFarmerApprovalRequests: FarmerApprovalRequest[] = [
-  { 
-    id: 'approval-1', 
-    farmerData: { 
-      name: 'New Test Farmer', 
-      phone: '+254711999999', 
-      location: { village: 'Test Village', ward: 'Test Ward', subcounty: 'Nakuru East', county: 'Nakuru' }, 
-      valueChain: 'Maize', 
-      farmerCategory: 'New' 
-    }, 
-    type: 'add', 
-    status: 'pending', 
-    requestedBy: 'tot-1', 
-    requestedByName: 'Samuel Mwangi', 
-    localMrId: 'mr-1', 
-    localMrName: 'Nakuru Central MR', 
-    createdAt: new Date('2025-06-18') 
-  },
-];
+import { approvalService } from '@/lib/api/services/approvalService';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 export function ApprovalRequests() {
   const { user } = useAuth();
   const { addNotification } = useNotifications();
-  const [requests, setRequests] = useState<FarmerApprovalRequest[]>(mockFarmerApprovalRequests);
+  const queryClient = useQueryClient();
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [selectedRequest, setSelectedRequest] = useState<FarmerApprovalRequest | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectDialog, setShowRejectDialog] = useState(false);
+
+  // Fetch approval requests from API
+  const { data: requestsResponse, isLoading, error } = useQuery({
+    queryKey: ['approvalRequests'],
+    queryFn: () => approvalService.getAll(),
+  });
+
+  const requests: FarmerApprovalRequest[] = requestsResponse?.data ?? [];
+
+  // Mutations
+  const approveMutation = useMutation({
+    mutationFn: (requestId: string) => approvalService.approve(requestId),
+    onSuccess: (_, requestId) => {
+      queryClient.invalidateQueries({ queryKey: ['approvalRequests'] });
+      const request = requests.find(r => r.id === requestId);
+      toast.success('Farmer request approved');
+      addNotification({
+        title: 'Farmer Approved',
+        message: `${request?.farmerData.name} has been approved and added to the system`,
+        type: 'farmer',
+      });
+    },
+    onError: () => {
+      toast.error('Failed to approve request');
+    },
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: ({ requestId, reason }: { requestId: string; reason: string }) => 
+      approvalService.reject(requestId, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['approvalRequests'] });
+      toast.info('Farmer request rejected');
+      addNotification({
+        title: 'Farmer Request Rejected',
+        message: `Request for ${selectedRequest?.farmerData.name} has been rejected`,
+        type: 'farmer',
+      });
+      setShowRejectDialog(false);
+      setSelectedRequest(null);
+      setRejectReason('');
+    },
+    onError: () => {
+      toast.error('Failed to reject request');
+    },
+  });
 
   const filteredRequests = requests.filter(request => {
     const matchesSearch = request.farmerData.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -71,36 +100,12 @@ export function ApprovalRequests() {
   const rejectedCount = requests.filter(r => r.status === 'rejected').length;
 
   const handleApprove = (requestId: string) => {
-    setRequests(prev => prev.map(r => 
-      r.id === requestId 
-        ? { ...r, status: 'approved' as const, reviewedBy: user?.id, reviewedAt: new Date() }
-        : r
-    ));
-    const request = requests.find(r => r.id === requestId);
-    toast.success('Farmer request approved');
-    addNotification({
-      title: 'Farmer Approved',
-      message: `${request?.farmerData.name} has been approved and added to the system`,
-      type: 'farmer',
-    });
+    approveMutation.mutate(requestId);
   };
 
   const handleReject = () => {
     if (!selectedRequest) return;
-    setRequests(prev => prev.map(r => 
-      r.id === selectedRequest.id 
-        ? { ...r, status: 'rejected' as const, reviewedBy: user?.id, reviewedAt: new Date(), rejectionReason: rejectReason }
-        : r
-    ));
-    toast.info('Farmer request rejected');
-    addNotification({
-      title: 'Farmer Request Rejected',
-      message: `Request for ${selectedRequest.farmerData.name} has been rejected`,
-      type: 'farmer',
-    });
-    setShowRejectDialog(false);
-    setSelectedRequest(null);
-    setRejectReason('');
+    rejectMutation.mutate({ requestId: selectedRequest.id, reason: rejectReason });
   };
 
   const openRejectDialog = (request: FarmerApprovalRequest) => {
@@ -141,6 +146,27 @@ export function ApprovalRequests() {
       minute: '2-digit',
     }).format(new Date(date));
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-64" />
+        <div className="grid grid-cols-3 gap-4">
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-24" />)}
+        </div>
+        <Skeleton className="h-48" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+        <XCircle className="w-16 h-16 mb-4 text-destructive" />
+        <p>Failed to load approval requests. Please try again later.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -231,6 +257,7 @@ export function ApprovalRequests() {
       <div className="space-y-3">
         {filteredRequests.length === 0 ? (
           <Card className="p-8 text-center">
+            <Inbox className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
             <p className="text-muted-foreground">No approval requests found</p>
           </Card>
         ) : (
@@ -285,6 +312,7 @@ export function ApprovalRequests() {
                         size="sm"
                         onClick={() => openRejectDialog(request)}
                         className="text-destructive hover:text-destructive"
+                        disabled={rejectMutation.isPending}
                       >
                         <XCircle className="w-4 h-4 mr-1" />
                         Reject
@@ -293,6 +321,7 @@ export function ApprovalRequests() {
                         variant="forest"
                         size="sm"
                         onClick={() => handleApprove(request.id)}
+                        disabled={approveMutation.isPending}
                       >
                         <CheckCircle className="w-4 h-4 mr-1" />
                         Approve
@@ -331,7 +360,11 @@ export function ApprovalRequests() {
             <Button variant="outline" onClick={() => setShowRejectDialog(false)}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleReject} disabled={!rejectReason.trim()}>
+            <Button 
+              variant="destructive" 
+              onClick={handleReject} 
+              disabled={!rejectReason.trim() || rejectMutation.isPending}
+            >
               Reject Request
             </Button>
           </DialogFooter>

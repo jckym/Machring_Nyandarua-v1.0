@@ -3,6 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Table,
@@ -18,105 +19,88 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Search, Download, Eye, Edit, Trash2, Plus, FileText, FileSpreadsheet } from 'lucide-react';
+import { Search, Download, Eye, Edit, Trash2, Plus, FileText, FileSpreadsheet, Inbox } from 'lucide-react';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-
-interface AuditEntry {
-  id: string;
-  timestamp: string;
-  action: 'create' | 'update' | 'delete' | 'view' | 'export';
-  entity: string;
-  entityId: string;
-  description: string;
-  userId: string;
-  userName: string;
-  ipAddress: string;
-}
-
-const mockAuditLogs: AuditEntry[] = [
-  { id: '1', timestamp: '2024-01-15 14:32:15', action: 'create', entity: 'Farmer', entityId: 'F001', description: 'Created new farmer: John Doe', userId: '3', userName: 'Mike TOT', ipAddress: '192.168.1.100' },
-  { id: '2', timestamp: '2024-01-15 14:30:00', action: 'update', entity: 'Sale', entityId: 'S001', description: 'Updated sale status to Completed', userId: '3', userName: 'Mike TOT', ipAddress: '192.168.1.100' },
-  { id: '3', timestamp: '2024-01-15 14:25:30', action: 'delete', entity: 'Training', entityId: 'T005', description: 'Deleted training session', userId: '2', userName: 'Jane Manager', ipAddress: '192.168.1.101' },
-  { id: '4', timestamp: '2024-01-15 14:20:00', action: 'view', entity: 'Report', entityId: 'R001', description: 'Viewed monthly sales report', userId: '1', userName: 'John Admin', ipAddress: '192.168.1.102' },
-  { id: '5', timestamp: '2024-01-15 14:15:00', action: 'export', entity: 'Farmers', entityId: '-', description: 'Exported farmers list to Excel', userId: '2', userName: 'Jane Manager', ipAddress: '192.168.1.101' },
-  { id: '6', timestamp: '2024-01-15 14:10:00', action: 'update', entity: 'User', entityId: 'U004', description: 'Updated user permissions', userId: '1', userName: 'John Admin', ipAddress: '192.168.1.102' },
-  { id: '7', timestamp: '2024-01-15 14:05:00', action: 'create', entity: 'Branch', entityId: 'B006', description: 'Created new branch: Meru Branch', userId: '1', userName: 'John Admin', ipAddress: '192.168.1.102' },
-  { id: '8', timestamp: '2024-01-15 14:00:00', action: 'view', entity: 'Farmer', entityId: 'F025', description: 'Viewed farmer profile: Jane Smith', userId: '3', userName: 'Mike TOT', ipAddress: '192.168.1.100' },
-];
+import { useSystemLogs, DisplaySystemLog } from '@/hooks/api/useSystemLogs';
 
 export function AuditLog() {
   const [searchQuery, setSearchQuery] = useState('');
   const [actionFilter, setActionFilter] = useState('all');
-  const [entityFilter, setEntityFilter] = useState('all');
-  const [auditLogs] = useState<AuditEntry[]>(mockAuditLogs);
+  const [moduleFilter, setModuleFilter] = useState('all');
 
-  const filteredLogs = auditLogs.filter(log => {
-    const matchesSearch = log.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.userName.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesAction = actionFilter === 'all' || log.action === actionFilter;
-    const matchesEntity = entityFilter === 'all' || log.entity === entityFilter;
-    return matchesSearch && matchesAction && matchesEntity;
+  // Fetch audit logs from API
+  const { data: auditLogs = [], isLoading, error } = useSystemLogs();
+
+  const filteredLogs = auditLogs.filter((log: DisplaySystemLog) => {
+    const matchesSearch = log.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (log.userName?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
+    const matchesAction = actionFilter === 'all' || log.level === actionFilter;
+    const matchesModule = moduleFilter === 'all' || log.module === moduleFilter;
+    return matchesSearch && matchesAction && matchesModule;
   });
 
-  const getActionIcon = (action: string) => {
-    switch (action) {
-      case 'create': return <Plus className="h-4 w-4 text-green-500" />;
-      case 'update': return <Edit className="h-4 w-4 text-blue-500" />;
-      case 'delete': return <Trash2 className="h-4 w-4 text-red-500" />;
-      case 'view': return <Eye className="h-4 w-4 text-gray-500" />;
-      case 'export': return <FileText className="h-4 w-4 text-purple-500" />;
+  const getLevelIcon = (level: string) => {
+    switch (level) {
+      case 'success': return <Plus className="h-4 w-4 text-green-500" />;
+      case 'info': return <Eye className="h-4 w-4 text-blue-500" />;
+      case 'warning': return <Edit className="h-4 w-4 text-amber-500" />;
+      case 'error': return <Trash2 className="h-4 w-4 text-red-500" />;
       default: return <Eye className="h-4 w-4" />;
     }
   };
 
-  const getActionBadge = (action: string) => {
+  const getLevelBadge = (level: string) => {
     const colors: Record<string, string> = {
-      create: 'bg-green-500',
-      update: 'bg-blue-500',
-      delete: 'bg-red-500',
-      view: 'bg-gray-500',
-      export: 'bg-purple-500',
+      success: 'bg-green-500',
+      info: 'bg-blue-500',
+      warning: 'bg-amber-500',
+      error: 'bg-red-500',
     };
-    return <Badge className={colors[action]}>{action.toUpperCase()}</Badge>;
+    return <Badge className={colors[level] || 'bg-gray-500'}>{level.toUpperCase()}</Badge>;
   };
 
   const exportToExcel = () => {
-    const data = filteredLogs.map(log => ({
+    if (filteredLogs.length === 0) {
+      toast.error('No logs to export');
+      return;
+    }
+    const data = filteredLogs.map((log: DisplaySystemLog) => ({
       'Timestamp': log.timestamp,
-      'Action': log.action.toUpperCase(),
-      'Entity': log.entity,
-      'Entity ID': log.entityId,
-      'Description': log.description,
-      'User': log.userName,
-      'IP Address': log.ipAddress,
+      'Level': log.level.toUpperCase(),
+      'Module': log.module,
+      'Message': log.message,
+      'User': log.userName || 'System',
     }));
     const worksheet = XLSX.utils.json_to_sheet(data);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Audit Logs');
-    XLSX.writeFile(workbook, `audit_logs_${new Date().toISOString().split('T')[0]}.xlsx`);
-    toast.success('Audit logs exported to Excel');
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'System Logs');
+    XLSX.writeFile(workbook, `system_logs_${new Date().toISOString().split('T')[0]}.xlsx`);
+    toast.success('System logs exported to Excel');
   };
 
   const exportToPDF = () => {
+    if (filteredLogs.length === 0) {
+      toast.error('No logs to export');
+      return;
+    }
     const doc = new jsPDF('landscape');
     doc.setFontSize(18);
     doc.setTextColor(34, 139, 34);
-    doc.text('Audit Log Report', 14, 20);
+    doc.text('System Log Report', 14, 20);
     doc.setFontSize(10);
     doc.setTextColor(100);
     doc.text(`Generated: ${new Date().toLocaleDateString()} | Total: ${filteredLogs.length} entries`, 14, 28);
 
-    const headers = ['Timestamp', 'Action', 'Entity', 'Description', 'User', 'IP Address'];
-    const rows = filteredLogs.map(log => [
+    const headers = ['Timestamp', 'Level', 'Module', 'Message', 'User'];
+    const rows = filteredLogs.map((log: DisplaySystemLog) => [
       log.timestamp,
-      log.action.toUpperCase(),
-      log.entity,
-      log.description.substring(0, 40) + (log.description.length > 40 ? '...' : ''),
-      log.userName,
-      log.ipAddress,
+      log.level.toUpperCase(),
+      log.module,
+      log.message.substring(0, 50) + (log.message.length > 50 ? '...' : ''),
+      log.userName || 'System',
     ]);
 
     autoTable(doc, {
@@ -128,29 +112,51 @@ export function AuditLog() {
       alternateRowStyles: { fillColor: [245, 245, 245] },
     });
 
-    doc.save(`audit_logs_${new Date().toISOString().split('T')[0]}.pdf`);
-    toast.success('Audit logs exported to PDF');
+    doc.save(`system_logs_${new Date().toISOString().split('T')[0]}.pdf`);
+    toast.success('System logs exported to PDF');
   };
 
-  const entities = [...new Set(auditLogs.map(l => l.entity))];
+  const modules = [...new Set(auditLogs.map((l: DisplaySystemLog) => l.module))];
 
   // Stats
-  const createCount = auditLogs.filter(l => l.action === 'create').length;
-  const updateCount = auditLogs.filter(l => l.action === 'update').length;
-  const deleteCount = auditLogs.filter(l => l.action === 'delete').length;
+  const infoCount = auditLogs.filter((l: DisplaySystemLog) => l.level === 'info').length;
+  const warningCount = auditLogs.filter((l: DisplaySystemLog) => l.level === 'warning').length;
+  const errorCount = auditLogs.filter((l: DisplaySystemLog) => l.level === 'error').length;
+  const successCount = auditLogs.filter((l: DisplaySystemLog) => l.level === 'success').length;
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-48" />
+        <div className="grid gap-4 md:grid-cols-4">
+          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24" />)}
+        </div>
+        <Skeleton className="h-64" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+        <Inbox className="w-16 h-16 mb-4 text-muted-foreground" />
+        <p>Failed to load system logs. Please try again later.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-foreground">Audit Log</h1>
-          <p className="text-muted-foreground">Track all user actions and changes</p>
+          <h1 className="font-heading text-2xl font-bold text-foreground">System Logs</h1>
+          <p className="text-muted-foreground">Track system events and activities</p>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline">
+            <Button variant="outline" disabled={auditLogs.length === 0}>
               <Download className="mr-2 h-4 w-4" />
-              Export Audit Log
+              Export Logs
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
@@ -174,30 +180,30 @@ export function AuditLog() {
               <FileText className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Total Actions</p>
+              <p className="text-sm text-muted-foreground">Total Logs</p>
               <p className="text-2xl font-bold">{auditLogs.length}</p>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="flex items-center gap-4 p-4">
-            <div className="rounded-full bg-green-500/10 p-3">
-              <Plus className="h-6 w-6 text-green-500" />
+            <div className="rounded-full bg-blue-500/10 p-3">
+              <Eye className="h-6 w-6 text-blue-500" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Creates</p>
-              <p className="text-2xl font-bold">{createCount}</p>
+              <p className="text-sm text-muted-foreground">Info</p>
+              <p className="text-2xl font-bold">{infoCount}</p>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="flex items-center gap-4 p-4">
-            <div className="rounded-full bg-blue-500/10 p-3">
-              <Edit className="h-6 w-6 text-blue-500" />
+            <div className="rounded-full bg-amber-500/10 p-3">
+              <Edit className="h-6 w-6 text-amber-500" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Updates</p>
-              <p className="text-2xl font-bold">{updateCount}</p>
+              <p className="text-sm text-muted-foreground">Warnings</p>
+              <p className="text-2xl font-bold">{warningCount}</p>
             </div>
           </CardContent>
         </Card>
@@ -207,8 +213,8 @@ export function AuditLog() {
               <Trash2 className="h-6 w-6 text-red-500" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Deletes</p>
-              <p className="text-2xl font-bold">{deleteCount}</p>
+              <p className="text-sm text-muted-foreground">Errors</p>
+              <p className="text-2xl font-bold">{errorCount}</p>
             </div>
           </CardContent>
         </Card>
@@ -221,7 +227,7 @@ export function AuditLog() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search audit logs..."
+                placeholder="Search logs..."
                 className="pl-10"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -229,25 +235,24 @@ export function AuditLog() {
             </div>
             <Select value={actionFilter} onValueChange={setActionFilter}>
               <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="Action" />
+                <SelectValue placeholder="Level" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Actions</SelectItem>
-                <SelectItem value="create">Create</SelectItem>
-                <SelectItem value="update">Update</SelectItem>
-                <SelectItem value="delete">Delete</SelectItem>
-                <SelectItem value="view">View</SelectItem>
-                <SelectItem value="export">Export</SelectItem>
+                <SelectItem value="all">All Levels</SelectItem>
+                <SelectItem value="info">Info</SelectItem>
+                <SelectItem value="warning">Warning</SelectItem>
+                <SelectItem value="error">Error</SelectItem>
+                <SelectItem value="success">Success</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={entityFilter} onValueChange={setEntityFilter}>
+            <Select value={moduleFilter} onValueChange={setModuleFilter}>
               <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="Entity" />
+                <SelectValue placeholder="Module" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Entities</SelectItem>
-                {entities.map(entity => (
-                  <SelectItem key={entity} value={entity}>{entity}</SelectItem>
+                <SelectItem value="all">All Modules</SelectItem>
+                {modules.map(module => (
+                  <SelectItem key={module} value={module}>{module}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -255,38 +260,43 @@ export function AuditLog() {
         </CardContent>
       </Card>
 
-      {/* Audit Table */}
+      {/* Logs Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Audit Trail ({filteredLogs.length})</CardTitle>
+          <CardTitle>System Logs ({filteredLogs.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[50px]"></TableHead>
-                <TableHead>Timestamp</TableHead>
-                <TableHead>Action</TableHead>
-                <TableHead>Entity</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>User</TableHead>
-                <TableHead>IP Address</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredLogs.map((log) => (
-                <TableRow key={log.id}>
-                  <TableCell>{getActionIcon(log.action)}</TableCell>
-                  <TableCell className="font-mono text-sm">{log.timestamp}</TableCell>
-                  <TableCell>{getActionBadge(log.action)}</TableCell>
-                  <TableCell>{log.entity}</TableCell>
-                  <TableCell className="max-w-[300px] truncate">{log.description}</TableCell>
-                  <TableCell>{log.userName}</TableCell>
-                  <TableCell className="font-mono text-sm">{log.ipAddress}</TableCell>
+          {filteredLogs.length === 0 ? (
+            <div className="text-center py-12">
+              <Inbox className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">No system logs found</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[50px]"></TableHead>
+                  <TableHead>Timestamp</TableHead>
+                  <TableHead>Level</TableHead>
+                  <TableHead>Module</TableHead>
+                  <TableHead>Message</TableHead>
+                  <TableHead>User</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredLogs.map((log: DisplaySystemLog) => (
+                  <TableRow key={log.id}>
+                    <TableCell>{getLevelIcon(log.level)}</TableCell>
+                    <TableCell className="font-mono text-sm">{log.timestamp}</TableCell>
+                    <TableCell>{getLevelBadge(log.level)}</TableCell>
+                    <TableCell>{log.module}</TableCell>
+                    <TableCell className="max-w-[300px] truncate">{log.message}</TableCell>
+                    <TableCell>{log.userName || 'System'}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>

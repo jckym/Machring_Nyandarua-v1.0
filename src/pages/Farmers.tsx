@@ -461,7 +461,7 @@ export function Farmers() {
         open={isFormOpen}
         onOpenChange={setIsFormOpen}
         onSubmit={(data) => handleSubmitRequest(data, editingFarmer ? 'edit' : 'add', editingFarmer || undefined)}
-        editingFarmer={editingFarmer}
+        farmer={editingFarmer}
       />
 
       {/* Preview Request Dialog */}

@@ -1,12 +1,16 @@
+// src/lib/api/mechanisationService.ts
 import { apiClient, ApiResponse, buildQueryParams } from '../client';
 import { MechanisationJob, MechanisationStatus } from '@/types';
 
+/**
+ * DTOs for mechanisation operations
+ */
 export interface CreateMechanisationDto {
   farmerId: string;
   machineryId: string;
   serviceType: 'ploughing' | 'harrowing' | 'planting' | 'harvesting' | 'spraying';
   acreage: number;
-  scheduledDate: string;
+  scheduledDate: string; // ISO date string
   notes?: string;
   gpsLocation?: { lat: number; lng: number };
 }
@@ -20,7 +24,7 @@ export interface UpdateMechanisationDto {
 
 export interface CompletionReportDto {
   summary: string;
-  duration: string;
+  duration: string; // e.g., "4 hours"
   outcome: string;
 }
 
@@ -38,80 +42,123 @@ export interface MechanisationFilters {
   limit?: number;
 }
 
+/**
+ * Comprehensive mechanisation service for Machinery Ring Nyandarua
+ */
 export const mechanisationService = {
-  // Get all jobs with optional filters
+  /**
+   * Get all mechanisation jobs with optional filtering
+   */
   async getAll(filters?: MechanisationFilters): Promise<ApiResponse<MechanisationJob[]>> {
     const query = filters ? buildQueryParams(filters as Record<string, unknown>) : '';
-    const response = await apiClient.get<ApiResponse<MechanisationJob[]>>(`/mechanisations${query ? `?${query}` : ''}`);
+    const response = await apiClient.get<ApiResponse<MechanisationJob[]>>(
+      `/api/mechanisations${query ? `?${query}` : ''}`
+    );
     return response.data;
   },
 
-  // Get single job by ID
+  /**
+   * Get a single mechanisation job by ID
+   */
   async getById(id: string): Promise<ApiResponse<MechanisationJob>> {
-    const response = await apiClient.get<ApiResponse<MechanisationJob>>(`/mechanisations/${id}`);
+    const response = await apiClient.get<ApiResponse<MechanisationJob>>(`/api/mechanisations/${id}`);
     return response.data;
   },
 
-  // Create new booking (creates approval request)
+  /**
+   * Create a new mechanisation booking (automatically creates approval request)
+   */
   async create(data: CreateMechanisationDto): Promise<ApiResponse<MechanisationJob>> {
-    const response = await apiClient.post<ApiResponse<MechanisationJob>>('/mechanisations', data);
+    const response = await apiClient.post<ApiResponse<MechanisationJob>>('/api/mechanisations', data);
     return response.data;
   },
 
-  // Update job
+  /**
+   * Update job details (e.g., reschedule, change notes)
+   */
   async update(id: string, data: UpdateMechanisationDto): Promise<ApiResponse<MechanisationJob>> {
-    const response = await apiClient.put<ApiResponse<MechanisationJob>>(`/mechanisations/${id}`, data);
+    const response = await apiClient.patch<ApiResponse<MechanisationJob>>(`/api/mechanisations/${id}`, data);
     return response.data;
   },
 
-  // Approve booking (manager action)
+  /**
+   * Approve a pending booking (manager/admin only)
+   */
   async approve(id: string): Promise<ApiResponse<MechanisationJob>> {
-    const response = await apiClient.post<ApiResponse<MechanisationJob>>(`/mechanisations/${id}/approve`);
+    const response = await apiClient.patch<ApiResponse<MechanisationJob>>(`/api/mechanisations/${id}/approve`);
     return response.data;
   },
 
-  // Reject booking (manager action)
-  async reject(id: string, reason: string): Promise<ApiResponse<MechanisationJob>> {
-    const response = await apiClient.post<ApiResponse<MechanisationJob>>(`/mechanisations/${id}/reject`, { reason });
+  /**
+   * Reject a booking with reason
+   */
+  async reject(id: string, reason?: string): Promise<ApiResponse<MechanisationJob>> {
+    const response = await apiClient.patch<ApiResponse<MechanisationJob>>(
+      `/api/mechanisations/${id}/reject`,
+      reason ? { reason } : undefined
+    );
     return response.data;
   },
 
-  // Mark as in-progress
+  /**
+   * Start a job (mark as in-progress)
+   */
   async startJob(id: string): Promise<ApiResponse<MechanisationJob>> {
-    const response = await apiClient.post<ApiResponse<MechanisationJob>>(`/mechanisations/${id}/start`);
+    const response = await apiClient.patch<ApiResponse<MechanisationJob>>(`/api/mechanisations/${id}/start`);
     return response.data;
   },
 
-  // Complete job with report
+  /**
+   * Complete job with final report
+   */
   async complete(id: string, report: CompletionReportDto): Promise<ApiResponse<MechanisationJob>> {
-    const response = await apiClient.post<ApiResponse<MechanisationJob>>(`/mechanisations/${id}/complete`, report);
+    const response = await apiClient.patch<ApiResponse<MechanisationJob>>(
+      `/api/mechanisations/${id}/complete`,
+      report
+    );
     return response.data;
   },
 
-  // Cancel job
+  /**
+   * Cancel a job
+   */
   async cancel(id: string, reason?: string): Promise<ApiResponse<MechanisationJob>> {
-    const response = await apiClient.post<ApiResponse<MechanisationJob>>(`/mechanisations/${id}/cancel`, { reason });
+    const response = await apiClient.patch<ApiResponse<MechanisationJob>>(
+      `/api/mechanisations/${id}/cancel`,
+      reason ? { reason } : undefined
+    );
     return response.data;
   },
 
-  // Reschedule job
+  /**
+   * Reschedule a job to a new date
+   */
   async reschedule(id: string, newDate: string): Promise<ApiResponse<MechanisationJob>> {
-    const response = await apiClient.post<ApiResponse<MechanisationJob>>(`/mechanisations/${id}/reschedule`, { scheduledDate: newDate });
+    const response = await apiClient.patch<ApiResponse<MechanisationJob>>(
+      `/api/mechanisations/${id}/reschedule`,
+      { scheduledDate: newDate }
+    );
     return response.data;
   },
 
-  // Delete job
+  /**
+   * Permanently delete a job (admin only)
+   */
   async delete(id: string): Promise<ApiResponse<{ deleted: boolean }>> {
-    const response = await apiClient.delete<ApiResponse<{ deleted: boolean }>>(`/mechanisations/${id}`);
+    const response = await apiClient.delete<ApiResponse<{ deleted: boolean }>>(`/api/mechanisations/${id}`);
     return response.data;
   },
 
-  // Get jobs by TOT
+  /**
+   * Get all jobs booked by a specific TOT
+   */
   async getByTot(totId: string): Promise<ApiResponse<MechanisationJob[]>> {
     return this.getAll({ bookedBy: totId });
   },
 
-  // Get pending approvals
+  /**
+   * Get all pending approvals (for manager dashboard)
+   */
   async getPendingApprovals(localMrId?: string): Promise<ApiResponse<MechanisationJob[]>> {
     return this.getAll({ status: 'pending-approval', localMrId });
   },

@@ -12,6 +12,8 @@ export interface IUser extends Document {
   role: UserRole;
   localMrId?: mongoose.Types.ObjectId;
   status: 'active' | 'inactive';
+  resetPasswordToken?: string;
+  resetPasswordExpires?: Date;
   avatar?: string;
   lastActivityDate?: Date;
   createdAt: Date;
@@ -30,6 +32,8 @@ const userSchema = new Schema<IUser>(
     status: { type: String, enum: ['active', 'inactive'], default: 'active' },
     avatar: { type: String },
     lastActivityDate: { type: Date },
+    resetPasswordToken: { type: String },
+    resetPasswordExpires: { type: Date },
   },
   { timestamps: true }
 );

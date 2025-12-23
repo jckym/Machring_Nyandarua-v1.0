@@ -1,7 +1,7 @@
 import axios, { AxiosError, AxiosRequestConfig } from 'axios';
 
-// API base URL - set this in your .env file as VITE_API_URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// API base URL - defaults to Render backend
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://mrodashboard.onrender.com/api';
 
 // Create axios instance with defaults
 export const apiClient = axios.create({

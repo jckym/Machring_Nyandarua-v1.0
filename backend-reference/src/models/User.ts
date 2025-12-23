@@ -24,7 +24,7 @@ export interface IUser extends Document {
 const userSchema = new Schema<IUser>(
   {
     name: { type: String, required: true, trim: true },
-    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    email: { type: String, required: true, unique: true, lowercase: true, trim: true, index: false },
     phone: { type: String, required: true, trim: true },
     password: { type: String, required: true, minlength: 6, select: false },
     role: { type: String, enum: ['admin', 'manager', 'tot'], required: true },
@@ -53,6 +53,6 @@ userSchema.methods.comparePassword = async function (candidatePassword: string):
 
 // Index for faster queries
 userSchema.index({ role: 1, localMrId: 1 });
-userSchema.index({ email: 1 });
+// email already has unique: true which creates an index
 
 export const User = mongoose.model<IUser>('User', userSchema);

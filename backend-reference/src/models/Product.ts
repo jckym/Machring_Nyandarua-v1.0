@@ -24,7 +24,7 @@ export interface IProduct extends Document {
 const productSchema = new Schema<IProduct>(
   {
     name: { type: String, required: true, trim: true },
-    sku: { type: String, required: true, unique: true, uppercase: true, trim: true },
+    sku: { type: String, required: true, unique: true, uppercase: true, trim: true, index: false },
     inStock: { type: Number, required: true, min: 0, default: 0 },
     unitPrice: { type: Number, required: true, min: 0 },
     description: { type: String, trim: true },
@@ -42,8 +42,7 @@ const productSchema = new Schema<IProduct>(
   { timestamps: true }
 );
 
-// Indexes
-productSchema.index({ sku: 1 });
+// Indexes (sku already has unique: true which creates an index)
 productSchema.index({ category: 1 });
 productSchema.index({ inStock: 1 });
 

@@ -17,7 +17,7 @@ export interface ILocalMR extends Document {
 const localMRSchema = new Schema<ILocalMR>(
   {
     name: { type: String, required: true, trim: true },
-    code: { type: String, required: true, unique: true, uppercase: true, trim: true },
+    code: { type: String, required: true, unique: true, uppercase: true, trim: true, index: false },
     subcounty: { type: String, required: true, trim: true },
     ward: { type: String, required: true, trim: true },
     managerId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
@@ -28,8 +28,7 @@ const localMRSchema = new Schema<ILocalMR>(
   { timestamps: true }
 );
 
-// Indexes
-localMRSchema.index({ code: 1 });
+// Indexes (code already has unique: true which creates an index)
 localMRSchema.index({ managerId: 1 });
 localMRSchema.index({ subcounty: 1, ward: 1 });
 

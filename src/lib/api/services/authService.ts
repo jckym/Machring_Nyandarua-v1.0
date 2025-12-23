@@ -29,7 +29,28 @@ export interface ChangePasswordDto {
 export const authService = {
   // Login
   async login(data: LoginDto): Promise<ApiResponse<AuthResponse>> {
-    const response = await apiClient.post<ApiResponse<AuthResponse>>('/auth/login', data);
+    const doRequest = () => apiClient.post<ApiResponse<AuthResponse>>('/auth/login', data);
+
+    let response;
+    try {
+      response = await doRequest();
+    } catch (err: any) {
+      const status = err?.response?.status;
+      const code = err?.code;
+      const retriable =
+        code === 'ERR_NETWORK' ||
+        code === 'ECONNABORTED' ||
+        status === 502 ||
+        status === 503 ||
+        status === 504;
+
+      if (!retriable) throw err;
+
+      // Wait a bit for cold-start then retry once
+      await new Promise((r) => setTimeout(r, 6000));
+      response = await doRequest();
+    }
+
     if (response.data.success && response.data.data.token) {
       localStorage.setItem('auth_token', response.data.data.token);
       if (response.data.data.refreshToken) {

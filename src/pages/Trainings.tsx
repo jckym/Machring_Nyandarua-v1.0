@@ -27,10 +27,11 @@ export function Trainings() {
   const { data: trainings = [], isLoading } = useTrainings();
   const createTraining = useCreateTraining();
 
-  const filteredTrainings = trainings.filter(training =>
-    training.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    training.type.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredTrainings = trainings.filter(training => {
+    const trainingType = training.type ?? '';
+    return training.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      trainingType.toLowerCase().includes(searchQuery.toLowerCase());
+  });
 
   const totalAttendees = trainings.reduce((acc, t) => acc + t.attendees.length, 0);
   const totalHours = trainings.reduce((acc, t) => acc + t.duration, 0);
@@ -203,7 +204,7 @@ export function Trainings() {
                     <div className="flex items-start sm:items-center justify-between gap-2 flex-col sm:flex-row">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-heading font-semibold text-sm sm:text-base">{training.title}</h3>
-                        <Badge variant={getTypeColor(training.type) as any} className="text-xs">{training.type}</Badge>
+                        <Badge variant={getTypeColor(training.type ?? '') as any} className="text-xs">{training.type ?? ''}</Badge>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <Button variant="outline" size="sm" className="text-xs h-8">Details</Button>

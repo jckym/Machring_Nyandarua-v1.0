@@ -89,26 +89,55 @@ app.use((req, res) => {
   res.status(404).json({ success: false, message: 'Route not found' });
 });
 
-// Seed admin user if none exists
+// Seed admin user (bootstrap)
 const seedAdminUser = async () => {
+  const adminEmail = (process.env.BOOTSTRAP_ADMIN_EMAIL || 'jckym001@gmail.com').toLowerCase();
+  const adminPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD || 'Admin.mr01';
+  const shouldResetPassword = process.env.BOOTSTRAP_ADMIN_RESET_PASSWORD === 'true';
+
   try {
-    const existingAdmin = await User.findOne({ role: 'admin' });
-    if (!existingAdmin) {
-      const admin = new User({
+    // Always ensure THIS admin exists (even if other admins already exist)
+    let admin = await User.findOne({ email: adminEmail }).select('+password');
+
+    if (!admin) {
+      admin = new User({
         name: 'System Admin',
-        email: 'jckym001@gmail.com',
+        email: adminEmail,
         phone: '0711417507',
-        password: 'Admin.mr01',
+        password: adminPassword,
         role: 'admin',
         status: 'active',
       });
       await admin.save();
-      console.log('✅ Admin user created successfully');
+      console.log(`✅ Bootstrap admin created: ${adminEmail}`);
+      return;
+    }
+
+    let changed = false;
+
+    if (admin.role !== 'admin') {
+      admin.role = 'admin';
+      changed = true;
+    }
+
+    if (admin.status !== 'active') {
+      admin.status = 'active';
+      changed = true;
+    }
+
+    if (shouldResetPassword) {
+      admin.password = adminPassword;
+      changed = true;
+    }
+
+    if (changed) {
+      await admin.save();
+      console.log(`✅ Bootstrap admin updated: ${adminEmail}${shouldResetPassword ? ' (password reset)' : ''}`);
     } else {
-      console.log('ℹ️ Admin user already exists');
+      console.log(`ℹ️ Bootstrap admin already ok: ${adminEmail}`);
     }
   } catch (error) {
-    console.error('❌ Failed to seed admin user:', error);
+    console.error('❌ Failed to seed bootstrap admin user:', error);
   }
 };
 

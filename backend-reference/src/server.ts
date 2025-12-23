@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import { connectDB } from './config/database';
+import { User } from './models/User';
 
 // Route imports
 import authRoutes from './routes/auth';
@@ -88,10 +89,34 @@ app.use((req, res) => {
   res.status(404).json({ success: false, message: 'Route not found' });
 });
 
+// Seed admin user if none exists
+const seedAdminUser = async () => {
+  try {
+    const existingAdmin = await User.findOne({ role: 'admin' });
+    if (!existingAdmin) {
+      const admin = new User({
+        name: 'System Admin',
+        email: 'jckym001@gmail.com',
+        phone: '0711417507',
+        password: 'Admin.mr01',
+        role: 'admin',
+        status: 'active',
+      });
+      await admin.save();
+      console.log('✅ Admin user created successfully');
+    } else {
+      console.log('ℹ️ Admin user already exists');
+    }
+  } catch (error) {
+    console.error('❌ Failed to seed admin user:', error);
+  }
+};
+
 // Start server
 const startServer = async () => {
   try {
     await connectDB();
+    await seedAdminUser();
     app.listen(Number(PORT), '0.0.0.0', () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);

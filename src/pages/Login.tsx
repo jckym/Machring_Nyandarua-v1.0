@@ -49,10 +49,17 @@ export function Login() {
         title: 'Welcome back',
         description: 'Login successful',
       });
-    } catch {
+    } catch (err: any) {
+      const description =
+        err?.message ||
+        err?.response?.data?.message ||
+        (err?.code === 'ERR_NETWORK'
+          ? 'Cannot reach the server. If you are using Render free tier, wait ~30–60s and try again.'
+          : 'Login failed. Please try again.');
+
       toast({
         title: 'Login Failed',
-        description: 'Invalid email or password',
+        description,
         variant: 'destructive',
       });
     } finally {

@@ -157,11 +157,11 @@ export function Login() {
           </form>
 
           {/* Footer */}
-          <p className="text-center text-xs text-muted-foreground mt-6">
-            Need access? Contact{' '}
-            <span className="font-medium">
-              support@machineryring.ke
-            </span>
+          <p className="text-center text-sm text-muted-foreground mt-6">
+            Don't have an account?{' '}
+            <Link to="/auth" className="text-primary hover:underline font-medium">
+              Sign up
+            </Link>
           </p>
         </CardContent>
       </Card>

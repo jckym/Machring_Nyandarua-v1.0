@@ -116,11 +116,13 @@ export const machineryService = {
 
   /**
    * Get machinery in maintenance or booked (for admin monitoring)
+   * Note: This fetches all and filters client-side since status only accepts single values
    */
   async getUnavailable(localMrId?: string): Promise<ApiResponse<Machinery[]>> {
-    return this.getAll({
-      status: { $in: ['booked', 'maintenance'] },
-      localMrId,
-    });
+    const response = await this.getAll({ localMrId });
+    if (response.data) {
+      response.data = response.data.filter(m => m.status === 'booked' || m.status === 'maintenance');
+    }
+    return response;
   },
 };

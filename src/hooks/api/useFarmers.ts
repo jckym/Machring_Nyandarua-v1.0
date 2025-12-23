@@ -181,7 +181,7 @@ export function useRejectFarmer() {
 
   return useMutation({
     mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
-      farmerService.reject(id, reason),
+      farmerService.reject(id, reason ?? ''),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: farmerKeys.all });
       queryClient.invalidateQueries({ queryKey: farmerKeys.pending() });

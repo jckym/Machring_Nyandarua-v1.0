@@ -40,8 +40,10 @@ export function Sales() {
   const createSale = useCreateSale();
 
   const filteredSales = sales.filter(sale => {
-    const matchesSearch = sale.farmerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      sale.productName.toLowerCase().includes(searchQuery.toLowerCase());
+    const farmerName = sale.farmerName ?? '';
+    const productName = sale.productName ?? '';
+    const matchesSearch = farmerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      productName.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesProduct = productFilter === 'all' || sale.productId === productFilter;
     const matchesStatus = statusFilter === 'all' || sale.status === statusFilter;
     return matchesSearch && matchesProduct && matchesStatus;
@@ -247,9 +249,9 @@ export function Sales() {
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary text-xs font-semibold">
-                          {sale.farmerName.split(' ').map(n => n[0]).join('')}
+                          {(sale.farmerName ?? '').split(' ').map(n => n[0]).join('')}
                         </div>
-                        <span className="font-medium text-sm">{sale.farmerName}</span>
+                        <span className="font-medium text-sm">{sale.farmerName ?? ''}</span>
                       </div>
                     </td>
                     <td className="py-3 px-4 text-sm">{sale.productName}</td>

@@ -88,7 +88,8 @@ export function ApprovalRequests() {
   });
 
   const filteredRequests = requests.filter(request => {
-    const matchesSearch = request.farmerData.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const farmerName = request.farmerData?.name ?? '';
+    const matchesSearch = farmerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       request.requestedByName.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
     const matchesType = typeFilter === 'all' || request.type === typeFilter;
@@ -282,7 +283,7 @@ export function ApprovalRequests() {
                     <div className="grid grid-cols-2 gap-3 text-sm">
                       <div className="flex items-center gap-2">
                         <MapPin className="w-4 h-4 text-muted-foreground" />
-                        <span>{request.farmerData.location.village}, {request.farmerData.location.subcounty}</span>
+                        <span>{request.farmerData?.location?.village ?? ''}, {request.farmerData?.location?.subcounty ?? ''}</span>
                       </div>
                       <div>
                         <span className="text-muted-foreground">Value Chain: </span>

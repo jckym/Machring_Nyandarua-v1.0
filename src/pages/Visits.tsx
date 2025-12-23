@@ -27,10 +27,11 @@ export function Visits() {
   const { data: visits = [], isLoading } = useVisits();
   const createVisit = useCreateVisit();
 
-  const filteredVisits = visits.filter(visit =>
-    visit.farmerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    visit.purpose.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredVisits = visits.filter(visit => {
+    const farmerName = visit.farmerName ?? '';
+    return farmerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      visit.purpose.toLowerCase().includes(searchQuery.toLowerCase());
+  });
 
   const handleAddVisit = (data: Partial<Visit>) => {
     createVisit.mutate(data as any);

@@ -46,7 +46,8 @@ export function Mechanisation() {
   const createMech = useCreateMechanisation();
 
   const filteredJobs = jobs.filter(job => {
-    const matchesSearch = job.farmerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const farmerName = job.farmerName ?? '';
+    const matchesSearch = farmerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.serviceType.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || job.status === statusFilter;
     return matchesSearch && matchesStatus;

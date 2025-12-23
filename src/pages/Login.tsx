@@ -74,7 +74,7 @@ export function Login() {
           </div>
 
           <CardTitle className="text-2xl">
-            Machinery Ring Nyandarua
+            Machinery Ring Nyandarua.
           </CardTitle>
           <CardDescription>
             Operations Management System

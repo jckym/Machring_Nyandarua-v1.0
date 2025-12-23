@@ -67,14 +67,14 @@ export function Login() {
           {/* Global Logo Placeholder */}
           <div className="flex justify-center">
             <img
-              src="/logo.png"   // 🔹 global PNG logo (public/logo.png)
+              src="/mrlogo.png"   // 🔹 global PNG logo (public/logo.png)
               alt="Company Logo"
               className="h-16 w-auto"
             />
           </div>
 
           <CardTitle className="text-2xl">
-            Machinery Ring Kenya
+            Machinery Ring Nyandarua
           </CardTitle>
           <CardDescription>
             Operations Management System
@@ -89,7 +89,7 @@ export function Login() {
               <Input
                 id="email"
                 type="email"
-                placeholder="you@company.co.ke"
+                placeholder="Enter Your Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}

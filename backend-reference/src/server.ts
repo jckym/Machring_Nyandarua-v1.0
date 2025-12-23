@@ -26,10 +26,27 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Allowed origins for CORS
+const allowedOrigins: (string | RegExp)[] = [
+  process.env.FRONTEND_URL,
+  'https://mrfinaldashboard.vercel.app',
+  /\.lovable\.app$/,
+  'http://localhost:5173',
+  'http://localhost:8080'
+].filter(Boolean) as (string | RegExp)[];
+
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.some(allowed =>
+      allowed instanceof RegExp ? allowed.test(origin) : allowed === origin
+    )) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
 }));
 app.use(morgan('combined'));

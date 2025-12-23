@@ -17,7 +17,7 @@ export interface ILocalMR extends Document {
 const localMRSchema = new Schema<ILocalMR>(
   {
     name: { type: String, required: true, trim: true },
-    code: { type: String, required: true, unique: true, uppercase: true, trim: true, index: false },
+    code: { type: String, required: true, unique: true, uppercase: true, trim: true },
     subcounty: { type: String, required: true, trim: true },
     ward: { type: String, required: true, trim: true },
     managerId: { type: Schema.Types.ObjectId, ref: 'User', required: true },

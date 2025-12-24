@@ -30,8 +30,11 @@ const PORT = process.env.PORT || 5000;
 // Allowed origins for CORS
 const allowedOrigins: (string | RegExp)[] = [
   process.env.FRONTEND_URL,
+  'https://mr-final-dashboard.vercel.app',
   'https://mrfinaldashboard.vercel.app',
   /\.lovable\.app$/,
+  /\.lovableproject\.com$/,
+  'http://localhost:3000',
   'http://localhost:5173',
   'http://localhost:8080'
 ].filter(Boolean) as (string | RegExp)[];
@@ -45,6 +48,7 @@ app.use(cors({
     )) {
       callback(null, true);
     } else {
+      console.log('CORS blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },

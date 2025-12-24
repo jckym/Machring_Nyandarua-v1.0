@@ -19,7 +19,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Set VITE_AUTH_DISABLED=true in .env to bypass authentication
 // WARNING: This is for development/testing only!
 // ============================================================
-const IS_AUTH_DISABLED = import.meta.env.VITE_AUTH_DISABLED === 'true';
+const IS_AUTH_DISABLED = import.meta.env.MODE === 'development' || import.meta.env.VITE_AUTH_DISABLED === 'true';
 
 const MOCK_ADMIN_USER: User = {
   id: 'dev-mock-user-001',
@@ -133,8 +133,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+  if (context) return context;
+
+  // ============================================================
+  // DEVELOPMENT MODE SAFETY NET
+  // If auth is intentionally disabled, we allow the app to keep
+  // running even if a component is rendered outside the provider.
+  // This MUST NOT be relied on in production.
+  // ============================================================
+  if (IS_AUTH_DISABLED) {
+    console.warn(
+      '⚠️ DEV MODE: useAuth called without AuthProvider; returning mock auth context'
+    );
+
+    return {
+      user: MOCK_ADMIN_USER,
+      isLoading: false,
+      isAuthenticated: true,
+      login: async () => {},
+      logout: () => {},
+      isDevMode: true,
+    };
   }
-  return context;
+
+  throw new Error('useAuth must be used within an AuthProvider');
 }

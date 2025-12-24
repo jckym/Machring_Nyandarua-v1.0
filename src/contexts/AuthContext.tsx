@@ -2,108 +2,42 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '@/types';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:10000';
+// Fixed demo user — always "logged in" as admin (no auth required)
+const MOCK_USER: User = {
+  id: 'mock-admin-001',
+  name: 'Demo Admin',
+  email: 'admin@demo.com',
+  phone: '0700000001',
+  role: 'admin',
+  status: 'active',
+  createdAt: new Date(),
+};
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  // login and logout are removed — no auth flow
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [user] = useState<User>(MOCK_USER); // Always this user
+  const [isLoading, setIsLoading] = useState(false); // No loading needed
 
-  // Restore session on mount
+  // Simulate initial load (instant)
   useEffect(() => {
-    const loadUser = async () => {
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setUser(data.user || data);
-        } else {
-          localStorage.removeItem('access_token');
-        }
-      } catch (error) {
-        console.error('Session restore failed:', error);
-        localStorage.removeItem('access_token');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadUser();
+    setIsLoading(false);
   }, []);
-
-  const login = async (email: string, password: string) => {
-    setIsLoading(true);
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email: email.toLowerCase(), password }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Login failed');
-      }
-
-      const data = await response.json();
-
-      if (data.token) {
-        localStorage.setItem('access_token', data.token);
-      }
-
-      setUser(data.user);
-    } catch (error: any) {
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const logout = async () => {
-    try {
-      await fetch(`${API_BASE_URL}/api/auth/logout`, {
-        method: 'POST',
-      });
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      localStorage.removeItem('access_token');
-      setUser(null);
-    }
-  };
 
   return (
     <AuthContext.Provider
       value={{
         user,
         isLoading,
-        isAuthenticated: !!user,
-        login,
-        logout,
+        isAuthenticated: true, // Always authenticated
+        // No login/logout functions
       }}
     >
       {children}

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, Navigate } from 'react-router-dom';
 import {
   Card,
   CardHeader,
@@ -18,25 +18,23 @@ export function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { login, isAuthenticated, isLoading: authLoading } = useAuth();
-  const navigate = useNavigate();
+  const { login, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (!authLoading && isAuthenticated) {
-      navigate('/dashboard', { replace: true });
-    }
-  }, [isAuthenticated, authLoading, navigate]);
-
-  // Show nothing while auth is initializing to prevent flicker
-  if (authLoading) {
+  // Show loading while auth is initializing
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
+  }
+
+  // Redirect authenticated users - no useEffect needed
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -51,28 +49,22 @@ export function Login() {
       return;
     }
 
-    setIsLoading(true);
+    setIsSubmitting(true);
     try {
       await login(email, password);
       toast({
         title: 'Welcome back',
         description: 'Login successful',
       });
+      // Navigation handled by the Navigate component above on re-render
     } catch (err: any) {
-      const description =
-        err?.message ||
-        err?.response?.data?.message ||
-        (err?.code === 'ERR_NETWORK'
-          ? 'Cannot reach the server. If you are using Render free tier, wait ~30–60s and try again.'
-          : 'Login failed. Please try again.');
-
       toast({
         title: 'Login Failed',
-        description,
+        description: err?.message || 'Login failed. Please try again.',
         variant: 'destructive',
       });
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -108,22 +100,22 @@ export function Login() {
                 placeholder="Enter Your Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading}
-              />
-            </div>
+              disabled={isSubmitting}
+            />
+          </div>
 
-            {/* Password */}
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={isLoading}
-                />
+          {/* Password */}
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isSubmitting}
+              />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
@@ -148,21 +140,21 @@ export function Login() {
               </Link>
             </div>
 
-            {/* Submit */}
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing in...
-                </>
-              ) : (
-                'Sign In'
-              )}
-            </Button>
+          {/* Submit */}
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Signing in...
+              </>
+            ) : (
+              'Sign In'
+            )}
+          </Button>
           </form>
 
           {/* Footer */}

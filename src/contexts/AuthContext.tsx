@@ -9,17 +9,45 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  isDevMode: boolean; // Expose dev mode status
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// ============================================================
+// DEVELOPMENT MODE - TEMPORARY MOCK USER
+// Set VITE_AUTH_DISABLED=true in .env to bypass authentication
+// WARNING: This is for development/testing only!
+// ============================================================
+const IS_AUTH_DISABLED = import.meta.env.VITE_AUTH_DISABLED === 'true';
+
+const MOCK_ADMIN_USER: User = {
+  id: 'dev-mock-user-001',
+  name: 'Dev Admin',
+  email: 'dev@example.com',
+  phone: '+254700000000',
+  role: 'admin',
+  status: 'active',
+  localMrId: 'dev-local-mr',
+  createdAt: new Date(),
+  lastActivityDate: new Date(),
+};
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Restore session on app load
+  // Restore session on app load (or inject mock user in dev mode)
   useEffect(() => {
     const loadSession = async () => {
+      // DEV MODE: Skip authentication entirely and use mock user
+      if (IS_AUTH_DISABLED) {
+        console.warn('⚠️ AUTH DISABLED: Running in development mode with mock admin user');
+        setUser(MOCK_ADMIN_USER);
+        setIsLoading(false);
+        return;
+      }
+
       try {
         const token = authService.getToken();
         if (token) {
@@ -45,6 +73,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
+    // DEV MODE: Instant login with mock user
+    if (IS_AUTH_DISABLED) {
+      console.warn('⚠️ AUTH DISABLED: Mock login successful');
+      setUser(MOCK_ADMIN_USER);
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -64,6 +99,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
+    // DEV MODE: Just clear mock user
+    if (IS_AUTH_DISABLED) {
+      console.warn('⚠️ AUTH DISABLED: Mock logout');
+      setUser(null);
+      return;
+    }
+
     try {
       await authService.logout();
     } catch (error) {
@@ -81,6 +123,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: !!user,
         login,
         logout,
+        isDevMode: IS_AUTH_DISABLED,
       }}
     >
       {children}

@@ -8,7 +8,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://mrodashboard.onren
 // Set VITE_AUTH_DISABLED=true in .env to bypass authentication
 // WARNING: This is for development/testing only!
 // ============================================================
-const IS_AUTH_DISABLED = import.meta.env.VITE_AUTH_DISABLED === 'true';
+const IS_AUTH_DISABLED = import.meta.env.MODE === 'development' || import.meta.env.VITE_AUTH_DISABLED === 'true';
 
 // Create axios instance with defaults
 export const apiClient = axios.create({

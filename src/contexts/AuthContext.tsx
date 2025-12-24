@@ -3,7 +3,9 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '@/types';
 import { authService } from '@/lib/api/services/authService';
 
-// Demo users for testing different dashboards
+const IS_DEV = import.meta.env.DEV;
+
+// Demo users (DEV ONLY)
 const DEMO_USERS: Record<string, User> = {
   'admin@demo.com': {
     id: 'demo-admin-001',
@@ -54,32 +56,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Restore session on app load
   useEffect(() => {
     const loadSession = async () => {
       try {
-        // Check for demo user first
-        const demoUser = localStorage.getItem('demo_user');
-        if (demoUser) {
-          setUser(JSON.parse(demoUser));
-          setIsLoading(false);
-          return;
+        // DEV demo session
+        if (IS_DEV) {
+          const demoUser = localStorage.getItem('demo_user');
+          if (demoUser) {
+            setUser(JSON.parse(demoUser));
+            return;
+          }
         }
 
         const token = authService.getToken();
-        if (token) {
-          const response = await authService.getCurrentUser();
-          if (response.success && response.data) {
-            setUser(response.data);
-          } else {
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('refresh_token');
-          }
+        if (!token) return;
+
+        const response = await authService.getCurrentUser();
+        if (response.success && response.data) {
+          setUser(response.data);
+        } else {
+          authService.clearTokens?.();
         }
-      } catch (error) {
-        console.error('Failed to restore auth session:', error);
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('refresh_token');
+      } catch (err) {
+        console.error('Auth restore failed:', err);
+        authService.clearTokens?.();
       } finally {
         setIsLoading(false);
       }
@@ -92,25 +92,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
 
     try {
-      // Check for demo login
-      const demoUser = DEMO_USERS[email.toLowerCase()];
-      if (demoUser && password === DEMO_PASSWORD) {
-        localStorage.setItem('demo_user', JSON.stringify(demoUser));
-        setUser(demoUser);
-        return;
+      // DEV demo login
+      if (IS_DEV) {
+        const demoUser = DEMO_USERS[email.toLowerCase()];
+        if (demoUser && password === DEMO_PASSWORD) {
+          localStorage.setItem('demo_user', JSON.stringify(demoUser));
+          setUser(demoUser);
+          return;
+        }
       }
 
-      // Regular API login
       const response = await authService.login({ email, password });
-      
-      if (response.success && response.data.user) {
+      if (response.success && response.data?.user) {
         setUser(response.data.user);
       } else {
         throw new Error(response.message || 'Login failed');
       }
-    } catch (error: any) {
-      const message = error.response?.data?.message || error.message || 'Login failed';
-      throw new Error(message);
     } finally {
       setIsLoading(false);
     }
@@ -118,14 +115,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      // Clear demo user if exists
-      if (localStorage.getItem('demo_user')) {
-        localStorage.removeItem('demo_user');
-      } else {
-        await authService.logout();
-      }
-    } catch (error) {
-      console.error('Logout error:', error);
+      if (IS_DEV) localStorage.removeItem('demo_user');
+      await authService.logout?.();
+    } catch (err) {
+      console.error('Logout error:', err);
     } finally {
       setUser(null);
     }
@@ -146,10 +139,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function useAuth(): AuthContextType {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  return ctx;
 }

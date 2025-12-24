@@ -1,3 +1,4 @@
+// src/server.ts
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -25,46 +26,53 @@ import logRoutes from './routes/logs';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 10000;
 
-// Allowed origins for CORS
+// === CORS: Production-only origins ===
 const allowedOrigins: (string | RegExp)[] = [
-  process.env.FRONTEND_URL,
+  process.env.FRONTEND_URL,                          // e.g. https://yourapp.com
   'https://mr-final-dashboard.vercel.app',
-  /^https:\/\/mr-final-dashboard.*\.vercel\.app$/,
-  'https://mrfinaldashboard.vercel.app',
-  /\.lovable\.app$/,
-  /\.lovableproject\.com$/,
-  'http://localhost:3000',
-  'http://localhost:5173',
-  'http://localhost:8080'
+  /^https:\/\/mr-final-dashboard-.*\.vercel\.app$/,  // Vercel preview URLs (safe to keep for deployments)
 ].filter(Boolean) as (string | RegExp)[];
 
-// Middleware
-app.use(helmet());
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.some(allowed =>
-      allowed instanceof RegExp ? allowed.test(origin) : allowed === origin
-    )) {
-      callback(null, true);
-    } else {
-      console.log('CORS blocked origin:', origin);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow server-to-server requests or tools with no origin (e.g. health checks)
+      if (!origin) return callback(null, true);
+
+      const isAllowed = allowedOrigins.some((allowed) =>
+        allowed instanceof RegExp ? allowed.test(origin) : allowed === origin
+      );
+
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        console.log('🚫 CORS blocked origin:', origin);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true,
+  })
+);
+
+// === Security & Performance Middleware ===
+app.use(helmet()); // Full security headers in production
 app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Health check
+// === Health Check ===
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.status(200).json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    environment: 'production',
+    uptime: process.uptime(),
+  });
 });
 
-// API Routes
+// === API Routes ===
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/farmers', farmerRoutes);
@@ -80,28 +88,31 @@ app.use('/api/approvals', approvalRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/logs', logRoutes);
 
-// Error handling middleware
-app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error('Error:', err.message);
-  res.status(500).json({
+// === 404 Handler ===
+app.use('*', (req, res) => {
+  res.status(404).json({
     success: false,
-    message: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message,
+    message: 'Route not found',
   });
 });
 
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({ success: false, message: 'Route not found' });
+// === Global Error Handler ===
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('💥 Unhandled Error:', err);
+
+  res.status(err.status || 500).json({
+    success: false,
+    message: 'Internal server error', // No details leaked in production
+  });
 });
 
-// Seed admin user (bootstrap)
+// === Bootstrap Admin User ===
 const seedAdminUser = async () => {
   const adminEmail = (process.env.BOOTSTRAP_ADMIN_EMAIL || 'jckym001@gmail.com').toLowerCase();
   const adminPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD || 'Admin.mr01';
   const shouldResetPassword = process.env.BOOTSTRAP_ADMIN_RESET_PASSWORD === 'true';
 
   try {
-    // Always ensure THIS admin exists (even if other admins already exist)
     let admin = await User.findOne({ email: adminEmail }).select('+password');
 
     if (!admin) {
@@ -119,21 +130,9 @@ const seedAdminUser = async () => {
     }
 
     let changed = false;
-
-    if (admin.role !== 'admin') {
-      admin.role = 'admin';
-      changed = true;
-    }
-
-    if (admin.status !== 'active') {
-      admin.status = 'active';
-      changed = true;
-    }
-
-    if (shouldResetPassword) {
-      admin.password = adminPassword;
-      changed = true;
-    }
+    if (admin.role !== 'admin') { admin.role = 'admin'; changed = true; }
+    if (admin.status !== 'active') { admin.status = 'active'; changed = true; }
+    if (shouldResetPassword) { admin.password = adminPassword; changed = true; }
 
     if (changed) {
       await admin.save();
@@ -142,21 +141,22 @@ const seedAdminUser = async () => {
       console.log(`ℹ️ Bootstrap admin already ok: ${adminEmail}`);
     }
   } catch (error) {
-    console.error('❌ Failed to seed bootstrap admin user:', error);
+    console.error('❌ Failed to bootstrap admin user:', error);
   }
 };
 
-// Start server
+// === Start Server ===
 const startServer = async () => {
   try {
     await connectDB();
     await seedAdminUser();
+
     app.listen(Number(PORT), '0.0.0.0', () => {
       console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`📊 Environment: production`);
     });
   } catch (error) {
-    console.error('Failed to start server:', error);
+    console.error('❌ Failed to start server:', error);
     process.exit(1);
   }
 };

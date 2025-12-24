@@ -31,6 +31,7 @@ const PORT = process.env.PORT || 5000;
 const allowedOrigins: (string | RegExp)[] = [
   process.env.FRONTEND_URL,
   'https://mr-final-dashboard.vercel.app',
+  /^https:\/\/mr-final-dashboard.*\.vercel\.app$/,
   'https://mrfinaldashboard.vercel.app',
   /\.lovable\.app$/,
   /\.lovableproject\.com$/,

@@ -29,6 +29,15 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
+    const code = (error as any)?.code;
+    if (code === 'ERR_NETWORK') {
+      // Safe diagnostics (no request body logged)
+      console.warn('[API] Network error', {
+        baseURL: error.config?.baseURL,
+        url: error.config?.url,
+      });
+    }
+
     if (error.response?.status === 401) {
       // Handle unauthorized - redirect to login
       localStorage.removeItem('auth_token');

@@ -6,24 +6,11 @@ import { Header } from './Header';
 import { FloatingActions } from './FloatingActions';
 import { OfflineBanner } from './OfflineBanner';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, Leaf, AlertTriangle } from 'lucide-react';
+import { Loader2, Leaf } from 'lucide-react';
 import { toast } from 'sonner';
 
-// ============================================================
-// DEV MODE BANNER COMPONENT
-// ============================================================
-function DevModeBanner() {
-  return (
-    <div className="fixed top-0 left-0 right-0 z-[100] bg-yellow-500 text-yellow-950 text-center py-1 px-4 text-sm font-semibold flex items-center justify-center gap-2">
-      <AlertTriangle className="w-4 h-4" />
-      <span>⚠️ DEV MODE: Authentication is disabled. All access granted as mock admin.</span>
-      <AlertTriangle className="w-4 h-4" />
-    </div>
-  );
-}
-
 export function DashboardLayout() {
-  const { user, isLoading, isAuthenticated, isDevMode } = useAuth();
+  const { user, isLoading, isAuthenticated } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -82,13 +69,10 @@ export function DashboardLayout() {
 
   return (
     <div className="flex min-h-screen w-full bg-background">
-      {/* DEV MODE: Show warning banner when auth is disabled */}
-      {isDevMode && <DevModeBanner />}
-      
       <OfflineBanner />
       <Sidebar />
 
-      <div className={`flex-1 flex flex-col min-w-0 h-screen overflow-hidden lg:ml-0 ${isDevMode ? 'pt-8' : ''}`}>
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden lg:ml-0">
         <Header />
 
         <main

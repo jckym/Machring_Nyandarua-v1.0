@@ -20,22 +20,8 @@ import { useAuth } from '@/contexts/AuthContext';
 
 import { AlertCircle } from 'lucide-react';
 
-// ============================================================
-// DEV MODE MOCK DATA
-// When API fails in dev mode, use this placeholder data
-// ============================================================
-const MOCK_TOT_STATS: TotStats = {
-  totalFarmers: 24,
-  totalSales: 15,
-  totalRevenue: 385000,
-  mechanisationJobs: 8,
-  visitsCompleted: 42,
-  trainingsHeld: 4,
-  totalCommission: 38500,
-};
-
 export function TotDashboard() {
-  const { user, isDevMode } = useAuth();
+  const { user } = useAuth();
   const totId = user?.id;
 
   const { 
@@ -44,16 +30,15 @@ export function TotDashboard() {
     error 
   } = useTotDashboard(totId!);
 
-  // In dev mode, use mock data if API fails
-  const useMockData = isDevMode && error;
-  const stats: TotStats = useMockData ? MOCK_TOT_STATS : (statsResponse?.data || MOCK_TOT_STATS);
+  // Unwrap stats from ApiResponse
+  const stats: TotStats | undefined = statsResponse?.data;
 
   const formatCurrency = (value: number) => {
     if (!value) return 'KES 0K';
     return `KES ${(value / 1000).toFixed(0)}K`;
   };
 
-  if (isLoading && !useMockData) {
+  if (isLoading) {
     return (
       <div className="space-y-6">
         <div className="animate-pulse">
@@ -65,6 +50,16 @@ export function TotDashboard() {
             <div key={i} className="h-32 bg-muted rounded-2xl animate-pulse" />
           ))}
         </div>
+      </div>
+    );
+  }
+
+  if (error || !stats) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+        <AlertCircle className="w-16 h-16 mb-4 text-orange-500 opacity-80" />
+        <p className="text-lg">Failed to load your dashboard</p>
+        <p className="text-sm mt-2">Please check your connection and try again</p>
       </div>
     );
   }

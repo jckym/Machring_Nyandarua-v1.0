@@ -42,10 +42,6 @@ import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
 
-// DEV MODE: when auth is disabled, hide auth screens entirely
-const IS_AUTH_DISABLED =
-  import.meta.env.MODE === 'development' || import.meta.env.VITE_AUTH_DISABLED === 'true';
-
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
@@ -55,14 +51,8 @@ const App = () => (
           <BrowserRouter>
             <NotificationProvider>
               <Routes>
-                <Route
-                  path="/login"
-                  element={IS_AUTH_DISABLED ? <Navigate to="/dashboard" replace /> : <Login />}
-                />
-                <Route
-                  path="/auth"
-                  element={IS_AUTH_DISABLED ? <Navigate to="/dashboard" replace /> : <Auth />}
-                />
+                <Route path="/login" element={<Login />} />
+                <Route path="/auth" element={<Auth />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />

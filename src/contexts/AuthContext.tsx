@@ -8,7 +8,7 @@ const MOCK_USER: User = {
   name: 'Demo Admin',
   email: 'admin@demo.com',
   phone: '0700000001',
-  role: 'admin',
+  role: 'manager',
   status: 'active',
   createdAt: new Date(),
 };

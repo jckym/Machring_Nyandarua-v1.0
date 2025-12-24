@@ -1,11 +1,8 @@
 // src/contexts/AuthContext.tsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '@/types';
-import { authService } from '@/lib/api/services/authService';
 
-const IS_DEV = import.meta.env.DEV;
-
-// Demo users (DEV ONLY)
+// Offline demo users - no backend connection
 const DEMO_USERS: Record<string, User> = {
   'admin@demo.com': {
     id: 'demo-admin-001',
@@ -56,72 +53,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Restore session from localStorage
   useEffect(() => {
-    const loadSession = async () => {
-      try {
-        // DEV demo session
-        if (IS_DEV) {
-          const demoUser = localStorage.getItem('demo_user');
-          if (demoUser) {
-            setUser(JSON.parse(demoUser));
-            return;
-          }
-        }
-
-        const token = authService.getToken();
-        if (!token) return;
-
-        const response = await authService.getCurrentUser();
-        if (response.success && response.data) {
-          setUser(response.data);
-        } else {
-          authService.clearTokens?.();
-        }
-      } catch (err) {
-        console.error('Auth restore failed:', err);
-        authService.clearTokens?.();
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadSession();
+    const demoUser = localStorage.getItem('demo_user');
+    if (demoUser) {
+      setUser(JSON.parse(demoUser));
+    }
+    setIsLoading(false);
   }, []);
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
 
     try {
-      // DEV demo login
-      if (IS_DEV) {
-        const demoUser = DEMO_USERS[email.toLowerCase()];
-        if (demoUser && password === DEMO_PASSWORD) {
-          localStorage.setItem('demo_user', JSON.stringify(demoUser));
-          setUser(demoUser);
-          return;
-        }
+      const demoUser = DEMO_USERS[email.toLowerCase()];
+      if (demoUser && password === DEMO_PASSWORD) {
+        localStorage.setItem('demo_user', JSON.stringify(demoUser));
+        setUser(demoUser);
+        return;
       }
 
-      const response = await authService.login({ email, password });
-      if (response.success && response.data?.user) {
-        setUser(response.data.user);
-      } else {
-        throw new Error(response.message || 'Login failed');
-      }
+      throw new Error('Invalid credentials. Use demo accounts: admin@demo.com, manager@demo.com, or tot@demo.com with password: demo123');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const logout = async () => {
-    try {
-      if (IS_DEV) localStorage.removeItem('demo_user');
-      await authService.logout?.();
-    } catch (err) {
-      console.error('Logout error:', err);
-    } finally {
-      setUser(null);
-    }
+  const logout = () => {
+    localStorage.removeItem('demo_user');
+    setUser(null);
   };
 
   return (
@@ -139,8 +99,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
-  return ctx;
+export function useAuth(): AuthContextType {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 }

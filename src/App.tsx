@@ -6,9 +6,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 
+import { AuthProvider } from "@/contexts/AuthContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { DemoRoleSwitcher } from "@/components/dev/DemoRoleSwitcher";
 
 // Pages
 import { Login } from "@/pages/Login";
@@ -45,9 +47,10 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
           <BrowserRouter>
             <NotificationProvider>
               <Routes>
@@ -64,13 +67,18 @@ const App = () => (
                       <AdminDashboard />
                     </ProtectedRoute>
                   } />
+                  <Route path="/dashboard/regional" element={
+                    <ProtectedRoute allowedRoles={['regional_manager', 'admin']}>
+                      <ManagerDashboard />
+                    </ProtectedRoute>
+                  } />
                   <Route path="/dashboard/manager" element={
-                    <ProtectedRoute allowedRoles={['manager', 'admin']}>
+                    <ProtectedRoute allowedRoles={['manager', 'regional_manager', 'admin']}>
                       <ManagerDashboard />
                     </ProtectedRoute>
                   } />
                   <Route path="/dashboard/tot" element={
-                    <ProtectedRoute allowedRoles={['tot', 'manager', 'admin']}>
+                    <ProtectedRoute allowedRoles={['tot', 'manager', 'regional_manager', 'admin']}>
                       <TotDashboard />
                     </ProtectedRoute>
                   } />
@@ -90,12 +98,12 @@ const App = () => (
                   
                   {/* Manager & Admin routes */}
                   <Route path="/tots" element={
-                    <ProtectedRoute allowedRoles={['manager', 'admin']}>
+                    <ProtectedRoute allowedRoles={['manager', 'regional_manager', 'admin']}>
                       <TOTManagement />
                     </ProtectedRoute>
                   } />
                   <Route path="/approval-requests" element={
-                    <ProtectedRoute allowedRoles={['manager', 'admin']}>
+                    <ProtectedRoute allowedRoles={['manager', 'regional_manager', 'admin']}>
                       <ApprovalRequests />
                     </ProtectedRoute>
                   } />
@@ -107,7 +115,7 @@ const App = () => (
                     </ProtectedRoute>
                   } />
                   <Route path="/local-mrs" element={
-                    <ProtectedRoute allowedRoles={['admin']}>
+                    <ProtectedRoute allowedRoles={['admin', 'regional_manager']}>
                       <LocalMRs />
                     </ProtectedRoute>
                   } />
@@ -125,9 +133,11 @@ const App = () => (
                 
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              <DemoRoleSwitcher />
             </NotificationProvider>
           </BrowserRouter>
-      </TooltipProvider>
+        </TooltipProvider>
+      </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>
 );

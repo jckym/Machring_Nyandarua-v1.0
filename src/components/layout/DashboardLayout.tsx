@@ -29,6 +29,9 @@ export function DashboardLayout() {
         case 'manager':
           redirectPath = '/dashboard/manager';
           break;
+        case 'regional_manager':
+          redirectPath = '/dashboard/regional';
+          break;
         case 'admin':
           redirectPath = '/dashboard/admin';
           break;

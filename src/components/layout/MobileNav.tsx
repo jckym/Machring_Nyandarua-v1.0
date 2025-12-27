@@ -60,6 +60,17 @@ const managerNavItems = [
   { to: '/support', icon: HelpCircle, label: 'Support' },
 ];
 
+const regionalManagerNavItems = [
+  { to: '/dashboard/regional', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/local-mrs', icon: Building2, label: 'Local MRs' },
+  { to: '/tots', icon: UserCog, label: 'TOT Management' },
+  { to: '/farmers', icon: Users, label: 'All Farmers' },
+  { to: '/sales', icon: ShoppingCart, label: 'Sales Overview' },
+  { to: '/mechanisation', icon: Tractor, label: 'Mechanisation' },
+  { to: '/reports', icon: FileText, label: 'Reports' },
+  { to: '/notifications', icon: Bell, label: 'Notifications' },
+];
+
 const adminNavItems = [
   { to: '/dashboard/admin', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/users', icon: UserCog, label: 'User Management' },
@@ -83,6 +94,8 @@ export function MobileNav() {
     switch (user?.role) {
       case 'admin':
         return adminNavItems;
+      case 'regional_manager':
+        return regionalManagerNavItems;
       case 'manager':
         return managerNavItems;
       default:
@@ -96,6 +109,8 @@ export function MobileNav() {
     switch (user?.role) {
       case 'admin':
         return <Badge variant="destructive" className="text-xs">Admin</Badge>;
+      case 'regional_manager':
+        return <Badge className="text-xs bg-purple-500">Regional</Badge>;
       case 'manager':
         return <Badge variant="wheat" className="text-xs">Manager</Badge>;
       default:

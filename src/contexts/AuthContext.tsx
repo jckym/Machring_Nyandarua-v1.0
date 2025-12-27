@@ -1,43 +1,107 @@
-// src/contexts/AuthContext.tsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User } from '@/types';
+import { User, UserRole } from '@/types';
 
-// Fixed demo user — always "logged in" as admin (no auth required)
-const MOCK_USER: User = {
-  id: 'mock-admin-001',
-  name: 'Demo Admin',
-  email: 'admin@demo.com',
-  phone: '0700000001',
-  role: 'manager',
-  status: 'active',
-  createdAt: new Date(),
+// Demo users for development
+const DEMO_USERS: Record<UserRole, User> = {
+  admin: {
+    id: 'demo-admin-001',
+    name: 'Demo Admin',
+    email: 'admin@demo.com',
+    phone: '0700000001',
+    role: 'admin',
+    status: 'active',
+    createdAt: new Date(),
+  },
+  regional_manager: {
+    id: 'demo-regional-001',
+    name: 'Demo Regional Manager',
+    email: 'regional@demo.com',
+    phone: '0700000004',
+    role: 'regional_manager',
+    status: 'active',
+    createdAt: new Date(),
+  },
+  manager: {
+    id: 'demo-manager-001',
+    name: 'Demo Manager',
+    email: 'manager@demo.com',
+    phone: '0700000002',
+    role: 'manager',
+    localMrId: 'demo-localmr-001',
+    localMrName: 'Demo Local MR',
+    status: 'active',
+    createdAt: new Date(),
+  },
+  tot: {
+    id: 'demo-tot-001',
+    name: 'Demo TOT',
+    email: 'tot@demo.com',
+    phone: '0700000003',
+    role: 'tot',
+    localMrId: 'demo-localmr-001',
+    localMrName: 'Demo Local MR',
+    status: 'active',
+    createdAt: new Date(),
+  },
 };
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  // login and logout are removed — no auth flow
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => void;
+  switchDemoRole: (role: UserRole) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user] = useState<User>(MOCK_USER); // Always this user
-  const [isLoading, setIsLoading] = useState(false); // No loading needed
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Simulate initial load (instant)
+  // Load saved demo role on mount
   useEffect(() => {
+    const savedRole = localStorage.getItem('demo_role') as UserRole | null;
+    const role = savedRole && DEMO_USERS[savedRole] ? savedRole : 'admin';
+    setUser(DEMO_USERS[role]);
     setIsLoading(false);
   }, []);
+
+  const login = async (email: string, password: string) => {
+    setIsLoading(true);
+    // Demo login - find user by email
+    const demoUser = Object.values(DEMO_USERS).find(
+      (u) => u.email.toLowerCase() === email.toLowerCase()
+    );
+    if (demoUser && password === 'demo123') {
+      localStorage.setItem('demo_role', demoUser.role);
+      setUser(demoUser);
+    } else {
+      throw new Error('Invalid credentials. Use demo123 as password.');
+    }
+    setIsLoading(false);
+  };
+
+  const logout = () => {
+    localStorage.removeItem('demo_role');
+    setUser(null);
+  };
+
+  const switchDemoRole = (role: UserRole) => {
+    localStorage.setItem('demo_role', role);
+    setUser(DEMO_USERS[role]);
+  };
 
   return (
     <AuthContext.Provider
       value={{
         user,
         isLoading,
-        isAuthenticated: true, // Always authenticated
-        // No login/logout functions
+        isAuthenticated: !!user,
+        login,
+        logout,
+        switchDemoRole,
       }}
     >
       {children}

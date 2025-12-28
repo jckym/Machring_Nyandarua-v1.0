@@ -20,6 +20,7 @@ import { ResetPassword } from "@/pages/ResetPassword";
 import { Dashboard } from "@/pages/Dashboard";
 import { AdminDashboard } from "@/pages/dashboard/AdminDashboard";
 import { ManagerDashboard } from "@/pages/dashboard/ManagerDashboard";
+import { RegionalDashboard } from "@/pages/dashboard/RegionalDashboard";
 import { TotDashboard } from "@/pages/dashboard/TotDashboard";
 import { Farmers } from "@/pages/Farmers";
 import { FarmerProfile } from "@/pages/FarmerProfile";
@@ -69,7 +70,7 @@ const App = () => (
                   } />
                   <Route path="/dashboard/regional" element={
                     <ProtectedRoute allowedRoles={['regional_manager', 'admin']}>
-                      <ManagerDashboard />
+                      <RegionalDashboard />
                     </ProtectedRoute>
                   } />
                   <Route path="/dashboard/manager" element={

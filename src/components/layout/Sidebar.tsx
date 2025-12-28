@@ -1,11 +1,15 @@
-// src/components/Sidebar.tsx
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import {
   LayoutDashboard,
   Users,
@@ -31,7 +35,15 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const totNavItems = [
+/* -------------------- NAV CONFIG -------------------- */
+
+type NavItem = {
+  to: string;
+  icon: React.ElementType;
+  label: string;
+};
+
+const totNavItems: NavItem[] = [
   { to: '/dashboard/tot', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/farmers', icon: Users, label: 'My Farmers' },
   { to: '/sales', icon: ShoppingCart, label: 'Sales' },
@@ -45,7 +57,7 @@ const totNavItems = [
   { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
-const managerNavItems = [
+const managerNavItems: NavItem[] = [
   { to: '/dashboard/manager', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/tots', icon: UserCog, label: 'TOT Management' },
   { to: '/approval-requests', icon: CheckSquare, label: 'Approvals' },
@@ -54,12 +66,12 @@ const managerNavItems = [
   { to: '/mechanisation', icon: Tractor, label: 'Mechanisation' },
   { to: '/trainings', icon: GraduationCap, label: 'Trainings' },
   { to: '/reports', icon: FileText, label: 'Reports' },
-  { to: '/commission', icon: Calculator, label: 'Commission Calculator' },
+  { to: '/commission', icon: Calculator, label: 'Commission' },
   { to: '/support', icon: HelpCircle, label: 'Support' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
-const regionalManagerNavItems = [
+const regionalManagerNavItems: NavItem[] = [
   { to: '/dashboard/regional', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/local-mrs', icon: Building2, label: 'Local MRs' },
   { to: '/tots', icon: UserCog, label: 'TOT Management' },
@@ -73,7 +85,7 @@ const regionalManagerNavItems = [
   { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
-const adminNavItems = [
+const adminNavItems: NavItem[] = [
   { to: '/dashboard/admin', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/users', icon: UserCog, label: 'User Management' },
   { to: '/local-mrs', icon: Building2, label: 'Local MRs' },
@@ -89,91 +101,69 @@ const adminNavItems = [
   { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
+/* -------------------- COMPONENT -------------------- */
+
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const { user, logout } = useAuth();
 
-  const getNavItems = () => {
-    switch (user?.role) {
-      case 'admin':
-        return adminNavItems;
-      case 'regional_manager':
-        return regionalManagerNavItems;
-      case 'manager':
-        return managerNavItems;
-      default:
-        return totNavItems;
-    }
-  };
-
-  const navItems = getNavItems();
-
-  const getRoleBadge = () => {
-    switch (user?.role) {
-      case 'admin':
-        return <Badge variant="destructive" className="text-xs">Admin</Badge>;
-      case 'regional_manager':
-        return <Badge className="text-xs bg-purple-500">Regional</Badge>;
-      case 'manager':
-        return <Badge variant="wheat" className="text-xs">Manager</Badge>;
-      default:
-        return <Badge variant="forest" className="text-xs">TOT</Badge>;
-    }
-  };
+  const navItems =
+    user?.role === 'admin'
+      ? adminNavItems
+      : user?.role === 'regional_manager'
+      ? regionalManagerNavItems
+      : user?.role === 'manager'
+      ? managerNavItems
+      : totNavItems;
 
   const handleLogout = () => {
     logout();
     toast.success('Logged out successfully');
   };
 
+  const roleBadge = {
+    admin: <Badge variant="destructive">Admin</Badge>,
+    regional_manager: <Badge className="bg-purple-500">Regional</Badge>,
+    manager: <Badge variant="wheat">Manager</Badge>,
+    tot: <Badge variant="forest">TOT</Badge>,
+  }[user?.role || 'tot'];
+
   return (
     <TooltipProvider delayDuration={0}>
       <aside
         className={cn(
-          'hidden lg:flex h-screen bg-sidebar text-sidebar-foreground flex-col transition-all duration-300 ease-in-out relative flex-shrink-0 sticky top-0 border-r border-sidebar-border',
+          'hidden lg:flex h-screen sticky top-0 border-r border-sidebar-border bg-sidebar text-sidebar-foreground flex-col transition-all duration-300',
           collapsed ? 'w-20' : 'w-64'
         )}
-        aria-label="Main navigation"
       >
         {/* Logo */}
-        <div className={cn(
-          'h-16 flex items-center border-b border-sidebar-border px-4',
-          collapsed ? 'justify-center' : 'justify-start'
-        )}>
+        <div className="h-16 px-4 flex items-center border-b border-sidebar-border">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-forest to-emerald-600 flex items-center justify-center shadow-lg">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-forest to-emerald-600 flex items-center justify-center">
               <Wheat className="w-6 h-6 text-white" />
             </div>
             {!collapsed && (
-              <div className="flex flex-col">
-                <span className="font-heading font-bold text-base">Farm Society</span>
-                <span className="text-xs text-sidebar-foreground/70">Machinery Ring Kenya</span>
+              <div>
+                <p className="font-bold text-sm">Farm Society</p>
+                <p className="text-xs opacity-70">Machinery Ring Kenya</p>
               </div>
             )}
           </div>
         </div>
 
-        {/* User Info */}
-        <div className={cn(
-          'p-4 border-b border-sidebar-border',
-          collapsed && 'px-3'
-        )}>
-          <div className={cn(
-            'flex items-center gap-3',
-            collapsed && 'flex-col gap-2'
-          )}>
-            <div className="w-10 h-10 rounded-full bg-sidebar-primary flex items-center justify-center text-sidebar-primary-foreground font-bold text-lg shadow-md">
-              {user?.name?.split(' ').map(n => n[0].toUpperCase()).join('') || 'U'}
+        {/* User */}
+        <div className="p-4 border-b border-sidebar-border">
+          <div className={cn('flex items-center gap-3', collapsed && 'justify-center')}>
+            <div className="w-10 h-10 rounded-full bg-sidebar-primary text-sidebar-primary-foreground flex items-center justify-center font-bold">
+              {user?.name?.[0] || 'U'}
             </div>
             {!collapsed && (
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{user?.name || 'User'}</p>
-                <div className="flex items-center gap-2 mt-1">
-                  {getRoleBadge()}
+              <div>
+                <p className="text-sm font-medium truncate">{user?.name}</p>
+                <div className="flex gap-2 mt-1 items-center">
+                  {roleBadge}
                   {user?.localMrName && (
-                    <p className="text-xs text-sidebar-foreground/70 truncate">
-                      {user.localMrName}
-                    </p>
+                    <span className="text-xs opacity-70 truncate">{user.localMrName}</span>
                   )}
                 </div>
               </div>
@@ -181,78 +171,71 @@ export function Sidebar() {
           </div>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-3 scrollbar-thin">
-          <ul className="space-y-1">
-            {navItems.map((item) => (
-              <li key={item.to}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <NavLink
-                      to={item.to}
-                      end
-                      className={({ isActive }) =>
-                        cn(
-                          'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 relative group',
-                          collapsed && 'justify-center px-3',
-                          isActive
-                            ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-md font-semibold'
-                            : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-                        )
-                      }
-                    >
-                      <item.icon className="w-5 h-5 flex-shrink-0" />
-                      {!collapsed && <span className="truncate">{item.label}</span>}
-                    </NavLink>
-                  </TooltipTrigger>
-                  {collapsed && (
-                    <TooltipContent side="right" className="bg-sidebar-primary text-sidebar-primary-foreground">
-                      {item.label}
-                    </TooltipContent>
-                  )}
-                </Tooltip>
-              </li>
-            ))}
+        {/* Nav */}
+        <nav className="flex-1 overflow-y-auto scrollbar-thin">
+          <ul className="p-3 space-y-1">
+            {navItems.map(({ to, icon: Icon, label }) =>
+              collapsed ? (
+                <li key={to}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <NavLink
+                        to={to}
+                        className={({ isActive }) =>
+                          cn(
+                            'w-full flex justify-center p-3 rounded-xl transition',
+                            isActive
+                              ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                              : 'hover:bg-sidebar-accent'
+                          )
+                        }
+                      >
+                        <Icon className="w-5 h-5" />
+                      </NavLink>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">{label}</TooltipContent>
+                  </Tooltip>
+                </li>
+              ) : (
+                <li key={to}>
+                  <NavLink
+                    to={to}
+                    className={({ isActive }) =>
+                      cn(
+                        'w-full flex items-center gap-3 px-4 py-3 rounded-xl transition',
+                        isActive
+                          ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow'
+                          : 'hover:bg-sidebar-accent'
+                      )
+                    }
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span className="truncate">{label}</span>
+                  </NavLink>
+                </li>
+              )
+            )}
           </ul>
         </nav>
 
         {/* Logout */}
-        <div className={cn(
-          'p-4 border-t border-sidebar-border',
-          collapsed && 'px-3'
-        )}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                className={cn(
-                  'w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent rounded-xl',
-                  collapsed && 'justify-center px-0'
-                )}
-                onClick={handleLogout}
-              >
-                <LogOut className="w-5 h-5" />
-                {!collapsed && <span className="ml-3 font-medium">Logout</span>}
-              </Button>
-            </TooltipTrigger>
-            {collapsed && (
-              <TooltipContent side="right" className="bg-destructive text-destructive-foreground">
-                Logout
-              </TooltipContent>
-            )}
-          </Tooltip>
+        <div className="p-4 border-t border-sidebar-border">
+          <Button
+            variant="ghost"
+            className={cn('w-full gap-3', collapsed && 'justify-center')}
+            onClick={handleLogout}
+          >
+            <LogOut className="w-5 h-5" />
+            {!collapsed && 'Logout'}
+          </Button>
         </div>
 
-        {/* Collapse Toggle */}
+        {/* Collapse */}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className={cn(
-            'absolute -right-3 top-24 w-7 h-10 bg-sidebar-primary text-sidebar-primary-foreground rounded-r-full flex items-center justify-center shadow-lg hover:scale-110 transition-all duration-200 z-10',
-            collapsed && 'top-20'
-          )}
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          className="absolute -right-3 top-24 w-7 h-10 bg-sidebar-primary text-sidebar-primary-foreground rounded-r-full flex items-center justify-center shadow"
         >
-          {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          {collapsed ? <ChevronRight /> : <ChevronLeft />}
         </button>
       </aside>
     </TooltipProvider>

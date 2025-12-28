@@ -24,7 +24,6 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  Wheat,
   UserCog,
   Calculator,
   Shield,
@@ -139,13 +138,17 @@ export function Sidebar() {
         {/* Logo */}
         <div className="h-16 px-4 flex items-center border-b border-sidebar-border">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-forest to-emerald-600 flex items-center justify-center">
-              <Wheat className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center overflow-hidden">
+              <img
+                src="/mrLlgo.png"
+                alt="Machinery Ring Logo"
+                className="w-full h-full object-contain"
+              />
             </div>
             {!collapsed && (
               <div>
-                <p className="font-bold text-sm">Farm Society</p>
-                <p className="text-xs opacity-70">Machinery Ring Kenya</p>
+                <p className="font-bold text-sm">Machinery Ring</p>
+                <p className="text-xs opacity-70">Nyandarua</p>
               </div>
             )}
           </div>
@@ -163,7 +166,9 @@ export function Sidebar() {
                 <div className="flex gap-2 mt-1 items-center">
                   {roleBadge}
                   {user?.localMrName && (
-                    <span className="text-xs opacity-70 truncate">{user.localMrName}</span>
+                    <span className="text-xs opacity-70 truncate">
+                      {user.localMrName}
+                    </span>
                   )}
                 </div>
               </div>

@@ -32,6 +32,7 @@ import {
   Bell,
   AlertCircle,
   HelpCircle,
+  CheckSquare,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -46,11 +47,13 @@ const totNavItems = [
   { to: '/commission', icon: Calculator, label: 'My Commission' },
   { to: '/reports', icon: FileText, label: 'Reports' },
   { to: '/support', icon: HelpCircle, label: 'Support' },
+  { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
 const managerNavItems = [
   { to: '/dashboard/manager', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/tots', icon: UserCog, label: 'TOT Management' },
+  { to: '/approval-requests', icon: CheckSquare, label: 'Approvals' },
   { to: '/farmers', icon: Users, label: 'All Farmers' },
   { to: '/sales', icon: ShoppingCart, label: 'Sales' },
   { to: '/mechanisation', icon: Tractor, label: 'Mechanisation' },
@@ -58,23 +61,28 @@ const managerNavItems = [
   { to: '/reports', icon: FileText, label: 'Reports' },
   { to: '/commission', icon: Calculator, label: 'Commission Calculator' },
   { to: '/support', icon: HelpCircle, label: 'Support' },
+  { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
 const regionalManagerNavItems = [
   { to: '/dashboard/regional', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/local-mrs', icon: Building2, label: 'Local MRs' },
   { to: '/tots', icon: UserCog, label: 'TOT Management' },
+  { to: '/approval-requests', icon: CheckSquare, label: 'Approvals' },
   { to: '/farmers', icon: Users, label: 'All Farmers' },
   { to: '/sales', icon: ShoppingCart, label: 'Sales Overview' },
   { to: '/mechanisation', icon: Tractor, label: 'Mechanisation' },
+  { to: '/trainings', icon: GraduationCap, label: 'Trainings' },
   { to: '/reports', icon: FileText, label: 'Reports' },
   { to: '/notifications', icon: Bell, label: 'Notifications' },
+  { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
 const adminNavItems = [
   { to: '/dashboard/admin', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/users', icon: UserCog, label: 'User Management' },
   { to: '/local-mrs', icon: Building2, label: 'Local MRs' },
+  { to: '/approval-requests', icon: CheckSquare, label: 'Approvals' },
   { to: '/products', icon: Package, label: 'Products' },
   { to: '/farmers', icon: Users, label: 'All Farmers' },
   { to: '/sales', icon: ShoppingCart, label: 'All Sales' },
@@ -83,7 +91,7 @@ const adminNavItems = [
   { to: '/notifications', icon: Bell, label: 'Notifications' },
   { to: '/system-logs', icon: AlertCircle, label: 'System Logs' },
   { to: '/audit', icon: Shield, label: 'Audit Trail' },
-  { to: '/settings', icon: Settings, label: 'System Settings' },
+  { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
 export function MobileNav() {

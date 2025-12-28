@@ -1,4 +1,3 @@
-// src/components/MobileNav.tsx
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -25,7 +24,6 @@ import {
   Settings,
   LogOut,
   Menu,
-  Wheat,
   UserCog,
   Calculator,
   Shield,
@@ -98,20 +96,14 @@ export function MobileNav() {
   const [open, setOpen] = useState(false);
   const { user, logout } = useAuth();
 
-  const getNavItems = () => {
-    switch (user?.role) {
-      case 'admin':
-        return adminNavItems;
-      case 'regional_manager':
-        return regionalManagerNavItems;
-      case 'manager':
-        return managerNavItems;
-      default:
-        return totNavItems;
-    }
-  };
-
-  const navItems = getNavItems();
+  const navItems =
+    user?.role === 'admin'
+      ? adminNavItems
+      : user?.role === 'regional_manager'
+      ? regionalManagerNavItems
+      : user?.role === 'manager'
+      ? managerNavItems
+      : totNavItems;
 
   const getRoleBadge = () => {
     switch (user?.role) {
@@ -149,8 +141,12 @@ export function MobileNav() {
         {/* Header */}
         <SheetHeader className="p-5 border-b border-sidebar-border">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-forest to-emerald-600 flex items-center justify-center shadow-lg">
-              <Wheat className="w-7 h-7 text-white" />
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-forest to-emerald-600 flex items-center justify-center shadow-lg overflow-hidden">
+              <img
+                src="/logo.png"
+                alt="Machinery Ring Logo"
+                className="w-10 h-10 object-contain"
+              />
             </div>
             <div>
               <SheetTitle className="text-sidebar-foreground font-heading text-lg">
@@ -186,7 +182,7 @@ export function MobileNav() {
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-3">
           <ul className="space-y-1">
-            {navItems.map((item) => (
+            {navItems.map(item => (
               <li key={item.to}>
                 <NavLink
                   to={item.to}
@@ -194,14 +190,14 @@ export function MobileNav() {
                   onClick={() => setOpen(false)}
                   className={({ isActive }) =>
                     cn(
-                      'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200',
+                      'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all',
                       isActive
-                        ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-md font-semibold'
-                        : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                        ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-md'
+                        : 'text-sidebar-foreground/80 hover:bg-sidebar-accent'
                     )
                   }
                 >
-                  <item.icon className="w-5 h-5 flex-shrink-0" />
+                  <item.icon className="w-5 h-5" />
                   <span>{item.label}</span>
                 </NavLink>
               </li>
@@ -213,11 +209,11 @@ export function MobileNav() {
         <div className="p-4 border-t border-sidebar-border">
           <Button
             variant="ghost"
-            className="w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent rounded-xl"
+            className="w-full justify-start rounded-xl"
             onClick={handleLogout}
           >
             <LogOut className="w-5 h-5 mr-3" />
-            <span className="font-medium">Logout</span>
+            Logout
           </Button>
         </div>
       </SheetContent>

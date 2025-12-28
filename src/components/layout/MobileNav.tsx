@@ -154,9 +154,9 @@ export function MobileNav() {
             </div>
             <div>
               <SheetTitle className="text-sidebar-foreground font-heading text-lg">
-                Farm Society KE
+                Machinery Ring
               </SheetTitle>
-              <p className="text-xs text-sidebar-foreground/70">Machinery Ring Kenya</p>
+              <p className="text-xs text-sidebar-foreground/70">Nyandarua</p>
             </div>
           </div>
         </SheetHeader>

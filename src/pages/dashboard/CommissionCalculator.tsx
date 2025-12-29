@@ -109,7 +109,7 @@ export function CommissionCalculator() {
           TOT Commission Calculator
         </h1>
         <p className="text-muted-foreground">
-          Calculate earned commission based on products sold (commission set per product by admin)
+          Calculate earned commission based on products sold.
         </p>
       </div>
 

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Card,
   CardHeader,
@@ -16,10 +16,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  Building2,
-  Users,
-  TrendingUp,
-  ChevronRight,
   ArrowLeft,
   FileText,
   FileSpreadsheet,
@@ -27,22 +23,12 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-/**
- * API HOOKS (EXPECTED SHAPE)
- * useLocalMRs() → [{ id, name, managerName }]
- * useUsers() → [{ id, name, role, localMrId, phone, status }]
- * useSales() → [{ totId, localMrId, totalAmount, commissionAmount }]
- */
+import { useAuth } from '@/contexts/AuthContext';
 import { useLocalMRs, useUsers, useSales } from '@/hooks/api';
 
 /* ---------------- TYPES ---------------- */
 
 type ViewMode = 'local-mrs' | 'tots';
-
-interface SelectedContext {
-  localMrId?: string;
-  localMrName?: string;
-}
 
 interface LocalMRSummary {
   id: string;
@@ -57,7 +43,6 @@ interface LocalMRSummary {
 interface TOTSummary {
   id: string;
   name: string;
-  phone: string;
   status: 'active' | 'inactive';
   totalSales: number;
   totalCommission: number;
@@ -66,17 +51,26 @@ interface TOTSummary {
 /* ---------------- COMPONENT ---------------- */
 
 export function Commission() {
+  const { user } = useAuth();
   const [viewMode, setViewMode] = useState<ViewMode>('local-mrs');
-  const [selected, setSelected] = useState<SelectedContext>({});
+  const [selectedMrId, setSelectedMrId] = useState<string | null>(null);
+  const [selectedMrName, setSelectedMrName] = useState<string | null>(null);
 
   const { data: localMRs = [] } = useLocalMRs();
   const { data: users = [] } = useUsers();
   const { data: sales = [] } = useSales();
 
-  const formatCurrency = (v: number) =>
-    `KES ${v.toLocaleString()}`;
+  /* ---------------- HELPERS ---------------- */
 
-  /* ---------------- AGGREGATION LOGIC ---------------- */
+  const formatCurrency = (v: number) =>
+    `KES ${v.toLocaleString('en-KE')}`;
+
+  const approvedSales = useMemo(
+    () => sales.filter((s: any) => s.status === 'approved'),
+    [sales]
+  );
+
+  /* ---------------- LOCAL MR AGGREGATION ---------------- */
 
   const localMRSummaries: LocalMRSummary[] = useMemo(() => {
     return localMRs.map((mr: any) => {
@@ -84,7 +78,7 @@ export function Commission() {
         (u: any) => u.role === 'tot' && u.localMrId === mr.id
       );
 
-      const mrSales = sales.filter(
+      const mrSales = approvedSales.filter(
         (s: any) => s.localMrId === mr.id
       );
 
@@ -104,25 +98,25 @@ export function Commission() {
         ),
       };
     });
-  }, [localMRs, users, sales]);
+  }, [localMRs, users, approvedSales]);
+
+  /* ---------------- TOT AGGREGATION ---------------- */
 
   const selectedMRTots: TOTSummary[] = useMemo(() => {
-    if (!selected.localMrId) return [];
+    if (!selectedMrId) return [];
 
     return users
       .filter(
-        (u: any) =>
-          u.role === 'tot' && u.localMrId === selected.localMrId
+        (u: any) => u.role === 'tot' && u.localMrId === selectedMrId
       )
       .map((tot: any) => {
-        const totSales = sales.filter(
+        const totSales = approvedSales.filter(
           (s: any) => s.totId === tot.id
         );
 
         return {
           id: tot.id,
           name: tot.name,
-          phone: tot.phone || '',
           status: tot.status === 'active' ? 'active' : 'inactive',
           totalSales: totSales.reduce(
             (acc: number, s: any) => acc + s.totalAmount,
@@ -134,7 +128,9 @@ export function Commission() {
           ),
         };
       });
-  }, [selected.localMrId, users, sales]);
+  }, [selectedMrId, users, approvedSales]);
+
+  /* ---------------- TOTALS ---------------- */
 
   const totals = useMemo(() => ({
     sales: localMRSummaries.reduce((a, b) => a + b.totalSales, 0),
@@ -188,7 +184,13 @@ export function Commission() {
       <div className="flex justify-between flex-wrap gap-4">
         <div className="flex items-center gap-3">
           {viewMode === 'tots' && (
-            <Button variant="ghost" onClick={() => setViewMode('local-mrs')}>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setViewMode('local-mrs');
+                setSelectedMrId(null);
+              }}
+            >
               <ArrowLeft className="w-4 h-4" />
             </Button>
           )}
@@ -240,11 +242,11 @@ export function Commission() {
         </Card>
       </div>
 
-      {/* TABLES */}
+      {/* TABLE */}
       {viewMode === 'local-mrs' && (
         <Card>
           <CardHeader>
-            <CardTitle>Local MR Summary</CardTitle>
+            <CardTitle>Local MR Commission Summary</CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
@@ -262,7 +264,8 @@ export function Commission() {
                     key={mr.id}
                     className="cursor-pointer"
                     onClick={() => {
-                      setSelected({ localMrId: mr.id, localMrName: mr.name });
+                      setSelectedMrId(mr.id);
+                      setSelectedMrName(mr.name);
                       setViewMode('tots');
                     }}
                   >
@@ -285,9 +288,7 @@ export function Commission() {
       {viewMode === 'tots' && (
         <Card>
           <CardHeader>
-            <CardTitle>
-              TOTs in {selected.localMrName}
-            </CardTitle>
+            <CardTitle>TOTs in {selectedMrName}</CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
@@ -304,7 +305,9 @@ export function Commission() {
                   <TableRow key={tot.id}>
                     <TableCell>{tot.name}</TableCell>
                     <TableCell>
-                      <Badge variant={tot.status === 'active' ? 'success' : 'secondary'}>
+                      <Badge
+                        variant={tot.status === 'active' ? 'success' : 'secondary'}
+                      >
                         {tot.status}
                       </Badge>
                     </TableCell>

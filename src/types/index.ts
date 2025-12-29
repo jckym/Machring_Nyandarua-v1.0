@@ -1,10 +1,8 @@
 // types.ts
-
 // -----------------------------
 // User Roles & Users
 // -----------------------------
 export type UserRole = 'admin' | 'regional_manager' | 'manager' | 'tot';
-
 export interface User {
   id: string;
   name: string;
@@ -18,7 +16,6 @@ export interface User {
   createdAt: Date;
   lastActivityDate?: Date;
 }
-
 // -----------------------------
 // Local MR
 // -----------------------------
@@ -34,15 +31,12 @@ export interface LocalMR {
   totalTots: number;
   totalFarmers: number;
 }
-
 // Alias
 export type Branch = LocalMR;
-
 // -----------------------------
 // Machinery
 // -----------------------------
 export type MachineryStatus = 'available' | 'booked' | 'maintenance';
-
 export interface Machinery {
   id: string;
   name: string;
@@ -54,25 +48,16 @@ export interface Machinery {
   description?: string;
   createdAt?: Date;
 }
-
 // -----------------------------
 // Value Chains & Farmer Categories
 // -----------------------------
-export type ValueChain = 
-  | 'Maize'
-  | 'Wheat'
+export type ValueChain =
+  | 'Potato Farming'
+  | 'Maize Farming'
   | 'Dairy'
-  | 'Poultry'
-  | 'Horticulture'
-  | 'Coffee'
-  | 'Tea'
-  | 'Sugarcane'
-  | 'Livestock'
-  | 'Mixed Farming';
-
+  | 'Poultry';
 export type FarmerCategory = 'New' | 'Existing' | 'Pioneer';
 export type FarmerRating = 'Active' | 'Dormant' | 'High-Value';
-
 // -----------------------------
 // Farmer
 // -----------------------------
@@ -106,7 +91,6 @@ export interface Farmer {
   approvalStatus?: 'pending' | 'approved' | 'rejected';
   approvalRequestedBy?: string;
 }
-
 // -----------------------------
 // Products
 // -----------------------------
@@ -118,7 +102,6 @@ export type ProductCategory =
   | 'Services'
   | 'Equipment'
   | 'Others';
-
 export interface Product {
   id: string;
   name: string;
@@ -134,12 +117,10 @@ export interface Product {
   lastEditedAt?: Date;
   lastEditedBy?: string;
 }
-
 // -----------------------------
 // Sales
 // -----------------------------
 export type SaleStatus = 'pending' | 'completed' | 'cancelled';
-
 export interface Sale {
   id: string;
   totId: string;
@@ -152,7 +133,7 @@ export interface Sale {
   productName: string;
   quantity: number;
   unitPrice: number;
-  total: number;
+  totalAmount: number;
   commissionAmount: number;
   date: Date;
   status: SaleStatus;
@@ -163,7 +144,6 @@ export interface Sale {
   lastEditedAt?: Date;
   lastEditedBy?: string;
 }
-
 // -----------------------------
 // Mechanisation Jobs
 // -----------------------------
@@ -174,7 +154,6 @@ export type MechanisationStatus =
   | 'in-progress'
   | 'completed'
   | 'cancelled';
-
 export interface MechanisationJob {
   id: string;
   farmerId: string;
@@ -212,7 +191,6 @@ export interface MechanisationJob {
     completedAt: Date;
   };
 }
-
 // -----------------------------
 // Visits
 // -----------------------------
@@ -232,13 +210,11 @@ export interface Visit {
   createdAt?: Date;
   createdBy?: string;
 }
-
 // -----------------------------
 // Trainings
 // -----------------------------
 export type TrainingStatus = 'Upcoming' | 'Completed';
 export type TrainingType = 'Workshop' | 'Field Day' | 'Seminar' | 'Demonstration' | 'Online Training';
-
 export interface Training {
   id: string;
   type?: TrainingType;
@@ -258,7 +234,6 @@ export interface Training {
   createdAt?: Date;
   createdBy?: string;
 }
-
 // -----------------------------
 // Notifications
 // -----------------------------
@@ -282,7 +257,6 @@ export type NotificationType =
   | 'support_request'
   | 'escalation'
   | 'failed_operation';
-
 export interface Notification {
   id: string;
   type: NotificationType;
@@ -299,13 +273,11 @@ export interface Notification {
   link?: string;
   metadata?: Record<string, any>;
 }
-
 // -----------------------------
 // Farmer Approval Request
 // -----------------------------
 export type ApprovalType = 'add' | 'edit';
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
-
 export interface FarmerApprovalRequest {
   id: string;
   farmerId?: string; // Existing farmer ID if editing
@@ -322,7 +294,6 @@ export interface FarmerApprovalRequest {
   reviewedAt?: Date;
   rejectionReason?: string;
 }
-
 // -----------------------------
 // Dashboard & TOT Performance
 // -----------------------------
@@ -337,7 +308,6 @@ export interface DashboardStats {
   pendingApprovals?: number;
   totalCommission?: number;
 }
-
 export interface TOTPerformance {
   totId: string;
   totName: string;
@@ -349,7 +319,7 @@ export interface TOTPerformance {
   totalSales: number;
   totalCommission: number;
   mechanisationJobsCompleted: number;
-  trainingsConducted: number; 
+  trainingsConducted: number;
   visitsLogged: number;
   lastActivityDate?: Date;
   salesByProduct?: {

@@ -1,5 +1,5 @@
 // src/components/SaleFormDialog.tsx - Simplified
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,15 +10,16 @@ import { Sale, Farmer, Product } from '@/types';
 import { useFarmers } from '@/hooks/api/useFarmers';
 import { useProducts } from '@/hooks/api/useProducts';
 import { Loader2 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SaleFormDialogProps { open: boolean; onOpenChange: (open: boolean) => void; onSubmit: (sale: Partial<Sale>) => void; }
 
 export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [formData, setFormData] = useState({ farmerId: '', productId: '', quantity: 1, date: new Date().toISOString().split('T')[0] });
-  const { data: farmers = [], isLoading: farmersLoading, error: farmersError } = useFarmers();
-  const { data: products = [], isLoading: productsLoading, error: productsError } = useProducts();
-
+  const { data: farmers = [], isLoading: farmersLoading, error: farmersError, refetch: refetchFarmers } = useFarmers();
+  const { data: products = [], isLoading: productsLoading, error: productsError, refetch: refetchProducts } = useProducts();
   const selectedProduct = useMemo(() => products.find((p) => p.id === formData.productId), [formData.productId, products]);
   const selectedFarmer = useMemo(() => farmers.find((f) => f.id === formData.farmerId), [formData.farmerId, farmers]);
   const total = selectedProduct ? selectedProduct.unitPrice * formData.quantity : 0;
@@ -27,20 +28,52 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
   const isLoading = farmersLoading || productsLoading;
   const hasError = farmersError || productsError;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (selectedProduct && formData.quantity > selectedProduct.inStock) {
+      setFormData({ ...formData, quantity: selectedProduct.inStock });
+    }
+  }, [selectedProduct, formData.quantity]);
+
+  useEffect(() => {
+    if (selectedProduct?.inStock === 0) {
+      setFormData({ ...formData, productId: '' });
+    }
+  }, [selectedProduct]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.farmerId || !formData.productId || formData.quantity < 1) {
       toast({ title: 'Validation Error', description: 'Please select farmer, product, and quantity', variant: 'destructive' });
       return;
     }
-    onSubmit({
-      farmerId: formData.farmerId, farmerName: selectedFarmer?.name || '', productId: formData.productId,
-      productName: selectedProduct?.name || '', quantity: formData.quantity, unitPrice: selectedProduct?.unitPrice || 0,
-      total, commissionAmount: commission, date: new Date(formData.date), status: 'pending',
-    });
-    toast({ title: 'Sale Recorded', description: 'Sale submitted for approval' });
-    onOpenChange(false);
-    setFormData({ farmerId: '', productId: '', quantity: 1, date: new Date().toISOString().split('T')[0] });
+    if (formData.quantity > (selectedProduct?.inStock || 0)) {
+      toast({ title: 'Stock Error', description: 'Quantity exceeds available stock', variant: 'destructive' });
+      return;
+    }
+    const saleData = {
+      totId: user?.id || '',
+      totName: user?.name || '',
+      localMrId: user?.localMrId || '',
+      localMrName: user?.localMrName || '',
+      farmerId: formData.farmerId,
+      farmerName: selectedFarmer?.name || '',
+      productId: formData.productId,
+      productName: selectedProduct?.name || '',
+      quantity: formData.quantity,
+      unitPrice: selectedProduct?.unitPrice || 0,
+      totalAmount: total,
+      commissionAmount: commission,
+      date: new Date(`${formData.date}T00:00:00Z`),
+      status: 'pending',
+    };
+    try {
+      await onSubmit(saleData);
+      toast({ title: 'Sale Recorded', description: 'Sale submitted for approval' });
+      onOpenChange(false);
+      setFormData({ farmerId: '', productId: '', quantity: 1, date: new Date().toISOString().split('T')[0] });
+    } catch {
+      toast({ title: 'Submission Error', description: 'Failed to submit sale', variant: 'destructive' });
+    }
   };
 
   return (
@@ -49,7 +82,8 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
         <DialogHeader><DialogTitle>Record New Sale</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto space-y-4 px-1">
           {isLoading && <div className="flex items-center justify-center py-12"><Loader2 className="w-8 h-8 animate-spin mr-3" /><span>Loading...</span></div>}
-          {hasError && <div className="text-center py-12 text-destructive">Failed to load data.</div>}
+          {farmersError && <div className="text-center py-12 text-destructive">Failed to load farmers. <Button onClick={refetchFarmers}>Retry</Button></div>}
+          {productsError && <div className="text-center py-12 text-destructive">Failed to load products. <Button onClick={refetchProducts}>Retry</Button></div>}
           {!isLoading && !hasError && (<>
             <div className="space-y-2"><Label>Select Farmer *</Label>
               <Select value={formData.farmerId} onValueChange={(value) => setFormData({ ...formData, farmerId: value })}>

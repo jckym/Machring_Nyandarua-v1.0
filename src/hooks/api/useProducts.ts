@@ -1,4 +1,3 @@
-// src/hooks/api/useProducts.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { productService, CreateProductDto, UpdateProductDto, ProductFilters } from '@/lib/api';
 import { toast } from 'sonner';
@@ -45,7 +44,6 @@ export function useProductPerformance() {
 
 export function useCreateProduct() {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: (data: CreateProductDto) => productService.create(data),
     onMutate: async (newProduct) => {
@@ -73,7 +71,6 @@ export function useCreateProduct() {
 
 export function useUpdateProduct() {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateProductDto }) =>
       productService.update(id, data),
@@ -107,7 +104,6 @@ export function useUpdateProduct() {
 
 export function useUpdateProductStock() {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: ({ id, stock }: { id: string; stock: number }) =>
       productService.updateStock(id, stock),
@@ -139,7 +135,6 @@ export function useUpdateProductStock() {
 
 export function useDeleteProduct() {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: (id: string) => productService.delete(id),
     onMutate: async (id) => {

@@ -11,7 +11,7 @@ import { useNotifications } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Sale } from '@/types';
-import { useSales, useCreateSale, useProducts } from '@/hooks/api';
+import { useSales, useCreateSale, useProducts, useCompleteSale, useCancelSale } from '@/hooks/api';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,12 +33,13 @@ export function Sales() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const { addNotification } = useNotifications();
   const { user } = useAuth();
-
   // API hooks
   const { data: sales = [], isLoading } = useSales();
   const { data: products = [] } = useProducts();
   const createSale = useCreateSale();
-
+  const completeSale = useCompleteSale();
+  const cancelSale = useCancelSale();
+  const completedSales = sales.filter(s => s.status === 'completed');
   const filteredSales = sales.filter(sale => {
     const farmerName = sale.farmerName ?? '';
     const productName = sale.productName ?? '';
@@ -48,10 +49,8 @@ export function Sales() {
     const matchesStatus = statusFilter === 'all' || sale.status === statusFilter;
     return matchesSearch && matchesProduct && matchesStatus;
   });
-
-  const totalRevenue = sales.reduce((acc, sale) => acc + sale.total, 0);
-  const totalCommission = sales.filter(s => s.status === 'completed').reduce((acc, sale) => acc + sale.commissionAmount, 0);
-
+  const totalRevenue = completedSales.reduce((acc, sale) => acc + sale.totalAmount, 0);
+  const totalCommission = completedSales.reduce((acc, sale) => acc + sale.commissionAmount, 0);
   const handleAddSale = (data: Partial<Sale>) => {
     createSale.mutate(data as any);
     addNotification({
@@ -60,9 +59,7 @@ export function Sales() {
       type: 'sale',
     });
   };
-
   const isManager = user?.role === 'manager' || user?.role === 'admin';
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed': return 'success';
@@ -70,9 +67,7 @@ export function Sales() {
       default: return 'destructive';
     }
   };
-
   const formatCurrency = (value: number) => `KES ${value.toLocaleString()}`;
-
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat('en-KE', {
       day: 'numeric',
@@ -80,7 +75,12 @@ export function Sales() {
       year: 'numeric',
     }).format(new Date(date));
   };
-
+  const handleCompleteSale = (id: string) => {
+    completeSale.mutate(id);
+  };
+  const handleCancelSale = (id: string) => {
+    cancelSale.mutate({ id, reason: 'Cancelled by user' });
+  };
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -95,7 +95,6 @@ export function Sales() {
       </div>
     );
   }
-
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Page Header */}
@@ -129,7 +128,6 @@ export function Sales() {
           </Button>
         </div>
       </div>
-
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card className="p-3 sm:p-4" variant="forest">
@@ -172,14 +170,13 @@ export function Sales() {
             </div>
             <div>
               <p className="text-lg sm:text-2xl font-bold font-heading text-emerald-700">
-                {sales.filter(s => s.status === 'completed').length}
+                {completedSales.length}
               </p>
               <p className="text-xs sm:text-sm text-muted-foreground">Completed</p>
             </div>
           </div>
         </Card>
       </div>
-
       {/* Search and Filter */}
       <Card>
         <CardContent className="p-4">
@@ -218,7 +215,6 @@ export function Sales() {
           </div>
         </CardContent>
       </Card>
-
       {/* Sales List */}
       <Card variant="elevated">
         <CardHeader>
@@ -236,11 +232,12 @@ export function Sales() {
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Total</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Commission</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Status</th>
+                  {isManager && <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Actions</th>}
                 </tr>
               </thead>
               <tbody>
                 {filteredSales.map((sale, index) => (
-                  <tr 
+                  <tr
                     key={sale.id}
                     className="border-b border-border/50 hover:bg-muted/50 transition-colors animate-fade-in"
                     style={{ animationDelay: `${index * 0.05}s` }}
@@ -256,11 +253,34 @@ export function Sales() {
                     </td>
                     <td className="py-3 px-4 text-sm">{sale.productName}</td>
                     <td className="py-3 px-4 text-sm font-medium">{sale.quantity}</td>
-                    <td className="py-3 px-4 text-sm font-semibold text-primary">{formatCurrency(sale.total)}</td>
+                    <td className="py-3 px-4 text-sm font-semibold text-primary">{formatCurrency(sale.totalAmount)}</td>
                     <td className="py-3 px-4 text-sm text-emerald-600 font-medium">{formatCurrency(sale.commissionAmount)}</td>
                     <td className="py-3 px-4">
                       <Badge variant={getStatusColor(sale.status) as any}>{sale.status}</Badge>
                     </td>
+                    {isManager && (
+                      <td className="py-3 px-4">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {sale.status === 'pending' && (
+                              <DropdownMenuItem onClick={() => handleCompleteSale(sale.id)}>
+                                Complete
+                              </DropdownMenuItem>
+                            )}
+                            {sale.status !== 'cancelled' && (
+                              <DropdownMenuItem onClick={() => handleCancelSale(sale.id)}>
+                                Cancel
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -268,7 +288,6 @@ export function Sales() {
           </div>
         </CardContent>
       </Card>
-
       {/* Sale Form Dialog */}
       <SaleFormDialog
         open={isFormOpen}

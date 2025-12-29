@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Search, Plus, Package, Filter, AlertTriangle, TrendingUp, Edit, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useProducts, useCreateProduct, useUpdateProduct } from '@/hooks/api';
+import { useProducts, useCreateProduct, useUpdateProductStock, useUpdateProduct } from '@/hooks/api';
 import {
   Dialog,
   DialogContent,
@@ -31,14 +31,12 @@ const productCategories: ProductCategory[] = ['Seeds', 'Fertilizers', 'Agrochemi
 export function Products() {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [localProducts, setLocalProducts] = useState<Product[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isStockDialogOpen, setIsStockDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [stockUpdate, setStockUpdate] = useState({ quantity: 0, type: 'add' as 'add' | 'subtract' });
   const { user } = useAuth();
-
   const [formData, setFormData] = useState({
     name: '',
     sku: '',
@@ -48,29 +46,21 @@ export function Products() {
     inStock: 0,
     description: '',
   });
-
   // API hooks
   const { data: products = [], isLoading } = useProducts();
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
+  const updateStock = useUpdateProductStock();
 
-  useEffect(() => {
-    if (products && Array.isArray(products)) {
-      setLocalProducts(products);
-    }
-  }, [products]);
-
-  const filteredProducts = localProducts.filter(product => {
+  const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.category.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
-
-  const lowStockProducts = localProducts.filter(p => p.inStock < 100);
-  const totalValue = localProducts.reduce((acc, p) => acc + (p.inStock * p.unitPrice), 0);
-  const categories = [...new Set(localProducts.map(p => p.category))];
-
+  const lowStockProducts = products.filter(p => p.inStock < 100);
+  const totalValue = products.reduce((acc, p) => acc + (p.inStock * p.unitPrice), 0);
+  const categories = [...new Set([...productCategories, ...products.map(p => p.category)])];
   const resetForm = () => {
     setFormData({
       name: '',
@@ -82,30 +72,23 @@ export function Products() {
       description: '',
     });
   };
-
   const formatCurrency = (value: number) => {
-    if (value >= 1000000) return `KES ${(value / 1000000).toFixed(1)}M`;
-    if (value >= 1000) return `KES ${(value / 1000).toFixed(0)}K`;
-    return `KES ${value.toLocaleString()}`;
+    return new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', notation: value >= 1000000 ? 'compact' : 'standard' }).format(value);
   };
-
   const getStockStatus = (stock: number) => {
     if (stock < 50) return { variant: 'destructive' as const, label: 'Critical' };
     if (stock < 100) return { variant: 'warning' as const, label: 'Low' };
     return { variant: 'success' as const, label: 'In Stock' };
   };
-
   const handleAddProduct = () => {
     if (!formData.name || !formData.sku || !formData.unitPrice) {
       toast.error('Please fill in all required fields');
       return;
     }
-
     createProduct.mutate(formData as any);
     setIsAddDialogOpen(false);
     resetForm();
   };
-
   const handleEditProduct = (product: Product) => {
     setSelectedProduct(product);
     setFormData({
@@ -119,42 +102,38 @@ export function Products() {
     });
     setIsEditDialogOpen(true);
   };
-
   const handleUpdateProduct = () => {
     if (!selectedProduct) return;
-
     updateProduct.mutate({ id: selectedProduct.id, data: formData as any });
     setIsEditDialogOpen(false);
     setSelectedProduct(null);
     resetForm();
   };
-
   const handleOpenStockDialog = (product: Product) => {
     setSelectedProduct(product);
     setStockUpdate({ quantity: 0, type: 'add' });
     setIsStockDialogOpen(true);
   };
-
   const handleUpdateStock = () => {
     if (!selectedProduct || stockUpdate.quantity <= 0) {
       toast.error('Please enter a valid quantity');
       return;
     }
-
-    const newStock = stockUpdate.type === 'add' 
-      ? selectedProduct.inStock + stockUpdate.quantity 
+    if (stockUpdate.type === 'subtract' && stockUpdate.quantity > selectedProduct.inStock) {
+      toast.error('Cannot remove more than available');
+      return;
+    }
+    const newStock = stockUpdate.type === 'add'
+      ? selectedProduct.inStock + stockUpdate.quantity
       : Math.max(0, selectedProduct.inStock - stockUpdate.quantity);
-    
-    updateProduct.mutate({ 
-      id: selectedProduct.id, 
-      data: { inStock: newStock } as any 
+    updateStock.mutate({
+      id: selectedProduct.id,
+      stock: newStock
     });
-
     toast.success(`Stock ${stockUpdate.type === 'add' ? 'added' : 'removed'} successfully`);
     setIsStockDialogOpen(false);
     setSelectedProduct(null);
   };
-
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -171,7 +150,6 @@ export function Products() {
       </div>
     );
   }
-
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Page Header */}
@@ -189,7 +167,6 @@ export function Products() {
           </Button>
         )}
       </div>
-
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card className="p-3 sm:p-4" variant="forest">
@@ -198,7 +175,7 @@ export function Products() {
               <Package className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
-              <p className="text-lg sm:text-2xl font-bold font-heading">{localProducts.length}</p>
+              <p className="text-lg sm:text-2xl font-bold font-heading">{products.length}</p>
               <p className="text-xs sm:text-sm opacity-80">Products</p>
             </div>
           </div>
@@ -237,7 +214,6 @@ export function Products() {
           </div>
         </Card>
       </div>
-
       {/* Search and Filter */}
       <Card>
         <CardContent className="p-3 sm:p-4">
@@ -258,7 +234,7 @@ export function Products() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
-                {productCategories.map(cat => (
+                {categories.map(cat => (
                   <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                 ))}
               </SelectContent>
@@ -266,14 +242,12 @@ export function Products() {
           </div>
         </CardContent>
       </Card>
-
       {/* Products Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
         {filteredProducts.map((product, index) => {
           const stockStatus = getStockStatus(product.inStock);
-          
           return (
-            <Card 
+            <Card
               key={product.id}
               variant="elevated"
               className="animate-fade-in overflow-hidden"
@@ -287,10 +261,8 @@ export function Products() {
                   <Badge variant="outline" className="text-xs">{product.category}</Badge>
                   <Badge variant={stockStatus.variant} className="text-xs">{stockStatus.label}</Badge>
                 </div>
-                
                 <h3 className="font-heading font-semibold mb-1 text-sm sm:text-base line-clamp-1">{product.name}</h3>
                 <p className="text-xs text-muted-foreground mb-3 sm:mb-4">SKU: {product.sku}</p>
-                
                 <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Unit Price:</span>
@@ -305,9 +277,7 @@ export function Products() {
                     <span className="font-medium text-emerald-600">{formatCurrency(product.commission)}</span>
                   </div>
                 </div>
-                
                 <p className="text-xs text-muted-foreground mt-3 sm:mt-4 line-clamp-2">{product.description}</p>
-                
                 {user?.role === 'admin' && (
                   <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-border flex gap-2">
                     <Button variant="outline" size="sm" className="flex-1 text-xs h-8 sm:h-9" onClick={() => handleEditProduct(product)}>
@@ -325,7 +295,6 @@ export function Products() {
           );
         })}
       </div>
-
       {/* Add Product Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
@@ -414,7 +383,6 @@ export function Products() {
           </div>
         </DialogContent>
       </Dialog>
-
       {/* Edit Product Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
@@ -492,7 +460,6 @@ export function Products() {
           </div>
         </DialogContent>
       </Dialog>
-
       {/* Update Stock Dialog */}
       <Dialog open={isStockDialogOpen} onOpenChange={setIsStockDialogOpen}>
         <DialogContent className="max-w-sm">

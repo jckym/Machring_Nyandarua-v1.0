@@ -48,7 +48,7 @@ export function useMonthlySales(year?: number) {
 
 export function useCreateSale() {
   const queryClient = useQueryClient();
-  
+ 
   return useMutation({
     mutationFn: (data: CreateSaleDto) => saleService.create(data),
     onSuccess: () => {
@@ -63,9 +63,9 @@ export function useCreateSale() {
 
 export function useUpdateSale() {
   const queryClient = useQueryClient();
-  
+ 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateSaleDto }) => 
+    mutationFn: ({ id, data }: { id: string; data: UpdateSaleDto }) =>
       saleService.update(id, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: saleKeys.all });
@@ -80,11 +80,12 @@ export function useUpdateSale() {
 
 export function useCompleteSale() {
   const queryClient = useQueryClient();
-  
+ 
   return useMutation({
     mutationFn: (id: string) => saleService.complete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: saleKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
       toast.success('Sale completed');
     },
     onError: (error: Error) => {
@@ -95,9 +96,9 @@ export function useCompleteSale() {
 
 export function useCancelSale() {
   const queryClient = useQueryClient();
-  
+ 
   return useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason?: string }) => 
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
       saleService.cancel(id, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: saleKeys.all });

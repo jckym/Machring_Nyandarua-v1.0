@@ -3,7 +3,12 @@
 // -----------------------------
 // User Roles & Users
 // -----------------------------
-export type UserRole = 'admin' | 'regional_manager' | 'manager' | 'tot';
+// Role naming:
+// - admin: System Administrator
+// - manager: Manager (organization-wide oversight, read-only)
+// - local_mr_coordinator: Local MR Coordinator (read-only, scoped to their Local MR)
+// - tot: TOT (read-only, can only view their own data)
+export type UserRole = 'admin' | 'manager' | 'local_mr_coordinator' | 'tot';
 
 export interface User {
   id: string;

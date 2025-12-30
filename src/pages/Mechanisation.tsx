@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Search, Plus, Tractor, Calendar, Download, MapPin, Clock, CheckCircle, XCircle, FileSpreadsheet, FileText, FileCheck } from 'lucide-react';
+import { Search, Plus, Tractor, Calendar, Download, MapPin, Clock, FileSpreadsheet, FileText, FileCheck } from 'lucide-react';
 import { exportMechanisationToExcel, exportMechanisationToPDF } from '@/lib/exportUtils';
 import { MechanisationFormDialog } from '@/components/forms/MechanisationFormDialog';
 import { useNotifications } from '@/contexts/NotificationContext';
@@ -39,7 +39,7 @@ export function Mechanisation() {
   const [selectedJob, setSelectedJob] = useState<MechanisationJob | null>(null);
   const [showReportDialog, setShowReportDialog] = useState(false);
   const { addNotification } = useNotifications();
-  const { user } = useAuth();
+  const { user, isAdmin, canEdit } = useAuth();
 
   // API hooks
   const { data: jobs = [], isLoading } = useMechanisationJobs();
@@ -57,15 +57,17 @@ export function Mechanisation() {
   const totalAcreage = jobs.reduce((acc, job) => acc + job.acreage, 0);
 
   const handleAddJob = (data: Partial<MechanisationJob>) => {
+    if (!canEdit) {
+      toast.error('You do not have permission to create bookings');
+      return;
+    }
     createMech.mutate(data as any);
     addNotification({
       title: 'New Mechanisation Booking',
-      message: `Booking pending approval`,
+      message: `Booking created successfully`,
       type: 'mechanisation',
     });
   };
-
-  const isManager = user?.role === 'manager' || user?.role === 'admin';
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -87,6 +89,9 @@ export function Mechanisation() {
       year: 'numeric',
     }).format(new Date(date));
   };
+
+  // Manager and Coordinator can export reports
+  const canExport = user?.role === 'admin' || user?.role === 'manager' || user?.role === 'local_mr_coordinator';
 
   if (isLoading) {
     return (
@@ -111,31 +116,38 @@ export function Mechanisation() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
           <h1 className="font-heading text-xl sm:text-2xl font-bold text-foreground">Mechanisation</h1>
-          <p className="text-sm text-muted-foreground">Track machinery service bookings</p>
+          <p className="text-sm text-muted-foreground">
+            {isAdmin ? 'Manage machinery service bookings' : 'View machinery service bookings'}
+          </p>
         </div>
         <div className="flex items-center gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="hidden sm:flex">
-                <Download className="w-4 h-4 mr-2" />
-                Export
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => { exportMechanisationToExcel(filteredJobs); toast.success('Exported to Excel'); }}>
-                <FileSpreadsheet className="w-4 h-4 mr-2" />
-                Export to Excel
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { exportMechanisationToPDF(filteredJobs); toast.success('Exported to PDF'); }}>
-                <FileText className="w-4 h-4 mr-2" />
-                Export to PDF
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button variant="earth" size="sm" onClick={() => setIsFormOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            New Booking
-          </Button>
+          {canExport && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="hidden sm:flex">
+                  <Download className="w-4 h-4 mr-2" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => { exportMechanisationToExcel(filteredJobs); toast.success('Exported to Excel'); }}>
+                  <FileSpreadsheet className="w-4 h-4 mr-2" />
+                  Export to Excel
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { exportMechanisationToPDF(filteredJobs); toast.success('Exported to PDF'); }}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  Export to PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          {/* Admin only: New Booking button */}
+          {isAdmin && (
+            <Button variant="earth" size="sm" onClick={() => setIsFormOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              New Booking
+            </Button>
+          )}
         </div>
       </div>
 
@@ -285,12 +297,14 @@ export function Mechanisation() {
         ))}
       </div>
 
-      {/* Mechanisation Form Dialog */}
-      <MechanisationFormDialog
-        open={isFormOpen}
-        onOpenChange={setIsFormOpen}
-        onSubmit={handleAddJob}
-      />
+      {/* Mechanisation Form Dialog - Admin only */}
+      {isAdmin && (
+        <MechanisationFormDialog
+          open={isFormOpen}
+          onOpenChange={setIsFormOpen}
+          onSubmit={handleAddJob}
+        />
+      )}
 
       {/* Completion Report Dialog */}
       <Dialog open={showReportDialog} onOpenChange={setShowReportDialog}>

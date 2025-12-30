@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { VisitFormDialog } from '@/components/forms/VisitFormDialog';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Visit } from '@/types';
 import { useVisits, useCreateVisit } from '@/hooks/api';
@@ -22,6 +23,7 @@ export function Visits() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const { addNotification } = useNotifications();
+  const { user, isAdmin, canEdit } = useAuth();
 
   // API hooks
   const { data: visits = [], isLoading } = useVisits();
@@ -34,10 +36,14 @@ export function Visits() {
   });
 
   const handleAddVisit = (data: Partial<Visit>) => {
+    if (!canEdit) {
+      toast.error('You do not have permission to log visits');
+      return;
+    }
     createVisit.mutate(data as any);
     addNotification({
       title: 'Field Visit Logged',
-      message: `Visit recorded`,
+      message: `Visit recorded successfully`,
       type: 'visit',
     });
   };
@@ -62,6 +68,9 @@ export function Visits() {
   const gpsTagged = visits.filter(v => v.gpsLocation).length;
   const gpsPercentage = visits.length > 0 ? Math.round((gpsTagged / visits.length) * 100) : 0;
 
+  // Manager and Coordinator can export reports
+  const canExport = user?.role === 'admin' || user?.role === 'manager' || user?.role === 'local_mr_coordinator';
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -85,31 +94,38 @@ export function Visits() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
           <h1 className="font-heading text-xl sm:text-2xl font-bold text-foreground">Farm Visits</h1>
-          <p className="text-sm text-muted-foreground">Track field visits and engagements</p>
+          <p className="text-sm text-muted-foreground">
+            {isAdmin ? 'Log and manage field visits' : 'View field visits and engagements'}
+          </p>
         </div>
         <div className="flex items-center gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="hidden sm:flex">
-                <Download className="w-4 h-4 mr-2" />
-                Export
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => { exportVisitsToExcel(filteredVisits); toast.success('Exported to Excel'); }}>
-                <FileSpreadsheet className="w-4 h-4 mr-2" />
-                Export to Excel
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { exportVisitsToPDF(filteredVisits); toast.success('Exported to PDF'); }}>
-                <FileText className="w-4 h-4 mr-2" />
-                Export to PDF
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button variant="earth" size="sm" onClick={() => setIsFormOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Log Visit
-          </Button>
+          {canExport && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="hidden sm:flex">
+                  <Download className="w-4 h-4 mr-2" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => { exportVisitsToExcel(filteredVisits); toast.success('Exported to Excel'); }}>
+                  <FileSpreadsheet className="w-4 h-4 mr-2" />
+                  Export to Excel
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { exportVisitsToPDF(filteredVisits); toast.success('Exported to PDF'); }}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  Export to PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          {/* Admin only: Log Visit button */}
+          {isAdmin && (
+            <Button variant="earth" size="sm" onClick={() => setIsFormOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Log Visit
+            </Button>
+          )}
         </div>
       </div>
 
@@ -206,7 +222,6 @@ export function Visits() {
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <Button variant="outline" size="sm" className="text-xs h-8">Details</Button>
-                        <Button variant="forest" size="sm" className="text-xs h-8">Add Notes</Button>
                       </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground mt-2">
@@ -235,12 +250,14 @@ export function Visits() {
         ))}
       </div>
 
-      {/* Visit Form Dialog */}
-      <VisitFormDialog
-        open={isFormOpen}
-        onOpenChange={setIsFormOpen}
-        onSubmit={handleAddVisit}
-      />
+      {/* Visit Form Dialog - Admin only */}
+      {isAdmin && (
+        <VisitFormDialog
+          open={isFormOpen}
+          onOpenChange={setIsFormOpen}
+          onSubmit={handleAddVisit}
+        />
+      )}
     </div>
   );
 }

@@ -35,11 +35,13 @@ export function Header() {
       case 'admin':
         return 'System Administrator';
       case 'manager':
-        return `Local MR Manager`;
+        return 'Manager';
+      case 'local_mr_coordinator':
+        return 'Local MR Coordinator';
       case 'tot':
-        return 'Technical Officer';
+        return 'TOT';
       default:
-        return 'Trainer of Trainers';
+        return 'User';
     }
   };
 
@@ -56,7 +58,7 @@ export function Header() {
         {/* Greeting - desktop */}
         <div className="hidden sm:flex flex-col min-w-0">
           <h1 className="font-heading text-base sm:text-lg font-semibold text-foreground truncate">
-            {getGreeting()}, {user?.name?.split(' ')[0]} 👋
+            {getGreeting()}, {user?.name} 👋
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground truncate">
             {getRoleTitle()}
@@ -107,13 +109,15 @@ export function Header() {
         {/* Notifications */}
         <NotificationBell />
 
-        {/* Settings */}
-        <Link to="/settings" className="hidden sm:flex">
-          <Button variant="ghost" size="icon" className="h-9 w-9">
-            <Settings className="w-5 h-5" />
-            <span className="sr-only">Settings</span>
-          </Button>
-        </Link>
+        {/* Settings - Admin only */}
+        {user?.role === 'admin' && (
+          <Link to="/settings" className="hidden sm:flex">
+            <Button variant="ghost" size="icon" className="h-9 w-9">
+              <Settings className="w-5 h-5" />
+              <span className="sr-only">Settings</span>
+            </Button>
+          </Link>
+        )}
       </div>
     </header>
   );

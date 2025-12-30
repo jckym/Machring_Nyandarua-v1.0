@@ -2,6 +2,11 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole } from '@/types';
 
 // Demo users for development
+// Role naming:
+// - admin: System Administrator (ONLY data entry role)
+// - manager: Manager (read-only, organization-wide oversight)
+// - local_mr_coordinator: Local MR Coordinator (read-only, scoped to their Local MR)
+// - tot: TOT (read-only, can only view their own data)
 const DEMO_USERS: Record<UserRole, User> = {
   admin: {
     id: 'demo-admin-001',
@@ -12,21 +17,21 @@ const DEMO_USERS: Record<UserRole, User> = {
     status: 'active',
     createdAt: new Date(),
   },
-  regional_manager: {
-    id: 'demo-regional-001',
-    name: 'Demo Regional Manager',
-    email: 'regional@demo.com',
-    phone: '0700000004',
-    role: 'regional_manager',
-    status: 'active',
-    createdAt: new Date(),
-  },
   manager: {
     id: 'demo-manager-001',
     name: 'Demo Manager',
     email: 'manager@demo.com',
     phone: '0700000002',
     role: 'manager',
+    status: 'active',
+    createdAt: new Date(),
+  },
+  local_mr_coordinator: {
+    id: 'demo-coordinator-001',
+    name: 'Demo Coordinator',
+    email: 'coordinator@demo.com',
+    phone: '0700000003',
+    role: 'local_mr_coordinator',
     localMrId: 'demo-localmr-001',
     localMrName: 'Demo Local MR',
     status: 'active',
@@ -36,7 +41,7 @@ const DEMO_USERS: Record<UserRole, User> = {
     id: 'demo-tot-001',
     name: 'Demo TOT',
     email: 'tot@demo.com',
-    phone: '0700000003',
+    phone: '0700000004',
     role: 'tot',
     localMrId: 'demo-localmr-001',
     localMrName: 'Demo Local MR',
@@ -49,6 +54,8 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  isAdmin: boolean;
+  canEdit: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   switchDemoRole: (role: UserRole) => void;
@@ -93,12 +100,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(DEMO_USERS[role]);
   };
 
+  // Admin is the ONLY role that can create/edit/delete data
+  const isAdmin = user?.role === 'admin';
+  const canEdit = isAdmin;
+
   return (
     <AuthContext.Provider
       value={{
         user,
         isLoading,
         isAuthenticated: !!user,
+        isAdmin,
+        canEdit,
         login,
         logout,
         switchDemoRole,

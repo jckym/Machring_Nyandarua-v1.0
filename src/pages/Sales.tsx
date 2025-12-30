@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Search, Plus, TrendingUp, Calendar, Download, Package, CheckCircle, MoreVertical, FileSpreadsheet, FileText } from 'lucide-react';
+import { Search, Plus, TrendingUp, Calendar, Download, Package, FileSpreadsheet, FileText, MoreVertical } from 'lucide-react';
 import { exportSalesToExcel, exportSalesToPDF } from '@/lib/exportUtils';
 import { SaleFormDialog } from '@/components/forms/SaleFormDialog';
 import { useNotifications } from '@/contexts/NotificationContext';
@@ -32,13 +32,15 @@ export function Sales() {
   const [productFilter, setProductFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const { addNotification } = useNotifications();
-  const { user } = useAuth();
+  const { user, isAdmin, canEdit } = useAuth();
+
   // API hooks
   const { data: sales = [], isLoading } = useSales();
   const { data: products = [] } = useProducts();
   const createSale = useCreateSale();
   const completeSale = useCompleteSale();
   const cancelSale = useCancelSale();
+
   const completedSales = sales.filter(s => s.status === 'completed');
   const filteredSales = sales.filter(sale => {
     const farmerName = sale.farmerName ?? '';
@@ -49,17 +51,23 @@ export function Sales() {
     const matchesStatus = statusFilter === 'all' || sale.status === statusFilter;
     return matchesSearch && matchesProduct && matchesStatus;
   });
+
   const totalRevenue = completedSales.reduce((acc, sale) => acc + sale.total, 0);
   const totalCommission = completedSales.reduce((acc, sale) => acc + sale.commissionAmount, 0);
+
   const handleAddSale = (data: Partial<Sale>) => {
+    if (!canEdit) {
+      toast.error('You do not have permission to record sales');
+      return;
+    }
     createSale.mutate(data as any);
     addNotification({
       title: 'New Sale Recorded',
-      message: `Sale recorded`,
+      message: `Sale recorded successfully`,
       type: 'sale',
     });
   };
-  const isManager = user?.role === 'manager' || user?.role === 'admin';
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed': return 'success';
@@ -67,7 +75,9 @@ export function Sales() {
       default: return 'destructive';
     }
   };
+
   const formatCurrency = (value: number) => `KES ${value.toLocaleString()}`;
+
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat('en-KE', {
       day: 'numeric',
@@ -75,12 +85,20 @@ export function Sales() {
       year: 'numeric',
     }).format(new Date(date));
   };
+
   const handleCompleteSale = (id: string) => {
+    if (!isAdmin) return;
     completeSale.mutate(id);
   };
+
   const handleCancelSale = (id: string) => {
-    cancelSale.mutate({ id, reason: 'Cancelled by user' });
+    if (!isAdmin) return;
+    cancelSale.mutate({ id, reason: 'Cancelled by admin' });
   };
+
+  // Manager and Coordinator can export reports
+  const canExport = user?.role === 'admin' || user?.role === 'manager' || user?.role === 'local_mr_coordinator';
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -95,39 +113,48 @@ export function Sales() {
       </div>
     );
   }
+
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
           <h1 className="font-heading text-xl sm:text-2xl font-bold text-foreground">Sales</h1>
-          <p className="text-sm text-muted-foreground">Track and manage product sales</p>
+          <p className="text-sm text-muted-foreground">
+            {isAdmin ? 'Record and manage product sales' : 'View product sales'}
+          </p>
         </div>
         <div className="flex items-center gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="hidden sm:flex">
-                <Download className="w-4 h-4 mr-2" />
-                Export
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => { exportSalesToExcel(filteredSales); toast.success('Exported to Excel'); }}>
-                <FileSpreadsheet className="w-4 h-4 mr-2" />
-                Export to Excel
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { exportSalesToPDF(filteredSales); toast.success('Exported to PDF'); }}>
-                <FileText className="w-4 h-4 mr-2" />
-                Export to PDF
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button variant="wheat" size="sm" onClick={() => setIsFormOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Record Sale
-          </Button>
+          {canExport && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="hidden sm:flex">
+                  <Download className="w-4 h-4 mr-2" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => { exportSalesToExcel(filteredSales); toast.success('Exported to Excel'); }}>
+                  <FileSpreadsheet className="w-4 h-4 mr-2" />
+                  Export to Excel
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { exportSalesToPDF(filteredSales); toast.success('Exported to PDF'); }}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  Export to PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          {/* Admin only: Record Sale button */}
+          {isAdmin && (
+            <Button variant="wheat" size="sm" onClick={() => setIsFormOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Record Sale
+            </Button>
+          )}
         </div>
       </div>
+
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card className="p-3 sm:p-4" variant="forest">
@@ -177,6 +204,7 @@ export function Sales() {
           </div>
         </Card>
       </div>
+
       {/* Search and Filter */}
       <Card>
         <CardContent className="p-4">
@@ -215,6 +243,7 @@ export function Sales() {
           </div>
         </CardContent>
       </Card>
+
       {/* Sales List */}
       <Card variant="elevated">
         <CardHeader>
@@ -232,7 +261,7 @@ export function Sales() {
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Total</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Commission</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Status</th>
-                  {isManager && <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Actions</th>}
+                  {isAdmin && <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -258,7 +287,7 @@ export function Sales() {
                     <td className="py-3 px-4">
                       <Badge variant={getStatusColor(sale.status) as any}>{sale.status}</Badge>
                     </td>
-                    {isManager && (
+                    {isAdmin && (
                       <td className="py-3 px-4">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -288,12 +317,15 @@ export function Sales() {
           </div>
         </CardContent>
       </Card>
-      {/* Sale Form Dialog */}
-      <SaleFormDialog
-        open={isFormOpen}
-        onOpenChange={setIsFormOpen}
-        onSubmit={handleAddSale}
-      />
+
+      {/* Sale Form Dialog - Admin only */}
+      {isAdmin && (
+        <SaleFormDialog
+          open={isFormOpen}
+          onOpenChange={setIsFormOpen}
+          onSubmit={handleAddSale}
+        />
+      )}
     </div>
   );
 }

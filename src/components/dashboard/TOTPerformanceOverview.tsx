@@ -46,7 +46,7 @@ export function TOTPerformanceOverview({
   const totMetrics = tots.map(tot => {
     const totSales = sales.filter(s => s.totId === tot.id);
     const completedSales = totSales.filter(s => s.status === 'completed');
-    const totalRevenue = completedSales.reduce((acc, s) => acc + (s.total || 0), 0);
+    const totalRevenue = completedSales.reduce((acc, s) => acc + (s.totalAmount || 0), 0);
     const totalCommission = completedSales.reduce((acc, s) => acc + (s.commissionAmount || 0), 0);
     
     // Determine performance level

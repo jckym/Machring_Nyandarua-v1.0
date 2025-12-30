@@ -14,8 +14,8 @@ import { UserCog, Shield, MapPin, Users, GraduationCap } from 'lucide-react';
 
 const ROLE_CONFIG: Record<UserRole, { label: string; icon: React.ElementType; color: string }> = {
   admin: { label: 'Admin', icon: Shield, color: 'bg-red-500' },
-  regional_manager: { label: 'Regional Manager', icon: MapPin, color: 'bg-purple-500' },
-  manager: { label: 'Manager', icon: Users, color: 'bg-blue-500' },
+  manager: { label: 'Manager', icon: MapPin, color: 'bg-purple-500' },
+  local_mr_coordinator: { label: 'Local MR Coordinator', icon: Users, color: 'bg-blue-500' },
   tot: { label: 'TOT', icon: GraduationCap, color: 'bg-green-500' },
 };
 

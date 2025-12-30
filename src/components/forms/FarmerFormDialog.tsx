@@ -23,8 +23,8 @@ import { AlertTriangle, Send, Loader2 } from 'lucide-react';
 import { useLocalMRs } from '@/hooks/api/useLocalMRs';
 
 const valueChains: ValueChain[] = [
-  'Maize', 'Wheat', 'Dairy', 'Poultry', 'Horticulture',
-  'Coffee', 'Tea', 'Sugarcane', 'Livestock', 'Mixed Farming'
+  'Potato Farming', 'Maize Farming', 'Dairy', 'Poultry', 
+  'Horticulture', 'Mixed Farming'
 ];
 
 interface FarmerFormDialogProps {

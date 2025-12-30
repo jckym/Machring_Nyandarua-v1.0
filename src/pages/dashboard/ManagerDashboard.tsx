@@ -49,7 +49,7 @@ export function ManagerDashboard() {
   // Derived stats
   const totalRevenue = (sales as Sale[])
     .filter(s => s.status === 'completed')
-    .reduce((acc, s) => acc + (s.total || 0), 0);
+    .reduce((acc, s) => acc + (s.totalAmount || 0), 0);
 
   const completedJobs = (jobs as MechanisationJob[]).filter(j => j.status === 'completed').length;
   const pendingApprovals = (jobs as MechanisationJob[]).filter(j => j.status === 'pending-approval').length;

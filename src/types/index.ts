@@ -2,7 +2,11 @@
 // -----------------------------
 // User Roles & Users
 // -----------------------------
-export type UserRole = 'admin' | 'regional_manager' | 'manager' | 'tot';
+// admin: Full control
+// manager: View all, export reports (org-wide)
+// local_mr_coordinator: Read-only access to their MR
+// tot: Read-only access to own data + log visits only
+export type UserRole = 'admin' | 'manager' | 'local_mr_coordinator' | 'tot';
 export interface User {
   id: string;
   name: string;
@@ -55,7 +59,9 @@ export type ValueChain =
   | 'Potato Farming'
   | 'Maize Farming'
   | 'Dairy'
-  | 'Poultry';
+  | 'Poultry'
+  | 'Horticulture'
+  | 'Mixed Farming';
 export type FarmerCategory = 'New' | 'Existing' | 'Pioneer';
 export type FarmerRating = 'Active' | 'Dormant' | 'High-Value';
 // -----------------------------

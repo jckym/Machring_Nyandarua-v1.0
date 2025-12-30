@@ -55,7 +55,7 @@ export function LocalMRPerformanceTable({
     
     const totalRevenue = mrSales
       .filter(s => s.status === 'completed')
-      .reduce((acc, s) => acc + (s.total || 0), 0);
+      .reduce((acc, s) => acc + (s.totalAmount || 0), 0);
     
     const mechanisationDemand = mrJobs.length;
     const completedJobs = mrJobs.filter(j => j.status === 'completed').length;
@@ -110,7 +110,7 @@ export function LocalMRPerformanceTable({
       sales: mrSales,
       jobs: mrJobs,
       farmers: mrFarmers,
-      totalRevenue: mrSales.filter(s => s.status === 'completed').reduce((acc, s) => acc + (s.total || 0), 0),
+      totalRevenue: mrSales.filter(s => s.status === 'completed').reduce((acc, s) => acc + (s.totalAmount || 0), 0),
       totalCommission: mrSales.filter(s => s.status === 'completed').reduce((acc, s) => acc + (s.commissionAmount || 0), 0),
     };
   };

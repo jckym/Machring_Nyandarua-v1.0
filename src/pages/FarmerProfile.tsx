@@ -42,8 +42,8 @@ export function FarmerProfile() {
   const farmerVisits = (visits as Visit[]).filter(v => v.farmerId === farmer.id);
   const farmerTrainings = (trainings as Training[]).filter(t => t.attendees.includes(farmer.id));
 
-  const totalSpent = farmerSales.reduce((acc, s) => acc + s.total, 0);
-  const mechanisationSpent = farmerJobs.reduce((acc, j) => acc + j.totalPrice, 0);
+  const totalSpent = farmerSales.reduce((acc, s) => acc + (s.totalAmount || 0), 0);
+  const mechanisationSpent = farmerJobs.reduce((acc, j) => acc + (j.totalPrice || 0), 0);
 
   const getCategoryColor = (category: string) => {
     switch (category) {
@@ -243,7 +243,7 @@ export function FarmerProfile() {
                         <p className="text-xs text-muted-foreground">{formatDate(sale.date)} • Qty: {sale.quantity}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-semibold text-primary text-sm">{formatCurrency(sale.total)}</p>
+                        <p className="font-semibold text-primary text-sm">{formatCurrency(sale.totalAmount)}</p>
                         <Badge variant={sale.status === 'completed' ? 'success' : 'warning'} className="text-xs">{sale.status}</Badge>
                       </div>
                     </div>

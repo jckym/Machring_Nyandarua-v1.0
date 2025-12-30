@@ -26,11 +26,11 @@ export function DashboardLayout() {
         case 'tot':
           redirectPath = '/dashboard/tot';
           break;
+        case 'local_mr_coordinator':
+          redirectPath = '/dashboard/coordinator';
+          break;
         case 'manager':
           redirectPath = '/dashboard/manager';
-          break;
-        case 'regional_manager':
-          redirectPath = '/dashboard/regional';
           break;
         case 'admin':
           redirectPath = '/dashboard/admin';

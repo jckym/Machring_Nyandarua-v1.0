@@ -95,7 +95,7 @@ export const exportSalesToExcel = (sales: Sale[], filename: string = 'sales') =>
     'Product': sale.productName,
     'Quantity': sale.quantity,
     'Unit Price (KES)': sale.unitPrice,
-    'Total (KES)': sale.totalAmount,
+    'Total (KES)': sale.total,
     'Commission (KES)': sale.commissionAmount,
     'Status': sale.status,
     'Recorded By': sale.totName || '',
@@ -111,7 +111,7 @@ export const exportSalesToPDF = (sales: Sale[], filename: string = 'sales') => {
     sale.farmerName ?? '',
     sale.productName ?? '',
     sale.quantity,
-    sale.totalAmount.toLocaleString(),
+    sale.total.toLocaleString(),
     sale.commissionAmount.toLocaleString(),
     sale.status,
   ]);

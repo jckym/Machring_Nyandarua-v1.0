@@ -45,7 +45,7 @@ export function RegionalDashboard() {
   // Calculate stats
   const totalRevenue = (sales as Sale[])
     .filter(s => s.status === 'completed')
-    .reduce((acc, s) => acc + (s.totalAmount || 0), 0);
+    .reduce((acc, s) => acc + (s.total || 0), 0);
 
   const totalCommission = (sales as Sale[])
     .filter(s => s.status === 'completed')
@@ -60,7 +60,7 @@ export function RegionalDashboard() {
   // Find top performing Local MR
   const localMRWithSales = (localMRs as LocalMR[]).map(mr => {
     const mrSales = (sales as Sale[]).filter(s => s.localMrId === mr.id);
-    const mrRevenue = mrSales.reduce((acc, s) => acc + (s.totalAmount || 0), 0);
+    const mrRevenue = mrSales.reduce((acc, s) => acc + (s.total || 0), 0);
     return { ...mr, revenue: mrRevenue };
   });
   const topMR = localMRWithSales.sort((a, b) => b.revenue - a.revenue)[0];

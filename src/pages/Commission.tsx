@@ -53,7 +53,7 @@ export function Commission() {
   const [selectedMrName, setSelectedMrName] = useState<string | null>(null);
   const { data: localMRs = [] } = useLocalMRs();
   const { data: users = [] } = useUsers();
-  const { data: sales = [] } = useSales({ status: 'completed' });
+  const { data: sales = [] } = useSales({ status: 'approved' }); // Added filter
   /* ---------------- HELPERS ---------------- */
   const formatCurrency = (v: number) =>
     new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(v);

@@ -48,11 +48,25 @@ const totNavItems = [
   { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
-// Manager (org-wide view) nav items
 const managerNavItems = [
   { to: '/dashboard/manager', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/tots', icon: UserCog, label: 'TOT Management' },
+  { to: '/approval-requests', icon: CheckSquare, label: 'Approvals' },
+  { to: '/farmers', icon: Users, label: 'All Farmers' },
+  { to: '/sales', icon: ShoppingCart, label: 'Sales' },
+  { to: '/mechanisation', icon: Tractor, label: 'Mechanisation' },
+  { to: '/trainings', icon: GraduationCap, label: 'Trainings' },
+  { to: '/reports', icon: FileText, label: 'Reports' },
+  { to: '/commission', icon: Calculator, label: 'Commission Calculator' },
+  { to: '/support', icon: HelpCircle, label: 'Support' },
+  { to: '/settings', icon: Settings, label: 'Settings' },
+];
+
+const regionalManagerNavItems = [
+  { to: '/dashboard/regional', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/local-mrs', icon: Building2, label: 'Local MRs' },
   { to: '/tots', icon: UserCog, label: 'TOT Management' },
+  { to: '/approval-requests', icon: CheckSquare, label: 'Approvals' },
   { to: '/farmers', icon: Users, label: 'All Farmers' },
   { to: '/sales', icon: ShoppingCart, label: 'Sales Overview' },
   { to: '/mechanisation', icon: Tractor, label: 'Mechanisation' },
@@ -62,23 +76,11 @@ const managerNavItems = [
   { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
-// Local MR Coordinator (read-only access to their MR)
-const coordinatorNavItems = [
-  { to: '/dashboard/coordinator', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/tots', icon: UserCog, label: 'TOT Overview' },
-  { to: '/farmers', icon: Users, label: 'Farmers' },
-  { to: '/sales', icon: ShoppingCart, label: 'Sales' },
-  { to: '/mechanisation', icon: Tractor, label: 'Mechanisation' },
-  { to: '/trainings', icon: GraduationCap, label: 'Trainings' },
-  { to: '/reports', icon: FileText, label: 'Reports' },
-  { to: '/support', icon: HelpCircle, label: 'Support' },
-  { to: '/settings', icon: Settings, label: 'Settings' },
-];
-
 const adminNavItems = [
   { to: '/dashboard/admin', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/users', icon: UserCog, label: 'User Management' },
   { to: '/local-mrs', icon: Building2, label: 'Local MRs' },
+  { to: '/approval-requests', icon: CheckSquare, label: 'Approvals' },
   { to: '/products', icon: Package, label: 'Products' },
   { to: '/farmers', icon: Users, label: 'All Farmers' },
   { to: '/sales', icon: ShoppingCart, label: 'All Sales' },
@@ -97,20 +99,20 @@ export function MobileNav() {
   const navItems =
     user?.role === 'admin'
       ? adminNavItems
+      : user?.role === 'regional_manager'
+      ? regionalManagerNavItems
       : user?.role === 'manager'
       ? managerNavItems
-      : user?.role === 'local_mr_coordinator'
-      ? coordinatorNavItems
       : totNavItems;
 
   const getRoleBadge = () => {
     switch (user?.role) {
       case 'admin':
         return <Badge variant="destructive" className="text-xs">Admin</Badge>;
+      case 'regional_manager':
+        return <Badge className="text-xs bg-purple-500">Regional</Badge>;
       case 'manager':
-        return <Badge className="text-xs bg-purple-500">Manager</Badge>;
-      case 'local_mr_coordinator':
-        return <Badge variant="wheat" className="text-xs">Coordinator</Badge>;
+        return <Badge variant="wheat" className="text-xs">Manager</Badge>;
       default:
         return <Badge variant="forest" className="text-xs">TOT</Badge>;
     }

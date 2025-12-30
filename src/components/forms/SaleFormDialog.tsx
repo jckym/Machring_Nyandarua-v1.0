@@ -50,7 +50,7 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
       toast({ title: 'Stock Error', description: 'Quantity exceeds available stock', variant: 'destructive' });
       return;
     }
-    const saleData = {
+    const saleData: Partial<Sale> = {
       totId: user?.id || '',
       totName: user?.name || '',
       localMrId: user?.localMrId || '',
@@ -61,10 +61,10 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
       productName: selectedProduct?.name || '',
       quantity: formData.quantity,
       unitPrice: selectedProduct?.unitPrice || 0,
-      totalAmount: total,
+      total: total,
       commissionAmount: commission,
       date: new Date(`${formData.date}T00:00:00Z`),
-      status: 'pending',
+      status: 'pending' as const,
     };
     try {
       await onSubmit(saleData);
@@ -82,8 +82,8 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
         <DialogHeader><DialogTitle>Record New Sale</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto space-y-4 px-1">
           {isLoading && <div className="flex items-center justify-center py-12"><Loader2 className="w-8 h-8 animate-spin mr-3" /><span>Loading...</span></div>}
-          {farmersError && <div className="text-center py-12 text-destructive">Failed to load farmers. <Button onClick={refetchFarmers}>Retry</Button></div>}
-          {productsError && <div className="text-center py-12 text-destructive">Failed to load products. <Button onClick={refetchProducts}>Retry</Button></div>}
+          {farmersError && <div className="text-center py-12 text-destructive">Failed to load farmers. <Button onClick={() => refetchFarmers()}>Retry</Button></div>}
+          {productsError && <div className="text-center py-12 text-destructive">Failed to load products. <Button onClick={() => refetchProducts()}>Retry</Button></div>}
           {!isLoading && !hasError && (<>
             <div className="space-y-2"><Label>Select Farmer *</Label>
               <Select value={formData.farmerId} onValueChange={(value) => setFormData({ ...formData, farmerId: value })}>

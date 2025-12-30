@@ -35,7 +35,7 @@ export function Header() {
       case 'admin':
         return 'System Administrator';
       case 'manager':
-        return `Local MR Manager`;
+        return `Local MR Coordinator`;
       case 'tot':
         return 'Technical Officer';
       default:

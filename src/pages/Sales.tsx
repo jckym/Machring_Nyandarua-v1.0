@@ -49,7 +49,7 @@ export function Sales() {
     const matchesStatus = statusFilter === 'all' || sale.status === statusFilter;
     return matchesSearch && matchesProduct && matchesStatus;
   });
-  const totalRevenue = completedSales.reduce((acc, sale) => acc + sale.totalAmount, 0);
+  const totalRevenue = completedSales.reduce((acc, sale) => acc + sale.total, 0);
   const totalCommission = completedSales.reduce((acc, sale) => acc + sale.commissionAmount, 0);
   const handleAddSale = (data: Partial<Sale>) => {
     createSale.mutate(data as any);
@@ -253,7 +253,7 @@ export function Sales() {
                     </td>
                     <td className="py-3 px-4 text-sm">{sale.productName}</td>
                     <td className="py-3 px-4 text-sm font-medium">{sale.quantity}</td>
-                    <td className="py-3 px-4 text-sm font-semibold text-primary">{formatCurrency(sale.totalAmount)}</td>
+                    <td className="py-3 px-4 text-sm font-semibold text-primary">{formatCurrency(sale.total)}</td>
                     <td className="py-3 px-4 text-sm text-emerald-600 font-medium">{formatCurrency(sale.commissionAmount)}</td>
                     <td className="py-3 px-4">
                       <Badge variant={getStatusColor(sale.status) as any}>{sale.status}</Badge>

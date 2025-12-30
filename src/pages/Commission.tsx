@@ -53,25 +53,25 @@ export function Commission() {
   const [selectedMrName, setSelectedMrName] = useState<string | null>(null);
   const { data: localMRs = [] } = useLocalMRs();
   const { data: users = [] } = useUsers();
-  const { data: sales = [] } = useSales({ status: 'approved' }); // Added filter
+  const { data: sales = [] } = useSales({ status: 'completed' });
   /* ---------------- HELPERS ---------------- */
   const formatCurrency = (v: number) =>
     new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(v);
-  const approvedSales = useMemo(
-    () => sales.filter((s: any) => s.status === 'approved'),
+  const completedSales = useMemo(
+    () => sales.filter((s: any) => s.status === 'completed'),
     [sales]
   );
   /* ---------------- GROUPED SALES ---------------- */
-  const salesByMr = useMemo(() => approvedSales.reduce((acc: any, s: any) => {
+  const salesByMr = useMemo(() => completedSales.reduce((acc: any, s: any) => {
     if (!acc[s.localMrId]) acc[s.localMrId] = [];
     acc[s.localMrId].push(s);
     return acc;
-  }, {}), [approvedSales]);
-  const salesByTot = useMemo(() => approvedSales.reduce((acc: any, s: any) => {
+  }, {}), [completedSales]);
+  const salesByTot = useMemo(() => completedSales.reduce((acc: any, s: any) => {
     if (!acc[s.totId]) acc[s.totId] = [];
     acc[s.totId].push(s);
     return acc;
-  }, {}), [approvedSales]);
+  }, {}), [completedSales]);
   /* ---------------- LOCAL MR AGGREGATION ---------------- */
   const localMRSummaries: LocalMRSummary[] = useMemo(() => {
     return localMRs.map((mr: any) => {
@@ -86,7 +86,7 @@ export function Commission() {
         totalTots: tots.length,
         activeTots: tots.filter((t: any) => t.status === 'active').length,
         totalSales: mrSales.reduce(
-          (acc: number, s: any) => acc + s.totalAmount,
+          (acc: number, s: any) => acc + s.total,
           0
         ),
         totalCommission: mrSales.reduce(
@@ -110,7 +110,7 @@ export function Commission() {
           name: tot.name,
           status: tot.status === 'active' ? 'active' : 'inactive',
           totalSales: totSales.reduce(
-            (acc: number, s: any) => acc + s.totalAmount,
+            (acc: number, s: any) => acc + s.total,
             0
           ),
           totalCommission: totSales.reduce(

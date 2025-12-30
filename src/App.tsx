@@ -20,7 +20,7 @@ import { ResetPassword } from "@/pages/ResetPassword";
 import { Dashboard } from "@/pages/Dashboard";
 import { AdminDashboard } from "@/pages/dashboard/AdminDashboard";
 import { ManagerDashboard } from "@/pages/dashboard/ManagerDashboard";
-import { RegionalDashboard } from "@/pages/dashboard/RegionalDashboard";
+import { CoordinatorDashboard } from "@/pages/dashboard/CoordinatorDashboard";
 import { TotDashboard } from "@/pages/dashboard/TotDashboard";
 import { Farmers } from "@/pages/Farmers";
 import { FarmerProfile } from "@/pages/FarmerProfile";
@@ -63,26 +63,30 @@ const App = () => (
                 
                 <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
                   <Route path="/dashboard" element={<Dashboard />} />
+                  
+                  {/* Role-specific dashboards */}
                   <Route path="/dashboard/admin" element={
                     <ProtectedRoute allowedRoles={['admin']}>
                       <AdminDashboard />
                     </ProtectedRoute>
                   } />
-                  <Route path="/dashboard/regional" element={
-                    <ProtectedRoute allowedRoles={['regional_manager', 'admin']}>
-                      <RegionalDashboard />
-                    </ProtectedRoute>
-                  } />
                   <Route path="/dashboard/manager" element={
-                    <ProtectedRoute allowedRoles={['manager', 'regional_manager', 'admin']}>
+                    <ProtectedRoute allowedRoles={['manager', 'admin']}>
                       <ManagerDashboard />
                     </ProtectedRoute>
                   } />
+                  <Route path="/dashboard/coordinator" element={
+                    <ProtectedRoute allowedRoles={['local_mr_coordinator', 'admin']}>
+                      <CoordinatorDashboard />
+                    </ProtectedRoute>
+                  } />
                   <Route path="/dashboard/tot" element={
-                    <ProtectedRoute allowedRoles={['tot', 'manager', 'regional_manager', 'admin']}>
+                    <ProtectedRoute allowedRoles={['tot', 'local_mr_coordinator', 'manager', 'admin']}>
                       <TotDashboard />
                     </ProtectedRoute>
                   } />
+                  
+                  {/* Shared routes */}
                   <Route path="/farmers" element={<Farmers />} />
                   <Route path="/farmers/:id" element={<FarmerProfile />} />
                   <Route path="/sales" element={<Sales />} />
@@ -97,27 +101,29 @@ const App = () => (
                   <Route path="/commission" element={<Commission />} />
                   <Route path="/notifications" element={<Notifications />} />
                   
-                  {/* Manager & Admin routes */}
+                  {/* Coordinator, Manager & Admin routes */}
                   <Route path="/tots" element={
-                    <ProtectedRoute allowedRoles={['manager', 'regional_manager', 'admin']}>
+                    <ProtectedRoute allowedRoles={['local_mr_coordinator', 'manager', 'admin']}>
                       <TOTManagement />
                     </ProtectedRoute>
                   } />
-                  <Route path="/approval-requests" element={
-                    <ProtectedRoute allowedRoles={['manager', 'regional_manager', 'admin']}>
-                      <ApprovalRequests />
+                  
+                  {/* Admin & Manager routes */}
+                  <Route path="/local-mrs" element={
+                    <ProtectedRoute allowedRoles={['manager', 'admin']}>
+                      <LocalMRs />
                     </ProtectedRoute>
                   } />
                   
-                  {/* Admin routes */}
+                  {/* Admin-only routes */}
                   <Route path="/users" element={
                     <ProtectedRoute allowedRoles={['admin']}>
                       <Users />
                     </ProtectedRoute>
                   } />
-                  <Route path="/local-mrs" element={
-                    <ProtectedRoute allowedRoles={['admin', 'regional_manager']}>
-                      <LocalMRs />
+                  <Route path="/approval-requests" element={
+                    <ProtectedRoute allowedRoles={['admin']}>
+                      <ApprovalRequests />
                     </ProtectedRoute>
                   } />
                   <Route path="/audit" element={

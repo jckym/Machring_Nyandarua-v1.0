@@ -53,12 +53,12 @@ export function Commission() {
   const [selectedMrName, setSelectedMrName] = useState<string | null>(null);
   const { data: localMRs = [] } = useLocalMRs();
   const { data: users = [] } = useUsers();
-  const { data: sales = [] } = useSales({ status: 'approved' }); // Added filter
+  const { data: sales = [] } = useSales({ status: 'completed' });
   /* ---------------- HELPERS ---------------- */
   const formatCurrency = (v: number) =>
     new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(v);
   const approvedSales = useMemo(
-    () => sales.filter((s: any) => s.status === 'approved'),
+    () => sales.filter((s: any) => s.status === 'completed'),
     [sales]
   );
   /* ---------------- GROUPED SALES ---------------- */
@@ -86,11 +86,11 @@ export function Commission() {
         totalTots: tots.length,
         activeTots: tots.filter((t: any) => t.status === 'active').length,
         totalSales: mrSales.reduce(
-          (acc: number, s: any) => acc + s.totalAmount,
+          (acc: number, s: any) => acc + (s.total || 0),
           0
         ),
         totalCommission: mrSales.reduce(
-          (acc: number, s: any) => acc + s.commissionAmount,
+          (acc: number, s: any) => acc + (s.commissionAmount || 0),
           0
         ),
       };
@@ -110,11 +110,11 @@ export function Commission() {
           name: tot.name,
           status: tot.status === 'active' ? 'active' : 'inactive',
           totalSales: totSales.reduce(
-            (acc: number, s: any) => acc + s.totalAmount,
+            (acc: number, s: any) => acc + (s.total || 0),
             0
           ),
           totalCommission: totSales.reduce(
-            (acc: number, s: any) => acc + s.commissionAmount,
+            (acc: number, s: any) => acc + (s.commissionAmount || 0),
             0
           ),
         };

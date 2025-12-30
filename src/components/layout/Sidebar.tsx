@@ -29,8 +29,6 @@ import {
   Shield,
   Bell,
   AlertCircle,
-  HelpCircle,
-  CheckSquare,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -42,57 +40,54 @@ type NavItem = {
   label: string;
 };
 
+// TOT: Read-only access to their own data
 const totNavItems: NavItem[] = [
   { to: '/dashboard/tot', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/farmers', icon: Users, label: 'My Farmers' },
-  { to: '/sales', icon: ShoppingCart, label: 'Sales' },
+  { to: '/sales', icon: ShoppingCart, label: 'My Sales' },
   { to: '/mechanisation', icon: Tractor, label: 'Mechanisation' },
-  { to: '/visits', icon: MapPin, label: 'Field Visits' },
+  { to: '/visits', icon: MapPin, label: 'My Visits' },
   { to: '/trainings', icon: GraduationCap, label: 'Trainings' },
   { to: '/products', icon: Package, label: 'Products' },
   { to: '/commission', icon: Calculator, label: 'My Commission' },
-  { to: '/reports', icon: FileText, label: 'Reports' },
-  { to: '/support', icon: HelpCircle, label: 'Support' },
-  { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
-const managerNavItems: NavItem[] = [
-  { to: '/dashboard/manager', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/tots', icon: UserCog, label: 'TOT Management' },
-  { to: '/approval-requests', icon: CheckSquare, label: 'Approvals' },
-  { to: '/farmers', icon: Users, label: 'All Farmers' },
+// Local MR Coordinator: Read-only, scoped to their Local MR
+const coordinatorNavItems: NavItem[] = [
+  { to: '/dashboard/coordinator', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/tots', icon: UserCog, label: 'TOT Overview' },
+  { to: '/farmers', icon: Users, label: 'Farmers' },
   { to: '/sales', icon: ShoppingCart, label: 'Sales' },
   { to: '/mechanisation', icon: Tractor, label: 'Mechanisation' },
   { to: '/trainings', icon: GraduationCap, label: 'Trainings' },
   { to: '/reports', icon: FileText, label: 'Reports' },
   { to: '/commission', icon: Calculator, label: 'Commission' },
-  { to: '/support', icon: HelpCircle, label: 'Support' },
-  { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
-const regionalManagerNavItems: NavItem[] = [
-  { to: '/dashboard/regional', icon: LayoutDashboard, label: 'Dashboard' },
+// Manager: Read-only, organization-wide access
+const managerNavItems: NavItem[] = [
+  { to: '/dashboard/manager', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/local-mrs', icon: Building2, label: 'Local MRs' },
-  { to: '/tots', icon: UserCog, label: 'TOT Management' },
-  { to: '/approval-requests', icon: CheckSquare, label: 'Approvals' },
+  { to: '/tots', icon: UserCog, label: 'All TOTs' },
   { to: '/farmers', icon: Users, label: 'All Farmers' },
   { to: '/sales', icon: ShoppingCart, label: 'Sales Overview' },
   { to: '/mechanisation', icon: Tractor, label: 'Mechanisation' },
   { to: '/trainings', icon: GraduationCap, label: 'Trainings' },
   { to: '/reports', icon: FileText, label: 'Reports' },
   { to: '/notifications', icon: Bell, label: 'Notifications' },
-  { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
+// Admin: Full data entry and management access
 const adminNavItems: NavItem[] = [
   { to: '/dashboard/admin', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/users', icon: UserCog, label: 'User Management' },
   { to: '/local-mrs', icon: Building2, label: 'Local MRs' },
-  { to: '/approval-requests', icon: CheckSquare, label: 'Approvals' },
   { to: '/products', icon: Package, label: 'Products' },
   { to: '/farmers', icon: Users, label: 'All Farmers' },
   { to: '/sales', icon: ShoppingCart, label: 'All Sales' },
   { to: '/mechanisation', icon: Tractor, label: 'Mechanisation' },
+  { to: '/trainings', icon: GraduationCap, label: 'Trainings' },
+  { to: '/visits', icon: MapPin, label: 'Visits' },
   { to: '/reports', icon: FileText, label: 'Reports' },
   { to: '/notifications', icon: Bell, label: 'Notifications' },
   { to: '/system-logs', icon: AlertCircle, label: 'System Logs' },
@@ -109,10 +104,10 @@ export function Sidebar() {
   const navItems =
     user?.role === 'admin'
       ? adminNavItems
-      : user?.role === 'regional_manager'
-      ? regionalManagerNavItems
       : user?.role === 'manager'
       ? managerNavItems
+      : user?.role === 'local_mr_coordinator'
+      ? coordinatorNavItems
       : totNavItems;
 
   const handleLogout = () => {
@@ -120,12 +115,18 @@ export function Sidebar() {
     toast.success('Logged out successfully');
   };
 
-  const roleBadge = {
-    admin: <Badge variant="destructive">Admin</Badge>,
-    regional_manager: <Badge className="bg-purple-500">Regional</Badge>,
-    manager: <Badge variant="wheat">Manager</Badge>,
-    tot: <Badge variant="forest">TOT</Badge>,
-  }[user?.role || 'tot'];
+  const getRoleBadge = () => {
+    switch (user?.role) {
+      case 'admin':
+        return <Badge variant="destructive">Admin</Badge>;
+      case 'manager':
+        return <Badge className="bg-purple-500">Manager</Badge>;
+      case 'local_mr_coordinator':
+        return <Badge variant="wheat">Coordinator</Badge>;
+      default:
+        return <Badge variant="forest">TOT</Badge>;
+    }
+  };
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -164,7 +165,7 @@ export function Sidebar() {
               <div>
                 <p className="text-sm font-medium truncate">{user?.name}</p>
                 <div className="flex gap-2 mt-1 items-center">
-                  {roleBadge}
+                  {getRoleBadge()}
                   {user?.localMrName && (
                     <span className="text-xs opacity-70 truncate">
                       {user.localMrName}

@@ -22,10 +22,7 @@ import {
   FileSpreadsheet,
   FileText,
   Star,
-  Clock,
   Eye,
-  CheckCircle,
-  XCircle,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -40,29 +37,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-
-interface PendingRequest {
-  id: string;
-  type: 'add' | 'edit';
-  farmerId?: string;
-  data: Partial<Farmer>;
-  requestedBy: string;
-  requestedAt: Date;
-  status: 'pending' | 'approved' | 'rejected';
-  reviewedBy?: string;
-  reviewedAt?: Date;
-}
 
 export function Farmers() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { user } = useAuth();
+  const { user, isAdmin, canEdit } = useAuth();
   const { addNotification } = useNotifications();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -71,8 +50,6 @@ export function Farmers() {
   const [ratingFilter, setRatingFilter] = useState('all');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingFarmer, setEditingFarmer] = useState<Farmer | null>(null);
-  const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
-  const [previewRequest, setPreviewRequest] = useState<PendingRequest | null>(null);
 
   // API hooks
   const { data: farmers = [], isLoading } = useFarmers({ 
@@ -83,14 +60,14 @@ export function Farmers() {
   const createFarmer = useCreateFarmer();
   const updateFarmer = useUpdateFarmer();
 
-  // Auto-open add modal from Quick Actions
+  // Auto-open add modal from Quick Actions (Admin only)
   useEffect(() => {
-    if (searchParams.get('add') === 'new') {
+    if (searchParams.get('add') === 'new' && isAdmin) {
       setIsFormOpen(true);
       searchParams.delete('add');
       setSearchParams(searchParams);
     }
-  }, [searchParams, setSearchParams]);
+  }, [searchParams, setSearchParams, isAdmin]);
 
   const filteredFarmers = farmers.filter(farmer => {
     const matchesSearch = farmer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -117,55 +94,22 @@ export function Farmers() {
     }
   };
 
-  const handleSubmitRequest = (data: Partial<Farmer>, type: 'add' | 'edit', originalFarmer?: Farmer) => {
-    if (user?.role === 'manager' || user?.role === 'admin') {
-      if (type === 'add') {
-        createFarmer.mutate(data as any);
-      } else if (type === 'edit' && originalFarmer) {
-        updateFarmer.mutate({ id: originalFarmer.id, data: data as any });
-      }
+  const handleSubmitFarmer = (data: Partial<Farmer>) => {
+    if (!canEdit) {
+      toast.error('You do not have permission to add farmers');
+      return;
+    }
+    
+    if (editingFarmer) {
+      updateFarmer.mutate({ id: editingFarmer.id, data: data as any });
     } else {
-      const request: PendingRequest = {
-        id: `req-${Date.now()}`,
-        type,
-        farmerId: originalFarmer?.id,
-        data,
-        requestedBy: user?.name || 'TOT',
-        requestedAt: new Date(),
-        status: 'pending',
-      };
-      setPendingRequests(prev => [...prev, request]);
-      const action = type === 'add' ? 'New farmer registration' : 'Edit request';
-      toast.success(`${action} sent for approval`);
+      createFarmer.mutate(data as any);
       addNotification({
-        title: 'Pending Approval Required',
-        message: `${user?.name} submitted a ${type === 'add' ? 'new farmer' : 'farmer edit'} request`,
+        title: 'Farmer Added',
+        message: `New farmer registered successfully`,
         type: 'farmer',
       });
     }
-  };
-
-  const approveRequest = (reqId: string) => {
-    const req = pendingRequests.find(r => r.id === reqId);
-    if (!req) return;
-
-    if (req.type === 'add') {
-      createFarmer.mutate(req.data as any);
-    } else if (req.type === 'edit' && req.farmerId) {
-      updateFarmer.mutate({ id: req.farmerId, data: req.data as any });
-    }
-
-    setPendingRequests(prev => prev.map(r =>
-      r.id === reqId ? { ...r, status: 'approved', reviewedBy: user?.name, reviewedAt: new Date() } : r
-    ));
-    toast.success('Request approved');
-  };
-
-  const rejectRequest = (reqId: string) => {
-    setPendingRequests(prev => prev.map(r =>
-      r.id === reqId ? { ...r, status: 'rejected', reviewedBy: user?.name, reviewedAt: new Date() } : r
-    ));
-    toast.success('Request rejected');
   };
 
   const handleExport = (format: 'excel' | 'pdf') => {
@@ -182,8 +126,6 @@ export function Farmers() {
     }
   };
 
-  const pendingToReview = pendingRequests.filter(r => r.status === 'pending');
-
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat('en-KE', {
       day: 'numeric',
@@ -191,6 +133,9 @@ export function Farmers() {
       year: 'numeric',
     }).format(new Date(date));
   };
+
+  // Manager and Coordinator can export reports
+  const canExport = user?.role === 'admin' || user?.role === 'manager' || user?.role === 'local_mr_coordinator';
 
   if (isLoading) {
     return (
@@ -213,27 +158,34 @@ export function Farmers() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
           <h1 className="font-heading text-xl sm:text-2xl font-bold text-foreground">Farmers</h1>
-          <p className="text-sm text-muted-foreground">Manage your registered farmers</p>
+          <p className="text-sm text-muted-foreground">
+            {isAdmin ? 'Manage registered farmers' : 'View registered farmers'}
+          </p>
         </div>
         <div className="flex items-center gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="hidden sm:flex">
-                <Download className="w-4 h-4 mr-2" /> Export
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => handleExport('excel')}>
-                <FileSpreadsheet className="w-4 h-4 mr-2" /> Export to Excel
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport('pdf')}>
-                <FileText className="w-4 h-4 mr-2" /> Export to PDF
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button variant="forest" size="sm" onClick={() => setIsFormOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" /> Add Farmer
-          </Button>
+          {canExport && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="hidden sm:flex">
+                  <Download className="w-4 h-4 mr-2" /> Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => handleExport('excel')}>
+                  <FileSpreadsheet className="w-4 h-4 mr-2" /> Export to Excel
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport('pdf')}>
+                  <FileText className="w-4 h-4 mr-2" /> Export to PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          {/* Admin only: Add Farmer button */}
+          {isAdmin && (
+            <Button variant="forest" size="sm" onClick={() => setIsFormOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" /> Add Farmer
+            </Button>
+          )}
         </div>
       </div>
 
@@ -276,66 +228,6 @@ export function Farmers() {
         </CardContent>
       </Card>
 
-      {/* Pending Requests Table (Manager/Admin only) */}
-      {(user?.role === 'manager' || user?.role === 'admin') && pendingToReview.length > 0 && (
-        <Card className="border-orange-200 bg-orange-50/50">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2 text-orange-800">
-              <Clock className="w-5 h-5" />
-              Pending Requests ({pendingToReview.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="border-b">
-                  <tr>
-                    <th className="text-left py-3 px-4">Type</th>
-                    <th className="text-left py-3 px-4">Farmer</th>
-                    <th className="text-left py-3 px-4">Requested By</th>
-                    <th className="text-left py-3 px-4">Date</th>
-                    <th className="text-center py-3 px-4">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pendingToReview.map(req => {
-                    const farmerName = req.type === 'add'
-                      ? (req.data as any).name || 'New Farmer'
-                      : farmers.find(f => f.id === req.farmerId)?.name || 'Unknown';
-
-                    return (
-                      <tr key={req.id} className="border-b hover:bg-orange-50">
-                        <td className="py-3 px-4">
-                          <Badge variant={req.type === 'add' ? 'default' : 'secondary'}>
-                            {req.type === 'add' ? 'New Registration' : 'Edit'}
-                          </Badge>
-                        </td>
-                        <td className="py-3 px-4 font-medium">{farmerName}</td>
-                        <td className="py-3 px-4">{req.requestedBy}</td>
-                        <td className="py-3 px-4">{formatDate(req.requestedAt)}</td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center justify-center gap-2">
-                            <Button size="sm" variant="ghost" onClick={() => setPreviewRequest(req)}>
-                              <Eye className="w-4 h-4" /> View
-                            </Button>
-                            <Button size="sm" variant="destructive" onClick={() => rejectRequest(req.id)}>
-                              <XCircle className="w-4 h-4" /> Reject
-                            </Button>
-                            <Button size="sm" onClick={() => approveRequest(req.id)}>
-                              <CheckCircle className="w-4 h-4" /> Approve
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card className="p-3 sm:p-4" variant="forest">
@@ -377,12 +269,14 @@ export function Farmers() {
         </Card>
         <Card className="p-3 sm:p-4">
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-orange-100 flex items-center justify-center">
-              <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
+              <Users className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
             </div>
             <div>
-              <p className="text-lg sm:text-2xl font-bold font-heading text-orange-600">{pendingToReview.length}</p>
-              <p className="text-xs sm:text-sm text-muted-foreground">Pending</p>
+              <p className="text-lg sm:text-2xl font-bold font-heading text-emerald-600">
+                {filteredFarmers.filter(f => f.farmerRating === 'Active').length}
+              </p>
+              <p className="text-xs sm:text-sm text-muted-foreground">Active</p>
             </div>
           </div>
         </Card>
@@ -456,32 +350,15 @@ export function Farmers() {
         </CardContent>
       </Card>
 
-      {/* Farmer Form Dialog */}
-      <FarmerFormDialog
-        open={isFormOpen}
-        onOpenChange={setIsFormOpen}
-        onSubmit={(data) => handleSubmitRequest(data, editingFarmer ? 'edit' : 'add', editingFarmer || undefined)}
-        farmer={editingFarmer}
-      />
-
-      {/* Preview Request Dialog */}
-      <Dialog open={!!previewRequest} onOpenChange={() => setPreviewRequest(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Request Details</DialogTitle>
-          </DialogHeader>
-          {previewRequest && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div><span className="text-muted-foreground">Name:</span> {(previewRequest.data as any).name}</div>
-                <div><span className="text-muted-foreground">Phone:</span> {(previewRequest.data as any).phone}</div>
-                <div><span className="text-muted-foreground">Value Chain:</span> {(previewRequest.data as any).valueChain}</div>
-                <div><span className="text-muted-foreground">Category:</span> {(previewRequest.data as any).farmerCategory}</div>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Farmer Form Dialog - Admin only */}
+      {isAdmin && (
+        <FarmerFormDialog
+          open={isFormOpen}
+          onOpenChange={setIsFormOpen}
+          onSubmit={handleSubmitFarmer}
+          farmer={editingFarmer}
+        />
+      )}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 // src/components/FloatingActions.tsx
+// Admin-only data entry - FloatingActions restricted to Admin role only
 import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -11,7 +12,6 @@ import {
   Tractor,
   MapPin,
   GraduationCap,
-  Package,
 } from 'lucide-react';
 import { FarmerFormDialog } from '@/components/forms/FarmerFormDialog';
 import { SaleFormDialog } from '@/components/forms/SaleFormDialog';
@@ -24,15 +24,15 @@ interface FloatingAction {
   icon: React.ElementType;
   label: string;
   dialog: React.ReactNode;
-  roles?: ('tot' | 'manager' | 'admin')[]; // Restrict to roles
 }
 
 export function FloatingActions() {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
 
-  const userRole = user?.role;
+  // Only Admin can see floating actions
+  if (!isAdmin) return null;
 
   // Dialog states
   const [farmerDialogOpen, setFarmerDialogOpen] = useState(false);
@@ -46,51 +46,41 @@ export function FloatingActions() {
       icon: Users,
       label: 'Add Farmer',
       dialog: <FarmerFormDialog open={farmerDialogOpen} onOpenChange={setFarmerDialogOpen} onSubmit={() => {}} />,
-      roles: ['tot', 'manager'],
     },
     {
       icon: ShoppingCart,
       label: 'Record Sale',
       dialog: <SaleFormDialog open={saleDialogOpen} onOpenChange={setSaleDialogOpen} onSubmit={() => {}} />,
-      roles: ['tot'],
     },
     {
       icon: Tractor,
       label: 'New Booking',
       dialog: <MechanisationFormDialog open={mechanisationDialogOpen} onOpenChange={setMechanisationDialogOpen} onSubmit={() => {}} />,
-      roles: ['tot'],
     },
     {
       icon: MapPin,
       label: 'Log Visit',
       dialog: <VisitFormDialog open={visitDialogOpen} onOpenChange={setVisitDialogOpen} onSubmit={() => {}} />,
-      roles: ['tot'],
     },
     {
       icon: GraduationCap,
       label: 'Schedule Training',
       dialog: <TrainingFormDialog open={trainingDialogOpen} onOpenChange={setTrainingDialogOpen} onSubmit={() => {}} />,
-      roles: ['tot', 'manager'],
     },
   ];
 
-  // Filter actions by current page and user role
-  const currentPath = location.pathname.split('/')[1]; // e.g., 'farmers' from '/farmers'
+  // Filter actions by current page
+  const currentPath = location.pathname.split('/')[1];
   const relevantActions = actions.filter(action => {
-    if (!action.roles || action.roles.includes(userRole as any)) {
-      // Show on relevant pages or dashboard
-      const relevantPages: Record<string, boolean> = {
-        farmers: action.label.includes('Farmer'),
-        sales: action.label.includes('Sale'),
-        mechanisation: action.label.includes('Booking'),
-        visits: action.label.includes('Visit'),
-        trainings: action.label.includes('Training'),
-        products: action.label.includes('Product'),
-        dashboard: true,
-      };
-      return relevantPages[currentPath] || currentPath === 'dashboard';
-    }
-    return false;
+    const relevantPages: Record<string, boolean> = {
+      farmers: action.label.includes('Farmer'),
+      sales: action.label.includes('Sale'),
+      mechanisation: action.label.includes('Booking'),
+      visits: action.label.includes('Visit'),
+      trainings: action.label.includes('Training'),
+      dashboard: true,
+    };
+    return relevantPages[currentPath] || currentPath === 'dashboard';
   });
 
   if (relevantActions.length === 0) return null;
@@ -104,7 +94,7 @@ export function FloatingActions() {
         <div className="fixed bottom-6 right-6 z-50 lg:hidden">
           <Button
             size="lg"
-            variant={action.label.includes('Product') ? 'forest' : action.label.includes('Sale') ? 'wheat' : 'earth'}
+            variant="forest"
             className="h-14 w-14 rounded-full shadow-elevated"
             onClick={() => {
               const setOpen: Record<string, React.Dispatch<React.SetStateAction<boolean>>> = {
@@ -150,7 +140,7 @@ export function FloatingActions() {
               </span>
               <Button
                 size="icon"
-                variant={action.label.includes('Product') ? 'forest' : action.label.includes('Sale') ? 'wheat' : 'earth'}
+                variant="forest"
                 className="h-12 w-12 rounded-full shadow-card"
                 onClick={() => {
                   const setOpen: Record<string, React.Dispatch<React.SetStateAction<boolean>>> = {

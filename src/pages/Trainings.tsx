@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { TrainingFormDialog } from '@/components/forms/TrainingFormDialog';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Training } from '@/types';
 import { useTrainings, useCreateTraining } from '@/hooks/api';
@@ -22,6 +23,7 @@ export function Trainings() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const { addNotification } = useNotifications();
+  const { user, isAdmin, canEdit } = useAuth();
 
   // API hooks
   const { data: trainings = [], isLoading } = useTrainings();
@@ -37,10 +39,14 @@ export function Trainings() {
   const totalHours = trainings.reduce((acc, t) => acc + t.duration, 0);
 
   const handleAddTraining = (data: Partial<Training>) => {
+    if (!canEdit) {
+      toast.error('You do not have permission to schedule trainings');
+      return;
+    }
     createTraining.mutate(data as any);
     addNotification({
       title: 'New Training Scheduled',
-      message: `Training scheduled`,
+      message: `Training scheduled successfully`,
       type: 'training',
     });
   };
@@ -61,6 +67,9 @@ export function Trainings() {
       default: return 'sage';
     }
   };
+
+  // Manager and Coordinator can export reports
+  const canExport = user?.role === 'admin' || user?.role === 'manager' || user?.role === 'local_mr_coordinator';
 
   if (isLoading) {
     return (
@@ -85,31 +94,38 @@ export function Trainings() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
           <h1 className="font-heading text-xl sm:text-2xl font-bold text-foreground">Trainings</h1>
-          <p className="text-sm text-muted-foreground">Manage capacity building sessions</p>
+          <p className="text-sm text-muted-foreground">
+            {isAdmin ? 'Manage capacity building sessions' : 'View capacity building sessions'}
+          </p>
         </div>
         <div className="flex items-center gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="hidden sm:flex">
-                <Download className="w-4 h-4 mr-2" />
-                Export
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => { exportTrainingsToExcel(filteredTrainings); toast.success('Exported to Excel'); }}>
-                <FileSpreadsheet className="w-4 h-4 mr-2" />
-                Export to Excel
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { exportTrainingsToPDF(filteredTrainings); toast.success('Exported to PDF'); }}>
-                <FileText className="w-4 h-4 mr-2" />
-                Export to PDF
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button variant="forest" size="sm" onClick={() => setIsFormOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Schedule Training
-          </Button>
+          {canExport && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="hidden sm:flex">
+                  <Download className="w-4 h-4 mr-2" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => { exportTrainingsToExcel(filteredTrainings); toast.success('Exported to Excel'); }}>
+                  <FileSpreadsheet className="w-4 h-4 mr-2" />
+                  Export to Excel
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { exportTrainingsToPDF(filteredTrainings); toast.success('Exported to PDF'); }}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  Export to PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          {/* Admin only: Schedule Training button */}
+          {isAdmin && (
+            <Button variant="forest" size="sm" onClick={() => setIsFormOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Schedule Training
+            </Button>
+          )}
         </div>
       </div>
 
@@ -208,7 +224,6 @@ export function Trainings() {
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <Button variant="outline" size="sm" className="text-xs h-8">Details</Button>
-                        <Button variant="forest" size="sm" className="text-xs h-8">Attendance</Button>
                       </div>
                     </div>
                     <p className="text-xs sm:text-sm text-muted-foreground mt-1">
@@ -252,12 +267,14 @@ export function Trainings() {
         ))}
       </div>
 
-      {/* Training Form Dialog */}
-      <TrainingFormDialog
-        open={isFormOpen}
-        onOpenChange={setIsFormOpen}
-        onSubmit={handleAddTraining}
-      />
+      {/* Training Form Dialog - Admin only */}
+      {isAdmin && (
+        <TrainingFormDialog
+          open={isFormOpen}
+          onOpenChange={setIsFormOpen}
+          onSubmit={handleAddTraining}
+        />
+      )}
     </div>
   );
 }

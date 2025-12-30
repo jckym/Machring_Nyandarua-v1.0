@@ -29,62 +29,57 @@ import {
   Shield,
   Bell,
   AlertCircle,
-  HelpCircle,
-  CheckSquare,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+// TOT: Read-only access to their own data
 const totNavItems = [
   { to: '/dashboard/tot', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/farmers', icon: Users, label: 'My Farmers' },
-  { to: '/sales', icon: ShoppingCart, label: 'Sales' },
+  { to: '/sales', icon: ShoppingCart, label: 'My Sales' },
   { to: '/mechanisation', icon: Tractor, label: 'Mechanisation' },
-  { to: '/visits', icon: MapPin, label: 'Field Visits' },
+  { to: '/visits', icon: MapPin, label: 'My Visits' },
   { to: '/trainings', icon: GraduationCap, label: 'Trainings' },
   { to: '/products', icon: Package, label: 'Products' },
   { to: '/commission', icon: Calculator, label: 'My Commission' },
-  { to: '/reports', icon: FileText, label: 'Reports' },
-  { to: '/support', icon: HelpCircle, label: 'Support' },
-  { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
-const managerNavItems = [
-  { to: '/dashboard/manager', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/tots', icon: UserCog, label: 'TOT Management' },
-  { to: '/approval-requests', icon: CheckSquare, label: 'Approvals' },
-  { to: '/farmers', icon: Users, label: 'All Farmers' },
+// Local MR Coordinator: Read-only, scoped to their Local MR
+const coordinatorNavItems = [
+  { to: '/dashboard/coordinator', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/tots', icon: UserCog, label: 'TOT Overview' },
+  { to: '/farmers', icon: Users, label: 'Farmers' },
   { to: '/sales', icon: ShoppingCart, label: 'Sales' },
   { to: '/mechanisation', icon: Tractor, label: 'Mechanisation' },
   { to: '/trainings', icon: GraduationCap, label: 'Trainings' },
   { to: '/reports', icon: FileText, label: 'Reports' },
-  { to: '/commission', icon: Calculator, label: 'Commission Calculator' },
-  { to: '/support', icon: HelpCircle, label: 'Support' },
-  { to: '/settings', icon: Settings, label: 'Settings' },
+  { to: '/commission', icon: Calculator, label: 'Commission' },
 ];
 
-const regionalManagerNavItems = [
-  { to: '/dashboard/regional', icon: LayoutDashboard, label: 'Dashboard' },
+// Manager: Read-only, organization-wide access
+const managerNavItems = [
+  { to: '/dashboard/manager', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/local-mrs', icon: Building2, label: 'Local MRs' },
-  { to: '/tots', icon: UserCog, label: 'TOT Management' },
-  { to: '/approval-requests', icon: CheckSquare, label: 'Approvals' },
+  { to: '/tots', icon: UserCog, label: 'All TOTs' },
   { to: '/farmers', icon: Users, label: 'All Farmers' },
   { to: '/sales', icon: ShoppingCart, label: 'Sales Overview' },
   { to: '/mechanisation', icon: Tractor, label: 'Mechanisation' },
   { to: '/trainings', icon: GraduationCap, label: 'Trainings' },
   { to: '/reports', icon: FileText, label: 'Reports' },
   { to: '/notifications', icon: Bell, label: 'Notifications' },
-  { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
+// Admin: Full data entry and management access
 const adminNavItems = [
   { to: '/dashboard/admin', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/users', icon: UserCog, label: 'User Management' },
   { to: '/local-mrs', icon: Building2, label: 'Local MRs' },
-  { to: '/approval-requests', icon: CheckSquare, label: 'Approvals' },
   { to: '/products', icon: Package, label: 'Products' },
   { to: '/farmers', icon: Users, label: 'All Farmers' },
   { to: '/sales', icon: ShoppingCart, label: 'All Sales' },
   { to: '/mechanisation', icon: Tractor, label: 'Mechanisation' },
+  { to: '/trainings', icon: GraduationCap, label: 'Trainings' },
+  { to: '/visits', icon: MapPin, label: 'Visits' },
   { to: '/reports', icon: FileText, label: 'Reports' },
   { to: '/notifications', icon: Bell, label: 'Notifications' },
   { to: '/system-logs', icon: AlertCircle, label: 'System Logs' },
@@ -99,20 +94,20 @@ export function MobileNav() {
   const navItems =
     user?.role === 'admin'
       ? adminNavItems
-      : user?.role === 'regional_manager'
-      ? regionalManagerNavItems
       : user?.role === 'manager'
       ? managerNavItems
+      : user?.role === 'local_mr_coordinator'
+      ? coordinatorNavItems
       : totNavItems;
 
   const getRoleBadge = () => {
     switch (user?.role) {
       case 'admin':
         return <Badge variant="destructive" className="text-xs">Admin</Badge>;
-      case 'regional_manager':
-        return <Badge className="text-xs bg-purple-500">Regional</Badge>;
       case 'manager':
-        return <Badge variant="wheat" className="text-xs">Manager</Badge>;
+        return <Badge className="text-xs bg-purple-500">Manager</Badge>;
+      case 'local_mr_coordinator':
+        return <Badge variant="wheat" className="text-xs">Coordinator</Badge>;
       default:
         return <Badge variant="forest" className="text-xs">TOT</Badge>;
     }
@@ -143,7 +138,7 @@ export function MobileNav() {
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-forest to-emerald-600 flex items-center justify-center shadow-lg overflow-hidden">
               <img
-                src="/logo.png"
+                src="/mrlogo.png"
                 alt="Machinery Ring Logo"
                 className="w-10 h-10 object-contain"
               />

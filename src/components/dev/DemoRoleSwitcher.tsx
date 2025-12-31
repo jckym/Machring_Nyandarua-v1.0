@@ -1,4 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { UserRole } from '@/types';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,20 +13,27 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { UserCog, Shield, MapPin, Users, GraduationCap } from 'lucide-react';
 
-const ROLE_CONFIG: Record<UserRole, { label: string; icon: React.ElementType; color: string }> = {
-  admin: { label: 'Admin', icon: Shield, color: 'bg-red-500' },
-  manager: { label: 'Manager', icon: MapPin, color: 'bg-purple-500' },
-  local_mr_coordinator: { label: 'Coordinator', icon: Users, color: 'bg-blue-500' },
-  tot: { label: 'TOT', icon: GraduationCap, color: 'bg-green-500' },
+const ROLE_CONFIG: Record<UserRole, { label: string; icon: React.ElementType; color: string; dashboardPath: string }> = {
+  admin: { label: 'Admin', icon: Shield, color: 'bg-red-500', dashboardPath: '/dashboard/admin' },
+  manager: { label: 'Manager', icon: MapPin, color: 'bg-purple-500', dashboardPath: '/dashboard/manager' },
+  local_mr_coordinator: { label: 'Coordinator', icon: Users, color: 'bg-blue-500', dashboardPath: '/dashboard/local-mr' },
+  tot: { label: 'TOT', icon: GraduationCap, color: 'bg-green-500', dashboardPath: '/dashboard/tot' },
 };
 
 export function DemoRoleSwitcher() {
   const { user, switchDemoRole } = useAuth();
+  const navigate = useNavigate();
   
   if (!user) return null;
 
   const currentRole = ROLE_CONFIG[user.role];
   const CurrentIcon = currentRole.icon;
+
+  const handleRoleSwitch = (role: UserRole) => {
+    switchDemoRole(role);
+    // Navigate to the correct dashboard for the new role
+    navigate(ROLE_CONFIG[role].dashboardPath, { replace: true });
+  };
 
   return (
     <div className="fixed bottom-4 right-4 z-50">
@@ -56,7 +64,7 @@ export function DemoRoleSwitcher() {
             return (
               <DropdownMenuItem
                 key={role}
-                onClick={() => switchDemoRole(role)}
+                onClick={() => handleRoleSwitch(role)}
                 className={isActive ? 'bg-accent' : ''}
               >
                 <Icon className="h-4 w-4 mr-2" />

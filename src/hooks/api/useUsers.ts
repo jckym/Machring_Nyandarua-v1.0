@@ -157,54 +157,38 @@ export function useCreateUser() {
 
   return useMutation({
     mutationFn: async (data: CreateUserDto) => {
-      // Create auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          data: {
-            name: data.name,
-            phone: data.phone,
-          },
+      // Get current session for auth header
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      // Call edge function to create user (uses admin API)
+      const response = await supabase.functions.invoke('create-user', {
+        body: {
+          name: data.name,
+          email: data.email,
+          phone: data.phone,
+          password: data.password,
+          role: data.role,
+          localMrId: data.localMrId,
         },
       });
 
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('Failed to create user');
-
-      const userId = authData.user.id;
-
-      // Assign role
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: userId,
-          role: data.role as any,
-        });
-
-      if (roleError) throw roleError;
-
-      // If TOT or coordinator, assign to local MR
-      if (data.localMrId && (data.role === 'tot' || data.role === 'local_mr_coordinator')) {
-        const { error: assignmentError } = await supabase
-          .from('tot_assignments')
-          .insert({
-            tot_id: userId,
-            local_mr_id: data.localMrId,
-            status: 'active',
-          });
-
-        if (assignmentError) throw assignmentError;
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to create user');
       }
 
-      return { id: userId };
+      const result = response.data;
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create user');
+      }
+
+      return result.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: userKeys.all });
-      toast.success('User created successfully');
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Failed to create user');
+      console.error('Create user error:', error);
     },
   });
 }

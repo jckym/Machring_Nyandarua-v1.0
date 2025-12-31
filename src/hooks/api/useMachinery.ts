@@ -1,8 +1,32 @@
 // src/hooks/api/useMachinery.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { machineryService, CreateMachineryDto, UpdateMachineryDto, MachineryFilters } from '@/lib/api';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Machinery } from '@/types';
+
+export interface Machinery {
+  id: string;
+  name: string;
+  category: string;
+  model: string | null;
+  registration_number: string | null;
+  condition: string | null;
+  status: string;
+  hourly_rate: number;
+  daily_rate: number;
+  local_mr_id: string | null;
+  last_service_date: string | null;
+  next_service_date: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined
+  local_mr_name?: string;
+}
+
+export interface MachineryFilters {
+  localMrId?: string;
+  status?: string;
+  category?: string;
+}
 
 export const machineryKeys = {
   all: ['machinery'] as const,
@@ -12,171 +36,178 @@ export const machineryKeys = {
   detail: (id: string) => [...machineryKeys.details(), id] as const,
 };
 
-/**
- * Fetch all machinery (with optional filters: status, type, etc.)
- */
-export function useMachinery(filters?: MachineryFilters) {
+export function useMachinery(filters: MachineryFilters = {}) {
   return useQuery({
-    queryKey: machineryKeys.list(filters || {}),
-    queryFn: () => machineryService.getAll(filters),
-    select: (response) => (response?.data ?? []) as Machinery[],
+    queryKey: machineryKeys.list(filters),
+    queryFn: async () => {
+      let query = supabase
+        .from('machinery')
+        .select(`
+          *,
+          local_mrs!machinery_local_mr_id_fkey(name)
+        `)
+        .order('name');
+
+      if (filters.localMrId) {
+        query = query.eq('local_mr_id', filters.localMrId);
+      }
+      if (filters.status) {
+        query = query.eq('status', filters.status);
+      }
+      if (filters.category) {
+        query = query.eq('category', filters.category);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      return (data || []).map(m => ({
+        ...m,
+        local_mr_name: m.local_mrs?.name || '',
+        // Legacy format
+        pricePerAcre: m.daily_rate,
+        type: m.category,
+      }));
+    },
     staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 15,
   });
 }
 
-/**
- * Fetch single machinery item
- */
 export function useMachineryItem(id: string) {
   return useQuery({
     queryKey: machineryKeys.detail(id),
-    queryFn: () => machineryService.getById(id),
-    select: (response) => response?.data as Machinery | undefined,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('machinery')
+        .select(`
+          *,
+          local_mrs!machinery_local_mr_id_fkey(name)
+        `)
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      return {
+        ...data,
+        local_mr_name: data.local_mrs?.name || '',
+        pricePerAcre: data.daily_rate,
+        type: data.category,
+      };
+    },
     enabled: !!id,
-    staleTime: 1000 * 60 * 2,
   });
 }
 
-/**
- * Create new machinery (admin only)
- */
+export interface CreateMachineryDto {
+  name: string;
+  category: string;
+  model?: string;
+  registration_number?: string;
+  condition?: string;
+  status?: string;
+  hourly_rate?: number;
+  daily_rate?: number;
+  local_mr_id?: string;
+}
+
 export function useCreateMachinery() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CreateMachineryDto) => machineryService.create(data),
-    onMutate: async (newMachinery) => {
-      await queryClient.cancelQueries({ queryKey: machineryKeys.all });
+    mutationFn: async (data: CreateMachineryDto) => {
+      const { data: machinery, error } = await supabase
+        .from('machinery')
+        .insert({
+          name: data.name,
+          category: data.category,
+          model: data.model,
+          registration_number: data.registration_number,
+          condition: data.condition || 'good',
+          status: data.status || 'available',
+          hourly_rate: data.hourly_rate || 0,
+          daily_rate: data.daily_rate || 0,
+          local_mr_id: data.local_mr_id,
+        })
+        .select()
+        .single();
 
-      const previousList = queryClient.getQueryData(machineryKeys.lists());
-
-      queryClient.setQueryData(machineryKeys.lists(), (old: any[] = []) => [
-        { ...newMachinery, _id: 'temp-id', status: 'available' },
-        ...old,
-      ]);
-
-      return { previousList };
+      if (error) throw error;
+      return machinery;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: machineryKeys.all });
       toast.success('Machinery added successfully');
     },
-    onError: (error: Error, _variables, context) => {
-      if (context?.previousList) {
-        queryClient.setQueryData(machineryKeys.lists(), context.previousList);
-      }
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to add machinery');
     },
   });
 }
 
-/**
- * Update machinery details
- */
 export function useUpdateMachinery() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateMachineryDto }) =>
-      machineryService.update(id, data),
+    mutationFn: async ({ id, data }: { id: string; data: Partial<CreateMachineryDto> }) => {
+      const { data: machinery, error } = await supabase
+        .from('machinery')
+        .update(data)
+        .eq('id', id)
+        .select()
+        .single();
 
-    onMutate: async ({ id, data }) => {
-      await queryClient.cancelQueries({ queryKey: machineryKeys.all });
-
-      const previousDetail = queryClient.getQueryData(machineryKeys.detail(id));
-      const previousList = queryClient.getQueryData(machineryKeys.lists());
-
-      queryClient.setQueryData(machineryKeys.detail(id), (old: any) => ({ ...old, ...data }));
-      queryClient.setQueryData(machineryKeys.lists(), (old: any[] = []) =>
-        old.map(m => (m._id === id ? { ...m, ...data } : m))
-      );
-
-      return { previousDetail, previousList };
+      if (error) throw error;
+      return machinery;
     },
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: machineryKeys.all });
-      queryClient.invalidateQueries({ queryKey: machineryKeys.detail(variables.id) });
       toast.success('Machinery updated successfully');
     },
-    onError: (error: Error, variables, context) => {
-      if (context?.previousDetail) {
-        queryClient.setQueryData(machineryKeys.detail(variables.id), context.previousDetail);
-      }
-      if (context?.previousList) {
-        queryClient.setQueryData(machineryKeys.lists(), context.previousList);
-      }
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to update machinery');
     },
   });
 }
 
-/**
- * Delete machinery (admin only)
- */
 export function useDeleteMachinery() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => machineryService.delete(id),
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: machineryKeys.all });
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('machinery')
+        .delete()
+        .eq('id', id);
 
-      const previousList = queryClient.getQueryData(machineryKeys.lists());
-
-      queryClient.setQueryData(machineryKeys.lists(), (old: any[] = []) =>
-        old.filter(m => m._id !== id)
-      );
-
-      return { previousList };
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: machineryKeys.all });
       toast.success('Machinery deleted successfully');
     },
-    onError: (error: Error, _id, context) => {
-      if (context?.previousList) {
-        queryClient.setQueryData(machineryKeys.lists(), context.previousList);
-      }
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to delete machinery');
     },
   });
 }
 
-/**
- * Update machinery status (available/booked/maintenance)
- */
 export function useUpdateMachineryStatus() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, status }: { id: string; status: 'available' | 'booked' | 'maintenance' }) =>
-      machineryService.updateStatus(id, status),
+    mutationFn: async ({ id, status }: { id: string; status: 'available' | 'booked' | 'maintenance' }) => {
+      const { error } = await supabase
+        .from('machinery')
+        .update({ status })
+        .eq('id', id);
 
-    onMutate: async ({ id, status }) => {
-      await queryClient.cancelQueries({ queryKey: machineryKeys.all });
-
-      const previousList = queryClient.getQueryData(machineryKeys.lists());
-      const previousDetail = queryClient.getQueryData(machineryKeys.detail(id));
-
-      queryClient.setQueryData(machineryKeys.lists(), (old: any[] = []) =>
-        old.map(m => (m._id === id ? { ...m, status } : m))
-      );
-      queryClient.setQueryData(machineryKeys.detail(id), (old: any) => ({ ...old, status }));
-
-      return { previousList, previousDetail };
+      if (error) throw error;
     },
     onSuccess: (_, { status }) => {
       queryClient.invalidateQueries({ queryKey: machineryKeys.all });
       toast.success(`Machinery marked as ${status}`);
     },
-    onError: (error: Error, variables, context) => {
-      if (context?.previousList) {
-        queryClient.setQueryData(machineryKeys.lists(), context.previousList);
-      }
-      if (context?.previousDetail) {
-        queryClient.setQueryData(machineryKeys.detail(variables.id), context.previousDetail);
-      }
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to update status');
     },
   });

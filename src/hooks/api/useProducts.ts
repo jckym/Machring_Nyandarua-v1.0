@@ -1,7 +1,28 @@
+// src/hooks/api/useProducts.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { productService, CreateProductDto, UpdateProductDto, ProductFilters } from '@/lib/api';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Product } from '@/types';
+
+export interface Product {
+  id: string;
+  name: string;
+  category: string;
+  description: string | null;
+  unit: string;
+  unit_price: number;
+  commission_per_unit: number;
+  stock_quantity: number;
+  min_stock_level: number;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProductFilters {
+  category?: string;
+  status?: string;
+  search?: string;
+}
 
 export const productKeys = {
   all: ['products'] as const,
@@ -9,61 +30,105 @@ export const productKeys = {
   list: (filters: ProductFilters = {}) => [...productKeys.lists(), filters] as const,
   details: () => [...productKeys.all, 'detail'] as const,
   detail: (id: string) => [...productKeys.details(), id] as const,
-  performance: () => [...productKeys.all, 'performance'] as const,
 };
 
-export function useProducts(filters?: ProductFilters) {
+export function useProducts(filters: ProductFilters = {}) {
   return useQuery({
-    queryKey: productKeys.list(filters || {}),
-    queryFn: () => productService.getAll(filters),
-    select: (response) => (response?.data ?? []) as Product[],
+    queryKey: productKeys.list(filters),
+    queryFn: async () => {
+      let query = supabase
+        .from('products')
+        .select('*')
+        .order('name');
+
+      if (filters.category) {
+        query = query.eq('category', filters.category);
+      }
+      if (filters.status) {
+        query = query.eq('status', filters.status);
+      }
+      if (filters.search) {
+        query = query.or(`name.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      return (data || []).map(p => ({
+        ...p,
+        // Legacy format
+        sku: p.id.slice(0, 8).toUpperCase(),
+        unitPrice: p.unit_price,
+        commission: p.commission_per_unit,
+        inStock: p.stock_quantity,
+      }));
+    },
     staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 10,
   });
 }
 
 export function useProduct(id: string) {
   return useQuery({
     queryKey: productKeys.detail(id),
-    queryFn: () => productService.getById(id),
-    select: (response) => response?.data as Product | undefined,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      return {
+        ...data,
+        sku: data.id.slice(0, 8).toUpperCase(),
+        unitPrice: data.unit_price,
+        commission: data.commission_per_unit,
+        inStock: data.stock_quantity,
+      };
+    },
     enabled: !!id,
-    staleTime: 1000 * 60 * 2,
   });
 }
 
-export function useProductPerformance() {
-  return useQuery({
-    queryKey: productKeys.performance(),
-    queryFn: () => productService.getPerformance(),
-    select: (response) => response?.data,
-    staleTime: 1000 * 60 * 15,
-    gcTime: 1000 * 60 * 30,
-  });
+export interface CreateProductDto {
+  name: string;
+  category: string;
+  description?: string;
+  unit?: string;
+  unit_price: number;
+  commission_per_unit?: number;
+  stock_quantity?: number;
+  min_stock_level?: number;
 }
 
 export function useCreateProduct() {
   const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: (data: CreateProductDto) => productService.create(data),
-    onMutate: async (newProduct) => {
-      await queryClient.cancelQueries({ queryKey: productKeys.all });
-      const previousProducts = queryClient.getQueryData(productKeys.lists());
-      queryClient.setQueryData(productKeys.lists(), (old: any[] = []) => [
-        { ...newProduct, id: 'temp-id', inStock: 0 },
-        ...old,
-      ]);
-      return { previousProducts };
+    mutationFn: async (data: CreateProductDto) => {
+      const { data: product, error } = await supabase
+        .from('products')
+        .insert({
+          name: data.name,
+          category: data.category,
+          description: data.description,
+          unit: data.unit || 'kg',
+          unit_price: data.unit_price,
+          commission_per_unit: data.commission_per_unit || 0,
+          stock_quantity: data.stock_quantity || 0,
+          min_stock_level: data.min_stock_level || 10,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return product;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.all });
-      queryClient.invalidateQueries({ queryKey: productKeys.performance() });
       toast.success('Product created successfully');
     },
-    onError: (error: Error, _variables, context) => {
-      if (context?.previousProducts) {
-        queryClient.setQueryData(productKeys.lists(), context.previousProducts);
-      }
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to create product');
     },
   });
@@ -71,32 +136,34 @@ export function useCreateProduct() {
 
 export function useUpdateProduct() {
   const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateProductDto }) =>
-      productService.update(id, data),
-    onMutate: async ({ id, data }) => {
-      await queryClient.cancelQueries({ queryKey: productKeys.all });
-      const previousProduct = queryClient.getQueryData(productKeys.detail(id));
-      const previousList = queryClient.getQueryData(productKeys.lists());
-      queryClient.setQueryData(productKeys.detail(id), (old: any) => ({ ...old, ...data }));
-      queryClient.setQueryData(productKeys.lists(), (old: any[] = []) =>
-        old.map((p) => (p.id === id ? { ...p, ...data } : p))
-      );
-      return { previousProduct, previousList };
+    mutationFn: async ({ id, data }: { id: string; data: Partial<CreateProductDto> }) => {
+      const updateData: any = {};
+      if (data.name) updateData.name = data.name;
+      if (data.category) updateData.category = data.category;
+      if (data.description !== undefined) updateData.description = data.description;
+      if (data.unit) updateData.unit = data.unit;
+      if (data.unit_price !== undefined) updateData.unit_price = data.unit_price;
+      if (data.commission_per_unit !== undefined) updateData.commission_per_unit = data.commission_per_unit;
+      if (data.stock_quantity !== undefined) updateData.stock_quantity = data.stock_quantity;
+      if (data.min_stock_level !== undefined) updateData.min_stock_level = data.min_stock_level;
+
+      const { data: product, error } = await supabase
+        .from('products')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return product;
     },
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.all });
-      queryClient.invalidateQueries({ queryKey: productKeys.detail(variables.id) });
-      queryClient.invalidateQueries({ queryKey: productKeys.performance() });
       toast.success('Product updated successfully');
     },
-    onError: (error: Error, variables, context) => {
-      if (context?.previousProduct) {
-        queryClient.setQueryData(productKeys.detail(variables.id), context.previousProduct);
-      }
-      if (context?.previousList) {
-        queryClient.setQueryData(productKeys.lists(), context.previousList);
-      }
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to update product');
     },
   });
@@ -104,30 +171,21 @@ export function useUpdateProduct() {
 
 export function useUpdateProductStock() {
   const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: ({ id, stock }: { id: string; stock: number }) =>
-      productService.updateStock(id, stock),
-    onMutate: async ({ id, stock }) => {
-      await queryClient.cancelQueries({ queryKey: productKeys.all });
-      const previousList = queryClient.getQueryData(productKeys.lists());
-      const previousDetail = queryClient.getQueryData(productKeys.detail(id));
-      queryClient.setQueryData(productKeys.lists(), (old: any[] = []) =>
-        old.map((p) => (p.id === id ? { ...p, inStock: stock } : p))
-      );
-      queryClient.setQueryData(productKeys.detail(id), (old: any) => ({ ...old, inStock: stock }));
-      return { previousList, previousDetail };
+    mutationFn: async ({ id, stock }: { id: string; stock: number }) => {
+      const { error } = await supabase
+        .from('products')
+        .update({ stock_quantity: stock })
+        .eq('id', id);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.all });
       toast.success('Stock updated successfully');
     },
-    onError: (error: Error, variables, context) => {
-      if (context?.previousList) {
-        queryClient.setQueryData(productKeys.lists(), context.previousList);
-      }
-      if (context?.previousDetail) {
-        queryClient.setQueryData(productKeys.detail(variables.id), context.previousDetail);
-      }
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to update stock');
     },
   });
@@ -135,25 +193,21 @@ export function useUpdateProductStock() {
 
 export function useDeleteProduct() {
   const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: (id: string) => productService.delete(id),
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: productKeys.all });
-      const previousList = queryClient.getQueryData(productKeys.lists());
-      queryClient.setQueryData(productKeys.lists(), (old: any[] = []) =>
-        old.filter((p) => p.id !== id)
-      );
-      return { previousList };
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.all });
-      queryClient.invalidateQueries({ queryKey: productKeys.performance() });
       toast.success('Product deleted successfully');
     },
-    onError: (error: Error, _id, context) => {
-      if (context?.previousList) {
-        queryClient.setQueryData(productKeys.lists(), context.previousList);
-      }
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to delete product');
     },
   });

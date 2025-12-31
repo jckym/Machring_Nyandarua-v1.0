@@ -75,7 +75,7 @@ const App = () => (
                       <ManagerDashboard />
                     </ProtectedRoute>
                   } />
-                  <Route path="/dashboard/coordinator" element={
+                  <Route path="/dashboard/local-mr" element={
                     <ProtectedRoute allowedRoles={['local_mr_coordinator', 'admin']}>
                       <CoordinatorDashboard />
                     </ProtectedRoute>

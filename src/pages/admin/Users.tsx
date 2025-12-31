@@ -84,9 +84,19 @@ export function Users() {
   const getBranchName = (id?: string) =>
     localMRs.find((m: LocalMR) => m.id === id)?.name || 'HQ';
 
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case 'admin': return 'Admin';
+      case 'manager': return 'Manager';
+      case 'local_mr_coordinator': return 'Coordinator';
+      case 'tot': return 'TOT';
+      default: return role.toUpperCase();
+    }
+  };
+
   const roleBadge = (role: string) => (
     <Badge variant={role === 'admin' ? 'default' : role === 'manager' ? 'secondary' : 'outline'}>
-      {role.toUpperCase()}
+      {getRoleLabel(role)}
     </Badge>
   );
 
@@ -142,8 +152,8 @@ export function Users() {
       toast.error('Password does not meet security requirements');
       return;
     }
-    if (formData.role !== 'admin' && !formData.localMrId) {
-      toast.error('Please assign a Local MR for TOT or Manager');
+    if (formData.role !== 'admin' && formData.role !== 'manager' && !formData.localMrId) {
+      toast.error('Please assign a Local MR for TOT or Coordinator');
       return;
     }
 
@@ -154,7 +164,7 @@ export function Users() {
         phone: formData.phone.trim(),
         password: formData.password,
         role: formData.role,
-        localMrId: formData.role === 'admin' ? undefined : formData.localMrId,
+        localMrId: (formData.role === 'admin' || formData.role === 'manager') ? undefined : formData.localMrId,
       },
       {
         onSuccess: () => {
@@ -185,8 +195,8 @@ export function Users() {
       toast.error('Please enter a valid phone number');
       return;
     }
-    if (formData.role !== 'admin' && !formData.localMrId) {
-      toast.error('Please assign a Local MR for TOT or Manager');
+    if (formData.role !== 'admin' && formData.role !== 'manager' && !formData.localMrId) {
+      toast.error('Please assign a Local MR for TOT or Coordinator');
       return;
     }
 
@@ -199,7 +209,7 @@ export function Users() {
           phone: formData.phone.trim(),
           role: formData.role,
           status: formData.status,
-          localMrId: formData.role === 'admin' ? undefined : formData.localMrId,
+          localMrId: (formData.role === 'admin' || formData.role === 'manager') ? undefined : formData.localMrId,
         },
       },
       {
@@ -394,13 +404,14 @@ export function Users() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="tot">TOT (Technical Officer)</SelectItem>
-                  <SelectItem value="manager">Manager</SelectItem>
+                  <SelectItem value="local_mr_coordinator">Local MR Coordinator</SelectItem>
+                  <SelectItem value="manager">Manager (Regional)</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            {formData.role && formData.role !== 'admin' && (
+            {formData.role && (formData.role === 'tot' || formData.role === 'local_mr_coordinator') && (
               <div className="space-y-2">
                 <Label>Assign to Local MR *</Label>
                 <Select
@@ -503,13 +514,14 @@ export function Users() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="tot">TOT (Technical Officer)</SelectItem>
-                  <SelectItem value="manager">Manager</SelectItem>
+                  <SelectItem value="local_mr_coordinator">Local MR Coordinator</SelectItem>
+                  <SelectItem value="manager">Manager (Regional)</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            {formData.role && formData.role !== 'admin' && (
+            {formData.role && (formData.role === 'tot' || formData.role === 'local_mr_coordinator') && (
               <div className="space-y-2">
                 <Label>Assign to Local MR *</Label>
                 <Select

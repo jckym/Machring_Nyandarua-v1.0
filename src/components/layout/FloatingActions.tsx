@@ -29,17 +29,17 @@ interface FloatingAction {
 export function FloatingActions() {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
-  const { user, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
 
-  // Only Admin can see floating actions
-  if (!isAdmin) return null;
-
-  // Dialog states
+  // Dialog states (declared before any conditional returns to keep hook order stable)
   const [farmerDialogOpen, setFarmerDialogOpen] = useState(false);
   const [saleDialogOpen, setSaleDialogOpen] = useState(false);
   const [mechanisationDialogOpen, setMechanisationDialogOpen] = useState(false);
   const [visitDialogOpen, setVisitDialogOpen] = useState(false);
   const [trainingDialogOpen, setTrainingDialogOpen] = useState(false);
+
+  // Only Admin can see floating actions
+  if (!isAdmin) return null;
 
   const actions: FloatingAction[] = [
     {

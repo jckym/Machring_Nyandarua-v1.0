@@ -10,25 +10,24 @@ import { SalesChart } from '@/components/dashboard/SalesChart';
 import { ProductChart } from '@/components/dashboard/ProductChart';
 import { TopPerformers } from '@/components/dashboard/TopPerformers';
 
-import { useAdminDashboard, AdminStats } from '@/hooks/api/useDashboard';
-import { useLocalMRs } from '@/hooks/api';
+import { 
+  useSupabaseAdminStats, 
+  useSupabaseLocalMRs,
+  AdminStats 
+} from '@/hooks/api/useSupabaseDashboard';
 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { AlertCircle } from 'lucide-react';
-import { LocalMR } from '@/types';
 
 export function AdminDashboard() {
-  const { data: statsResponse, isLoading: statsLoading, error: statsError } = useAdminDashboard();
-  const { data: localMRs = [] } = useLocalMRs();
-
-  // Unwrap stats from ApiResponse
-  const stats: AdminStats | undefined = statsResponse?.data;
+  const { data: stats, isLoading: statsLoading, error: statsError } = useSupabaseAdminStats();
+  const { data: localMRs = [] } = useSupabaseLocalMRs();
 
   // Process Local MR data for charts
-  const top5MRs = (localMRs as LocalMR[]).slice(0, 5);
+  const top5MRs = localMRs.slice(0, 5);
   const barData = top5MRs.map(mr => ({
     name: mr.name?.split(' ')[0] || mr.code,
     farmers: mr.totalFarmers || 0,
@@ -94,7 +93,7 @@ export function AdminDashboard() {
         <StatCard
           title="Total Revenue"
           value={formatCurrency(stats.totalRevenue || 0)}
-          subtitle="This month"
+          subtitle="All time"
           icon={TrendingUp}
           trend={{ value: 18, isPositive: true }}
           variant="wheat"
@@ -214,7 +213,7 @@ export function AdminDashboard() {
                       </div>
                       <div>
                         <p className="font-medium">{mr.name}</p>
-                        <p className="text-sm text-muted-foreground">{mr.subcounty}, {mr.ward} • {mr.managerName || 'No manager'}</p>
+                        <p className="text-sm text-muted-foreground">{mr.sub_county}, {mr.ward} • {mr.coordinatorName || 'No coordinator'}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-6">

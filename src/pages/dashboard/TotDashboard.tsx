@@ -15,7 +15,7 @@ import { RecentActivity } from '@/components/dashboard/RecentActivity';
 import { SalesChart } from '@/components/dashboard/SalesChart';
 import { ProductChart } from '@/components/dashboard/ProductChart';
 
-import { useTotDashboard, TotStats } from '@/hooks/api/useDashboard';
+import { useSupabaseTotStats, TotStats } from '@/hooks/api/useSupabaseDashboard';
 import { useAuth } from '@/contexts/AuthContext';
 
 export function TotDashboard() {
@@ -23,13 +23,10 @@ export function TotDashboard() {
   const totId = user?.id || '';
 
   const { 
-    data: statsResponse, 
+    data: stats, 
     isLoading, 
     error 
-  } = useTotDashboard(totId);
-
-  // Unwrap stats from ApiResponse
-  const stats: TotStats | undefined = statsResponse?.data;
+  } = useSupabaseTotStats(totId);
 
   const formatCurrency = (value: number) => {
     if (!value) return 'KES 0K';
@@ -72,7 +69,7 @@ export function TotDashboard() {
             TOT Dashboard
           </h1>
           <p className="text-muted-foreground">
-            Welcome back, {user?.name || 'TOT'}! Track your field operations and performance
+            Welcome back! Track your field operations and performance
           </p>
         </div>
       </div>
@@ -82,7 +79,7 @@ export function TotDashboard() {
         <StatCard
           title="My Farmers"
           value={(stats.totalFarmers || 0).toLocaleString()}
-          subtitle="Registered farmers"
+          subtitle="Farmers served"
           icon={Users}
           trend={{ value: 12, isPositive: true }}
           variant="forest"
@@ -90,7 +87,7 @@ export function TotDashboard() {
         <StatCard
           title="Total Sales"
           value={(stats.totalSales || 0).toLocaleString()}
-          subtitle="This month"
+          subtitle="Transactions"
           icon={ShoppingCart}
           trend={{ value: 8, isPositive: true }}
         />

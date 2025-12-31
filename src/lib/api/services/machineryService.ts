@@ -43,7 +43,7 @@ export const machineryService = {
   async getAll(filters?: MachineryFilters): Promise<ApiResponse<Machinery[]>> {
     const query = filters ? buildQueryParams(filters as Record<string, unknown>) : '';
     const response = await apiClient.get<ApiResponse<Machinery[]>>(
-      `/api/machinery${query ? `?${query}` : ''}`
+      `/machinery${query ? `?${query}` : ''}`
     );
     return response.data;
   },
@@ -52,7 +52,7 @@ export const machineryService = {
    * Get single machinery item by ID
    */
   async getById(id: string): Promise<ApiResponse<Machinery>> {
-    const response = await apiClient.get<ApiResponse<Machinery>>(`/api/machinery/${id}`);
+    const response = await apiClient.get<ApiResponse<Machinery>>(`/machinery/${id}`);
     return response.data;
   },
 
@@ -60,7 +60,7 @@ export const machineryService = {
    * Create new machinery (admin only)
    */
   async create(data: CreateMachineryDto): Promise<ApiResponse<Machinery>> {
-    const response = await apiClient.post<ApiResponse<Machinery>>('/api/machinery', data);
+    const response = await apiClient.post<ApiResponse<Machinery>>('/machinery', data);
     return response.data;
   },
 
@@ -68,7 +68,7 @@ export const machineryService = {
    * Update machinery details (partial update)
    */
   async update(id: string, data: UpdateMachineryDto): Promise<ApiResponse<Machinery>> {
-    const response = await apiClient.patch<ApiResponse<Machinery>>(`/api/machinery/${id}`, data);
+    const response = await apiClient.patch<ApiResponse<Machinery>>(`/machinery/${id}`, data);
     return response.data;
   },
 
@@ -77,7 +77,7 @@ export const machineryService = {
    */
   async updateStatus(id: string, status: MachineryStatus): Promise<ApiResponse<Machinery>> {
     const response = await apiClient.patch<ApiResponse<Machinery>>(
-      `/api/machinery/${id}/status`,
+      `/machinery/${id}/status`,
       { status }
     );
     return response.data;
@@ -88,7 +88,7 @@ export const machineryService = {
    */
   async delete(id: string): Promise<ApiResponse<{ deleted: boolean }>> {
     const response = await apiClient.delete<ApiResponse<{ deleted: boolean }>>(
-      `/api/machinery/${id}`
+      `/machinery/${id}`
     );
     return response.data;
   },

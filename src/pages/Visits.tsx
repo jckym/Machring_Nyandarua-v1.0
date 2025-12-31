@@ -23,7 +23,10 @@ export function Visits() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const { addNotification } = useNotifications();
-  const { user, isAdmin, canEdit } = useAuth();
+  const { user, isAdmin } = useAuth();
+
+  // TOTs and Admins can log visits
+  const canLogVisit = isAdmin || user?.role === 'tot';
 
   // API hooks
   const { data: visits = [], isLoading } = useVisits();
@@ -36,7 +39,7 @@ export function Visits() {
   });
 
   const handleAddVisit = (data: any) => {
-    if (!canEdit) {
+    if (!canLogVisit) {
       toast.error('You do not have permission to log visits');
       return;
     }
@@ -95,7 +98,7 @@ export function Visits() {
         <div>
           <h1 className="font-heading text-xl sm:text-2xl font-bold text-foreground">Farm Visits</h1>
           <p className="text-sm text-muted-foreground">
-            {isAdmin ? 'Log and manage field visits' : 'View field visits and engagements'}
+            {canLogVisit ? 'Log and manage field visits' : 'View field visits and engagements'}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -119,8 +122,8 @@ export function Visits() {
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-          {/* Admin only: Log Visit button */}
-          {isAdmin && (
+          {/* Admin and TOT: Log Visit button */}
+          {canLogVisit && (
             <Button variant="earth" size="sm" onClick={() => setIsFormOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Log Visit
@@ -250,8 +253,8 @@ export function Visits() {
         ))}
       </div>
 
-      {/* Visit Form Dialog - Admin only */}
-      {isAdmin && (
+      {/* Visit Form Dialog - Admin and TOT can log visits */}
+      {canLogVisit && (
         <VisitFormDialog
           open={isFormOpen}
           onOpenChange={setIsFormOpen}

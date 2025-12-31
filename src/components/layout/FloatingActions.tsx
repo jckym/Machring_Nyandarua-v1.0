@@ -29,7 +29,7 @@ interface FloatingAction {
 export function FloatingActions() {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
 
   // Dialog states (declared before any conditional returns to keep hook order stable)
   const [farmerDialogOpen, setFarmerDialogOpen] = useState(false);
@@ -38,36 +38,50 @@ export function FloatingActions() {
   const [visitDialogOpen, setVisitDialogOpen] = useState(false);
   const [trainingDialogOpen, setTrainingDialogOpen] = useState(false);
 
-  // Only Admin can see floating actions
-  if (!isAdmin) return null;
+  // TOTs can only log visits, Admin can do everything
+  const isTOT = user?.role === 'tot';
+  const canLogVisit = isAdmin || isTOT;
 
-  const actions: FloatingAction[] = [
-    {
-      icon: Users,
-      label: 'Add Farmer',
-      dialog: <FarmerFormDialog open={farmerDialogOpen} onOpenChange={setFarmerDialogOpen} onSubmit={() => {}} />,
-    },
-    {
-      icon: ShoppingCart,
-      label: 'Record Sale',
-      dialog: <SaleFormDialog open={saleDialogOpen} onOpenChange={setSaleDialogOpen} onSubmit={() => {}} />,
-    },
-    {
-      icon: Tractor,
-      label: 'New Booking',
-      dialog: <MechanisationFormDialog open={mechanisationDialogOpen} onOpenChange={setMechanisationDialogOpen} onSubmit={() => {}} />,
-    },
-    {
+  // If not admin and not TOT, hide completely
+  if (!isAdmin && !isTOT) return null;
+
+  // Build actions based on role
+  const actions: FloatingAction[] = [];
+
+  // Admin-only actions
+  if (isAdmin) {
+    actions.push(
+      {
+        icon: Users,
+        label: 'Add Farmer',
+        dialog: <FarmerFormDialog open={farmerDialogOpen} onOpenChange={setFarmerDialogOpen} onSubmit={() => {}} />,
+      },
+      {
+        icon: ShoppingCart,
+        label: 'Record Sale',
+        dialog: <SaleFormDialog open={saleDialogOpen} onOpenChange={setSaleDialogOpen} onSubmit={() => {}} />,
+      },
+      {
+        icon: Tractor,
+        label: 'New Booking',
+        dialog: <MechanisationFormDialog open={mechanisationDialogOpen} onOpenChange={setMechanisationDialogOpen} onSubmit={() => {}} />,
+      },
+      {
+        icon: GraduationCap,
+        label: 'Schedule Training',
+        dialog: <TrainingFormDialog open={trainingDialogOpen} onOpenChange={setTrainingDialogOpen} onSubmit={() => {}} />,
+      }
+    );
+  }
+
+  // Both Admin and TOT can log visits
+  if (canLogVisit) {
+    actions.push({
       icon: MapPin,
       label: 'Log Visit',
       dialog: <VisitFormDialog open={visitDialogOpen} onOpenChange={setVisitDialogOpen} onSubmit={() => {}} />,
-    },
-    {
-      icon: GraduationCap,
-      label: 'Schedule Training',
-      dialog: <TrainingFormDialog open={trainingDialogOpen} onOpenChange={setTrainingDialogOpen} onSubmit={() => {}} />,
-    },
-  ];
+    });
+  }
 
   // Filter actions by current page
   const currentPath = location.pathname.split('/')[1];

@@ -12,7 +12,6 @@ export { visitService, type CreateVisitDto, type UpdateVisitDto, type VisitFilte
 export { trainingService, type CreateTrainingDto, type UpdateTrainingDto, type TrainingFilters } from './services/trainingService';
 export { notificationService, type CreateNotificationDto, type NotificationFilters } from './services/notificationService';
 export { machineryService, type CreateMachineryDto, type UpdateMachineryDto, type MachineryFilters } from './services/machineryService';
-export { approvalService, type ApprovalFilters } from './services/approvalService';
 export { dashboardService, type AdminStats, type ManagerStats, type TotStats } from './services/dashboardService';
 export { logService, type SystemLog, type AuditLog, type LogFilters, type AuditLogFilters } from './services/logService';
 export { authService, type LoginDto, type RegisterDto, type AuthResponse, type ChangePasswordDto } from './services/authService';

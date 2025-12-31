@@ -14,16 +14,962 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      audit_logs: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_role: string | null
+          after_data: Json | null
+          before_data: Json | null
+          created_at: string
+          entity: string
+          entity_id: string | null
+          id: string
+          ip_address: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_role?: string | null
+          after_data?: Json | null
+          before_data?: Json | null
+          created_at?: string
+          entity: string
+          entity_id?: string | null
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_role?: string | null
+          after_data?: Json | null
+          before_data?: Json | null
+          created_at?: string
+          entity?: string
+          entity_id?: string | null
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      commission_payouts: {
+        Row: {
+          amount: number
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          paid_at: string | null
+          payment_reference: string | null
+          period_end: string
+          period_start: string
+          sales_count: number
+          status: string
+          tot_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          payment_reference?: string | null
+          period_end: string
+          period_start: string
+          sales_count?: number
+          status?: string
+          tot_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          payment_reference?: string | null
+          period_end?: string
+          period_start?: string
+          sales_count?: number
+          status?: string
+          tot_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      farmers: {
+        Row: {
+          county: string
+          created_at: string
+          crops: string[] | null
+          date_of_birth: string | null
+          email: string | null
+          farm_size: number | null
+          farming_type: string | null
+          gender: string | null
+          id: string
+          id_number: string | null
+          last_activity_date: string | null
+          livestock: string[] | null
+          local_mr_id: string | null
+          name: string
+          phone: string | null
+          registered_by: string | null
+          status: string
+          sub_county: string | null
+          trainings_attended: number
+          updated_at: string
+          village: string | null
+          visits_count: number
+          ward: string | null
+        }
+        Insert: {
+          county: string
+          created_at?: string
+          crops?: string[] | null
+          date_of_birth?: string | null
+          email?: string | null
+          farm_size?: number | null
+          farming_type?: string | null
+          gender?: string | null
+          id?: string
+          id_number?: string | null
+          last_activity_date?: string | null
+          livestock?: string[] | null
+          local_mr_id?: string | null
+          name: string
+          phone?: string | null
+          registered_by?: string | null
+          status?: string
+          sub_county?: string | null
+          trainings_attended?: number
+          updated_at?: string
+          village?: string | null
+          visits_count?: number
+          ward?: string | null
+        }
+        Update: {
+          county?: string
+          created_at?: string
+          crops?: string[] | null
+          date_of_birth?: string | null
+          email?: string | null
+          farm_size?: number | null
+          farming_type?: string | null
+          gender?: string | null
+          id?: string
+          id_number?: string | null
+          last_activity_date?: string | null
+          livestock?: string[] | null
+          local_mr_id?: string | null
+          name?: string
+          phone?: string | null
+          registered_by?: string | null
+          status?: string
+          sub_county?: string | null
+          trainings_attended?: number
+          updated_at?: string
+          village?: string | null
+          visits_count?: number
+          ward?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "farmers_local_mr_id_fkey"
+            columns: ["local_mr_id"]
+            isOneToOne: false
+            referencedRelation: "local_mr_performance"
+            referencedColumns: ["local_mr_id"]
+          },
+          {
+            foreignKeyName: "farmers_local_mr_id_fkey"
+            columns: ["local_mr_id"]
+            isOneToOne: false
+            referencedRelation: "local_mrs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      local_mrs: {
+        Row: {
+          contact_email: string | null
+          contact_phone: string | null
+          coordinator_id: string | null
+          county: string
+          created_at: string
+          id: string
+          name: string
+          region: string
+          status: string
+          sub_county: string | null
+          updated_at: string
+          ward: string | null
+        }
+        Insert: {
+          contact_email?: string | null
+          contact_phone?: string | null
+          coordinator_id?: string | null
+          county: string
+          created_at?: string
+          id?: string
+          name: string
+          region: string
+          status?: string
+          sub_county?: string | null
+          updated_at?: string
+          ward?: string | null
+        }
+        Update: {
+          contact_email?: string | null
+          contact_phone?: string | null
+          coordinator_id?: string | null
+          county?: string
+          created_at?: string
+          id?: string
+          name?: string
+          region?: string
+          status?: string
+          sub_county?: string | null
+          updated_at?: string
+          ward?: string | null
+        }
+        Relationships: []
+      }
+      machinery: {
+        Row: {
+          category: string
+          condition: string | null
+          created_at: string
+          daily_rate: number
+          hourly_rate: number
+          id: string
+          last_service_date: string | null
+          local_mr_id: string | null
+          model: string | null
+          name: string
+          next_service_date: string | null
+          registration_number: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          condition?: string | null
+          created_at?: string
+          daily_rate?: number
+          hourly_rate?: number
+          id?: string
+          last_service_date?: string | null
+          local_mr_id?: string | null
+          model?: string | null
+          name: string
+          next_service_date?: string | null
+          registration_number?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          condition?: string | null
+          created_at?: string
+          daily_rate?: number
+          hourly_rate?: number
+          id?: string
+          last_service_date?: string | null
+          local_mr_id?: string | null
+          model?: string | null
+          name?: string
+          next_service_date?: string | null
+          registration_number?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "machinery_local_mr_id_fkey"
+            columns: ["local_mr_id"]
+            isOneToOne: false
+            referencedRelation: "local_mr_performance"
+            referencedColumns: ["local_mr_id"]
+          },
+          {
+            foreignKeyName: "machinery_local_mr_id_fkey"
+            columns: ["local_mr_id"]
+            isOneToOne: false
+            referencedRelation: "local_mrs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mechanisation_jobs: {
+        Row: {
+          area_acres: number | null
+          completed_at: string | null
+          completion_notes: string | null
+          created_at: string
+          duration_hours: number | null
+          farmer_id: string
+          id: string
+          local_mr_id: string
+          machinery_id: string
+          scheduled_date: string
+          scheduled_time: string | null
+          service_type: string
+          status: string
+          tot_id: string
+          total_cost: number
+          updated_at: string
+        }
+        Insert: {
+          area_acres?: number | null
+          completed_at?: string | null
+          completion_notes?: string | null
+          created_at?: string
+          duration_hours?: number | null
+          farmer_id: string
+          id?: string
+          local_mr_id: string
+          machinery_id: string
+          scheduled_date: string
+          scheduled_time?: string | null
+          service_type: string
+          status?: string
+          tot_id: string
+          total_cost?: number
+          updated_at?: string
+        }
+        Update: {
+          area_acres?: number | null
+          completed_at?: string | null
+          completion_notes?: string | null
+          created_at?: string
+          duration_hours?: number | null
+          farmer_id?: string
+          id?: string
+          local_mr_id?: string
+          machinery_id?: string
+          scheduled_date?: string
+          scheduled_time?: string | null
+          service_type?: string
+          status?: string
+          tot_id?: string
+          total_cost?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mechanisation_jobs_farmer_id_fkey"
+            columns: ["farmer_id"]
+            isOneToOne: false
+            referencedRelation: "farmers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mechanisation_jobs_local_mr_id_fkey"
+            columns: ["local_mr_id"]
+            isOneToOne: false
+            referencedRelation: "local_mr_performance"
+            referencedColumns: ["local_mr_id"]
+          },
+          {
+            foreignKeyName: "mechanisation_jobs_local_mr_id_fkey"
+            columns: ["local_mr_id"]
+            isOneToOne: false
+            referencedRelation: "local_mrs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mechanisation_jobs_machinery_id_fkey"
+            columns: ["machinery_id"]
+            isOneToOne: false
+            referencedRelation: "machinery"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          local_mr_id: string | null
+          message: string
+          read: boolean
+          read_at: string | null
+          title: string
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          local_mr_id?: string | null
+          message: string
+          read?: boolean
+          read_at?: string | null
+          title: string
+          type?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          local_mr_id?: string | null
+          message?: string
+          read?: boolean
+          read_at?: string | null
+          title?: string
+          type?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_local_mr_id_fkey"
+            columns: ["local_mr_id"]
+            isOneToOne: false
+            referencedRelation: "local_mr_performance"
+            referencedColumns: ["local_mr_id"]
+          },
+          {
+            foreignKeyName: "notifications_local_mr_id_fkey"
+            columns: ["local_mr_id"]
+            isOneToOne: false
+            referencedRelation: "local_mrs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          category: string
+          commission_per_unit: number
+          created_at: string
+          description: string | null
+          id: string
+          min_stock_level: number
+          name: string
+          status: string
+          stock_quantity: number
+          unit: string
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          commission_per_unit?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          min_stock_level?: number
+          name: string
+          status?: string
+          stock_quantity?: number
+          unit?: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          commission_per_unit?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          min_stock_level?: number
+          name?: string
+          status?: string
+          stock_quantity?: number
+          unit?: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string
+          id: string
+          name: string
+          phone: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email: string
+          id: string
+          name: string
+          phone?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          phone?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sales: {
+        Row: {
+          commission_amount: number
+          commission_paid: boolean
+          commission_paid_at: string | null
+          commission_per_unit: number
+          created_at: string
+          farmer_id: string
+          id: string
+          local_mr_id: string
+          notes: string | null
+          payment_method: string | null
+          payment_status: string
+          product_id: string
+          quantity: number
+          sale_date: string
+          tot_id: string
+          total_amount: number
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          commission_amount: number
+          commission_paid?: boolean
+          commission_paid_at?: string | null
+          commission_per_unit: number
+          created_at?: string
+          farmer_id: string
+          id?: string
+          local_mr_id: string
+          notes?: string | null
+          payment_method?: string | null
+          payment_status?: string
+          product_id: string
+          quantity: number
+          sale_date?: string
+          tot_id: string
+          total_amount: number
+          unit_price: number
+          updated_at?: string
+        }
+        Update: {
+          commission_amount?: number
+          commission_paid?: boolean
+          commission_paid_at?: string | null
+          commission_per_unit?: number
+          created_at?: string
+          farmer_id?: string
+          id?: string
+          local_mr_id?: string
+          notes?: string | null
+          payment_method?: string | null
+          payment_status?: string
+          product_id?: string
+          quantity?: number
+          sale_date?: string
+          tot_id?: string
+          total_amount?: number
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_farmer_id_fkey"
+            columns: ["farmer_id"]
+            isOneToOne: false
+            referencedRelation: "farmers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_local_mr_id_fkey"
+            columns: ["local_mr_id"]
+            isOneToOne: false
+            referencedRelation: "local_mr_performance"
+            referencedColumns: ["local_mr_id"]
+          },
+          {
+            foreignKeyName: "sales_local_mr_id_fkey"
+            columns: ["local_mr_id"]
+            isOneToOne: false
+            referencedRelation: "local_mrs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tot_assignments: {
+        Row: {
+          assigned_at: string
+          id: string
+          local_mr_id: string
+          status: string
+          tot_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          id?: string
+          local_mr_id: string
+          status?: string
+          tot_id: string
+        }
+        Update: {
+          assigned_at?: string
+          id?: string
+          local_mr_id?: string
+          status?: string
+          tot_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tot_assignments_local_mr_id_fkey"
+            columns: ["local_mr_id"]
+            isOneToOne: false
+            referencedRelation: "local_mr_performance"
+            referencedColumns: ["local_mr_id"]
+          },
+          {
+            foreignKeyName: "tot_assignments_local_mr_id_fkey"
+            columns: ["local_mr_id"]
+            isOneToOne: false
+            referencedRelation: "local_mrs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_attendees: {
+        Row: {
+          attended: boolean
+          created_at: string
+          farmer_id: string
+          id: string
+          training_id: string
+        }
+        Insert: {
+          attended?: boolean
+          created_at?: string
+          farmer_id: string
+          id?: string
+          training_id: string
+        }
+        Update: {
+          attended?: boolean
+          created_at?: string
+          farmer_id?: string
+          id?: string
+          training_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_attendees_farmer_id_fkey"
+            columns: ["farmer_id"]
+            isOneToOne: false
+            referencedRelation: "farmers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_attendees_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trainings: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          duration_hours: number | null
+          id: string
+          local_mr_id: string | null
+          max_attendees: number | null
+          scheduled_date: string
+          scheduled_time: string | null
+          status: string
+          title: string
+          trainer_id: string
+          training_type: string
+          updated_at: string
+          venue: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          duration_hours?: number | null
+          id?: string
+          local_mr_id?: string | null
+          max_attendees?: number | null
+          scheduled_date: string
+          scheduled_time?: string | null
+          status?: string
+          title: string
+          trainer_id: string
+          training_type: string
+          updated_at?: string
+          venue?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          duration_hours?: number | null
+          id?: string
+          local_mr_id?: string | null
+          max_attendees?: number | null
+          scheduled_date?: string
+          scheduled_time?: string | null
+          status?: string
+          title?: string
+          trainer_id?: string
+          training_type?: string
+          updated_at?: string
+          venue?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trainings_local_mr_id_fkey"
+            columns: ["local_mr_id"]
+            isOneToOne: false
+            referencedRelation: "local_mr_performance"
+            referencedColumns: ["local_mr_id"]
+          },
+          {
+            foreignKeyName: "trainings_local_mr_id_fkey"
+            columns: ["local_mr_id"]
+            isOneToOne: false
+            referencedRelation: "local_mrs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      visits: {
+        Row: {
+          created_at: string
+          farmer_id: string
+          follow_up_date: string | null
+          follow_up_required: boolean
+          id: string
+          local_mr_id: string | null
+          notes: string | null
+          purpose: string
+          tot_id: string
+          updated_at: string
+          visit_date: string
+        }
+        Insert: {
+          created_at?: string
+          farmer_id: string
+          follow_up_date?: string | null
+          follow_up_required?: boolean
+          id?: string
+          local_mr_id?: string | null
+          notes?: string | null
+          purpose: string
+          tot_id: string
+          updated_at?: string
+          visit_date?: string
+        }
+        Update: {
+          created_at?: string
+          farmer_id?: string
+          follow_up_date?: string | null
+          follow_up_required?: boolean
+          id?: string
+          local_mr_id?: string | null
+          notes?: string | null
+          purpose?: string
+          tot_id?: string
+          updated_at?: string
+          visit_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visits_farmer_id_fkey"
+            columns: ["farmer_id"]
+            isOneToOne: false
+            referencedRelation: "farmers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visits_local_mr_id_fkey"
+            columns: ["local_mr_id"]
+            isOneToOne: false
+            referencedRelation: "local_mr_performance"
+            referencedColumns: ["local_mr_id"]
+          },
+          {
+            foreignKeyName: "visits_local_mr_id_fkey"
+            columns: ["local_mr_id"]
+            isOneToOne: false
+            referencedRelation: "local_mrs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      local_mr_performance: {
+        Row: {
+          county: string | null
+          local_mr_id: string | null
+          local_mr_name: string | null
+          region: string | null
+          total_bookings: number | null
+          total_commission: number | null
+          total_farmers: number | null
+          total_revenue: number | null
+          total_sales: number | null
+          total_tots: number | null
+          total_trainings: number | null
+          total_visits: number | null
+        }
+        Relationships: []
+      }
+      monthly_trends: {
+        Row: {
+          commission: number | null
+          farmers: number | null
+          month: string | null
+          revenue: number | null
+          sales_count: number | null
+          tots: number | null
+        }
+        Relationships: []
+      }
+      sales_summary: {
+        Row: {
+          active_tots: number | null
+          local_mr_id: string | null
+          local_mr_name: string | null
+          month: string | null
+          total_commission: number | null
+          total_revenue: number | null
+          total_sales: number | null
+          unique_farmers: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_local_mr_id_fkey"
+            columns: ["local_mr_id"]
+            isOneToOne: false
+            referencedRelation: "local_mr_performance"
+            referencedColumns: ["local_mr_id"]
+          },
+          {
+            foreignKeyName: "sales_local_mr_id_fkey"
+            columns: ["local_mr_id"]
+            isOneToOne: false
+            referencedRelation: "local_mrs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tot_performance: {
+        Row: {
+          farmers_served: number | null
+          local_mr_id: string | null
+          local_mr_name: string | null
+          paid_commission: number | null
+          pending_commission: number | null
+          tot_id: string | null
+          tot_name: string | null
+          total_commission: number | null
+          total_revenue: number | null
+          total_sales: number | null
+          total_visits: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tot_assignments_local_mr_id_fkey"
+            columns: ["local_mr_id"]
+            isOneToOne: false
+            referencedRelation: "local_mr_performance"
+            referencedColumns: ["local_mr_id"]
+          },
+          {
+            foreignKeyName: "tot_assignments_local_mr_id_fkey"
+            columns: ["local_mr_id"]
+            isOneToOne: false
+            referencedRelation: "local_mrs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
-      [_ in never]: never
+      get_user_local_mr_id: { Args: { _user_id: string }; Returns: string }
+      get_user_role: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_coordinator_of: {
+        Args: { _local_mr_id: string; _user_id: string }
+        Returns: boolean
+      }
+      log_audit: {
+        Args: {
+          _action: string
+          _after_data?: Json
+          _before_data?: Json
+          _entity: string
+          _entity_id: string
+        }
+        Returns: string
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "manager" | "local_mr_coordinator" | "tot"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +1096,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "manager", "local_mr_coordinator", "tot"],
+    },
   },
 } as const

@@ -134,7 +134,7 @@ export function Support() {
     }
   };
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | string) => {
     return new Intl.DateTimeFormat('en-KE', {
       day: 'numeric',
       month: 'short',

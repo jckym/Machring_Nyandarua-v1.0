@@ -53,18 +53,18 @@ const exportToPDF = (title: string, headers: string[], rows: (string | number)[]
 export const exportFarmersToExcel = (farmers: Farmer[], filename: string = 'farmers') => {
   const data = farmers.map(farmer => ({
     'Name': farmer.name,
-    'Phone': farmer.phone,
+    'Phone': farmer.phone || '',
     'Email': farmer.email || '',
-    'Local MR': getMrName(farmer.localMrId, farmer.localMrName),
+    'Local MR': getMrName(farmer.localMrId || '', farmer.localMrName),
     'County': farmer.location.county,
-    'Subcounty': farmer.location.subcounty,
+    'Subcounty': farmer.location.subcounty || farmer.location.subCounty || '',
     'Ward': farmer.location.ward,
     'Village': farmer.location.village,
     'Value Chain': farmer.valueChain,
     'Category': farmer.farmerCategory,
     'Rating': farmer.farmerRating,
-    'Total Purchases': farmer.totalPurchases,
-    'Mechanisation Count': farmer.mechanisationCount,
+    'Total Purchases': farmer.totalPurchases || 0,
+    'Mechanisation Count': farmer.mechanisationCount || 0,
     'Trainings Attended': farmer.trainingsAttended,
     'Visits Count': farmer.visitsCount,
     'Registration Date': new Date(farmer.createdAt).toLocaleDateString(),
@@ -74,15 +74,15 @@ export const exportFarmersToExcel = (farmers: Farmer[], filename: string = 'farm
 
 export const exportFarmersToPDF = (farmers: Farmer[], filename: string = 'farmers') => {
   const headers = ['Name', 'Phone', 'Local MR', 'Location', 'Value Chain', 'Category', 'Rating', 'Purchases'];
-  const rows = farmers.map(farmer => [
+  const rows: (string | number)[][] = farmers.map(farmer => [
     farmer.name,
-    farmer.phone,
-    getMrName(farmer.localMrId, farmer.localMrName),
+    farmer.phone || '',
+    getMrName(farmer.localMrId || '', farmer.localMrName),
     `${farmer.location.village}, ${farmer.location.county}`,
     farmer.valueChain,
     farmer.farmerCategory,
     farmer.farmerRating,
-    farmer.totalPurchases.toString(),
+    (farmer.totalPurchases || 0).toString(),
   ]);
   exportToPDF('Farmers Report', headers, rows, filename);
 };
@@ -154,13 +154,13 @@ export const exportMechanisationToPDF = (jobs: MechanisationJob[], filename: str
 export const exportTrainingsToExcel = (trainings: Training[], filename: string = 'trainings') => {
   const data = trainings.map(training => ({
     'Title': training.title,
-    'Type': training.type,
+    'Type': training.type || '',
     'Date': new Date(training.date).toLocaleDateString(),
     'Location': training.location,
     'Duration (hrs)': training.duration,
-    'Trainer': training.trainerName,
+    'Trainer': training.trainerName || '',
     'Attendees': training.attendees.length,
-    'Topics': training.topics.join(', '),
+    'Topics': (training.topics || []).join(', '),
     'Status': training.status,
     'Local MR': training.localMrName || '',
   }));
@@ -199,12 +199,15 @@ export const exportVisitsToExcel = (visits: Visit[], filename: string = 'visits'
 
 export const exportVisitsToPDF = (visits: Visit[], filename: string = 'visits') => {
   const headers = ['Farmer', 'Purpose', 'Date', 'Notes', 'Recorded By'];
-  const rows: (string | number)[][] = visits.map(visit => [
-    visit.farmerName ?? '',
-    visit.purpose,
-    new Date(visit.date).toLocaleDateString(),
-    visit.notes.substring(0, 50) + (visit.notes.length > 50 ? '...' : ''),
-    visit.totName ?? '',
-  ]);
+  const rows: (string | number)[][] = visits.map(visit => {
+    const notes = visit.notes || '';
+    return [
+      visit.farmerName ?? '',
+      visit.purpose,
+      new Date(visit.date).toLocaleDateString(),
+      notes.substring(0, 50) + (notes.length > 50 ? '...' : ''),
+      visit.totName ?? '',
+    ];
+  });
   exportToPDF('Visits Report', headers, rows, filename);
 };

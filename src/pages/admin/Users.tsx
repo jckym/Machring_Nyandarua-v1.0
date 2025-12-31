@@ -228,11 +228,11 @@ export function Users() {
     setFormData({
       name: user.name,
       email: user.email,
-      phone: user.phone,
+      phone: user.phone || '',
       password: '',
       role: user.role,
-      localMrId: user.localMrId || '',
-      status: user.status,
+      localMrId: user.localMrId || user.local_mr_id || '',
+      status: (user.status === 'active' || user.status === 'inactive') ? user.status : 'active',
     });
     setIsEditDialogOpen(true);
   };

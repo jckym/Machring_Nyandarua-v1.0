@@ -1,14 +1,38 @@
 // src/hooks/api/useMechanisation.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  mechanisationService,
-  CreateMechanisationDto,
-  UpdateMechanisationDto,
-  MechanisationFilters,
-  CompletionReportDto,
-} from '@/lib/api';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { MechanisationJob } from '@/types';
+
+export interface MechanisationJob {
+  id: string;
+  farmer_id: string;
+  machinery_id: string;
+  tot_id: string;
+  local_mr_id: string;
+  service_type: string;
+  scheduled_date: string;
+  scheduled_time: string | null;
+  area_acres: number | null;
+  duration_hours: number | null;
+  total_cost: number;
+  status: string;
+  completion_notes: string | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined
+  farmer_name?: string;
+  machinery_name?: string;
+  tot_name?: string;
+  local_mr_name?: string;
+}
+
+export interface MechanisationFilters {
+  localMrId?: string;
+  totId?: string;
+  status?: string;
+  machineryId?: string;
+}
 
 export const mechanisationKeys = {
   all: ['mechanisation'] as const,
@@ -16,180 +40,285 @@ export const mechanisationKeys = {
   list: (filters: MechanisationFilters = {}) => [...mechanisationKeys.lists(), filters] as const,
   details: () => [...mechanisationKeys.all, 'detail'] as const,
   detail: (id: string) => [...mechanisationKeys.details(), id] as const,
-  pending: (localMrId?: string) => [...mechanisationKeys.all, 'pending', localMrId || 'global'] as const,
 };
 
-/**
- * All mechanisation jobs (filtered by status, localMrId, totId, etc.)
- */
-export function useMechanisationJobs(filters?: MechanisationFilters) {
+export function useMechanisationJobs(filters: MechanisationFilters = {}) {
   return useQuery({
-    queryKey: mechanisationKeys.list(filters || {}),
-    queryFn: () => mechanisationService.getAll(filters),
-    select: (response) => (response?.data ?? []) as MechanisationJob[],
+    queryKey: mechanisationKeys.list(filters),
+    queryFn: async () => {
+      let query = supabase
+        .from('mechanisation_jobs')
+        .select(`
+          *,
+          farmers!mechanisation_jobs_farmer_id_fkey(name),
+          machinery!mechanisation_jobs_machinery_id_fkey(name, daily_rate),
+          local_mrs!mechanisation_jobs_local_mr_id_fkey(name)
+        `)
+        .order('scheduled_date', { ascending: false });
+
+      if (filters.localMrId) {
+        query = query.eq('local_mr_id', filters.localMrId);
+      }
+      if (filters.totId) {
+        query = query.eq('tot_id', filters.totId);
+      }
+      if (filters.status) {
+        query = query.eq('status', filters.status);
+      }
+      if (filters.machineryId) {
+        query = query.eq('machinery_id', filters.machineryId);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      return (data || []).map((j: any) => ({
+        ...j,
+        farmer_name: j.farmers?.name || '',
+        machinery_name: j.machinery?.name || '',
+        local_mr_name: j.local_mrs?.name || '',
+        farmerName: j.farmers?.name || '',
+        machineryName: j.machinery?.name || '',
+        farmerId: j.farmer_id,
+        machineryId: j.machinery_id,
+        totId: j.tot_id,
+        localMrId: j.local_mr_id,
+        acreage: j.area_acres || 0,
+        pricePerAcre: j.machinery?.daily_rate || 0,
+        totalPrice: j.total_cost,
+        serviceType: j.service_type,
+        scheduledDate: j.scheduled_date,
+        completionReport: j.completed_at ? {
+          summary: j.completion_notes || 'Job completed',
+          duration: `${j.duration_hours || 0} hours`,
+          completedAt: j.completed_at,
+          outcome: 'Successful',
+        } : null,
+      }));
+    },
     staleTime: 1000 * 60 * 3,
-    gcTime: 1000 * 60 * 10,
   });
 }
 
-/**
- * Single job details
- */
 export function useMechanisationJob(id: string) {
   return useQuery({
     queryKey: mechanisationKeys.detail(id),
-    queryFn: () => mechanisationService.getById(id),
-    select: (response) => response?.data as MechanisationJob | undefined,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('mechanisation_jobs')
+        .select(`
+          *,
+          farmers!mechanisation_jobs_farmer_id_fkey(name),
+          machinery!mechanisation_jobs_machinery_id_fkey(name, daily_rate),
+          local_mrs!mechanisation_jobs_local_mr_id_fkey(name)
+        `)
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      return {
+        ...data,
+        farmerName: data.farmers?.name || '',
+        machineryName: data.machinery?.name || '',
+        localMrName: data.local_mrs?.name || '',
+        acreage: data.area_acres || 0,
+        pricePerAcre: data.machinery?.daily_rate || 0,
+        totalPrice: data.total_cost,
+        scheduledDate: data.scheduled_date,
+      };
+    },
     enabled: !!id,
-    staleTime: 1000 * 60 * 2,
   });
 }
 
-/**
- * Pending approvals (for manager/admin)
- */
 export function usePendingMechanisation(localMrId?: string) {
   return useQuery({
-    queryKey: mechanisationKeys.pending(localMrId),
-    queryFn: () => mechanisationService.getPendingApprovals(localMrId),
-    select: (response) => (response?.data ?? []) as MechanisationJob[],
+    queryKey: mechanisationKeys.list({ localMrId, status: 'pending' }),
+    queryFn: async () => {
+      let query = supabase
+        .from('mechanisation_jobs')
+        .select(`
+          *,
+          farmers!mechanisation_jobs_farmer_id_fkey(name),
+          machinery!mechanisation_jobs_machinery_id_fkey(name),
+          local_mrs!mechanisation_jobs_local_mr_id_fkey(name)
+        `)
+        .eq('status', 'pending')
+        .order('scheduled_date', { ascending: true });
+
+      if (localMrId) {
+        query = query.eq('local_mr_id', localMrId);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    },
     staleTime: 1000 * 60 * 2,
   });
 }
 
-/**
- * Create new booking (TOT)
- */
+export interface CreateMechanisationDto {
+  farmer_id: string;
+  machinery_id: string;
+  tot_id: string;
+  local_mr_id: string;
+  service_type: string;
+  scheduled_date: string;
+  scheduled_time?: string;
+  area_acres?: number;
+  total_cost?: number;
+}
+
 export function useCreateMechanisation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CreateMechanisationDto) => mechanisationService.create(data),
-    onMutate: async (newJob) => {
-      await queryClient.cancelQueries({ queryKey: mechanisationKeys.all });
+    mutationFn: async (data: CreateMechanisationDto) => {
+      const { data: job, error } = await supabase
+        .from('mechanisation_jobs')
+        .insert({
+          farmer_id: data.farmer_id,
+          machinery_id: data.machinery_id,
+          tot_id: data.tot_id,
+          local_mr_id: data.local_mr_id,
+          service_type: data.service_type,
+          scheduled_date: data.scheduled_date,
+          scheduled_time: data.scheduled_time,
+          area_acres: data.area_acres,
+          total_cost: data.total_cost || 0,
+          status: 'pending',
+        })
+        .select()
+        .single();
 
-      const previousList = queryClient.getQueryData(mechanisationKeys.lists());
-
-      queryClient.setQueryData(mechanisationKeys.lists(), (old: any[] = []) => [
-        { ...newJob, _id: 'temp-id', status: 'pending-approval', createdAt: new Date() },
-        ...old,
-      ]);
-
-      return { previousList };
+      if (error) throw error;
+      return job;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: mechanisationKeys.all });
-      toast.success('Mechanisation booking submitted for approval');
+      toast.success('Mechanisation booking created');
     },
-    onError: (error: Error, _variables, context) => {
-      if (context?.previousList) {
-        queryClient.setQueryData(mechanisationKeys.lists(), context.previousList);
-      }
-      toast.error(error.message || 'Failed to submit booking');
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to create booking');
     },
   });
 }
 
-/**
- * Update booking details
- */
 export function useUpdateMechanisation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateMechanisationDto }) =>
-      mechanisationService.update(id, data),
+    mutationFn: async ({ id, data }: { id: string; data: Partial<CreateMechanisationDto> }) => {
+      const { data: job, error } = await supabase
+        .from('mechanisation_jobs')
+        .update(data)
+        .eq('id', id)
+        .select()
+        .single();
 
-    onSuccess: (_, variables) => {
+      if (error) throw error;
+      return job;
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: mechanisationKeys.all });
-      queryClient.invalidateQueries({ queryKey: mechanisationKeys.detail(variables.id) });
       toast.success('Booking updated');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to update booking');
     },
   });
 }
 
-/**
- * Approve booking (manager/admin)
- */
 export function useApproveMechanisation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => mechanisationService.approve(id),
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: mechanisationKeys.all });
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('mechanisation_jobs')
+        .update({ status: 'approved' })
+        .eq('id', id);
 
-      const previousList = queryClient.getQueryData(mechanisationKeys.lists());
-      const previousPending = queryClient.getQueryData(mechanisationKeys.pending());
-
-      queryClient.setQueryData(mechanisationKeys.lists(), (old: any[] = []) =>
-        old.map(job => (job._id === id ? { ...job, status: 'approved' } : job))
-      );
-
-      return { previousList, previousPending };
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: mechanisationKeys.all });
-      queryClient.invalidateQueries({ queryKey: mechanisationKeys.pending() });
-      toast.success('Mechanisation booking approved');
+      toast.success('Booking approved');
     },
-    onError: (error: Error, _id, context) => {
-      if (context?.previousList) {
-        queryClient.setQueryData(mechanisationKeys.lists(), context.previousList);
-      }
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to approve booking');
     },
   });
 }
 
-/**
- * Reject booking
- */
 export function useRejectMechanisation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
-      mechanisationService.reject(id, reason),
+    mutationFn: async ({ id }: { id: string; reason?: string }) => {
+      const { error } = await supabase
+        .from('mechanisation_jobs')
+        .update({ status: 'rejected' })
+        .eq('id', id);
 
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: mechanisationKeys.all });
-      queryClient.invalidateQueries({ queryKey: mechanisationKeys.pending() });
       toast.success('Booking rejected');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to reject booking');
     },
   });
 }
 
-/**
- * Complete job with report
- */
 export function useCompleteMechanisation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, report }: { id: string; report: CompletionReportDto }) =>
-      mechanisationService.complete(id, report),
+    mutationFn: async ({ id, report }: { id: string; report: { summary: string; duration: string; outcome: string } }) => {
+      const { error } = await supabase
+        .from('mechanisation_jobs')
+        .update({
+          status: 'completed',
+          completed_at: new Date().toISOString(),
+          completion_notes: report.summary,
+          duration_hours: parseFloat(report.duration) || 0,
+        })
+        .eq('id', id);
 
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: mechanisationKeys.all });
       toast.success('Job marked as completed');
     },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to complete job');
+    },
   });
 }
 
-/**
- * Reschedule job
- */
 export function useRescheduleMechanisation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, newDate }: { id: string; newDate: string }) =>
-      mechanisationService.reschedule(id, newDate),
+    mutationFn: async ({ id, newDate }: { id: string; newDate: string }) => {
+      const { error } = await supabase
+        .from('mechanisation_jobs')
+        .update({ scheduled_date: newDate })
+        .eq('id', id);
 
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: mechanisationKeys.all });
       toast.success('Job rescheduled successfully');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to reschedule job');
     },
   });
 }

@@ -54,7 +54,7 @@ const totNavItems: NavItem[] = [
 
 // Local MR Coordinator: Read-only, scoped to their Local MR
 const coordinatorNavItems: NavItem[] = [
-  { to: '/dashboard/coordinator', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/dashboard/local-mr', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/tots', icon: UserCog, label: 'TOT Overview' },
   { to: '/farmers', icon: Users, label: 'Farmers' },
   { to: '/sales', icon: ShoppingCart, label: 'Sales' },
@@ -99,7 +99,7 @@ const adminNavItems: NavItem[] = [
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
 
   const navItems =
     user?.role === 'admin'
@@ -110,8 +110,8 @@ export function Sidebar() {
       ? coordinatorNavItems
       : totNavItems;
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await signOut();
     toast.success('Logged out successfully');
   };
 

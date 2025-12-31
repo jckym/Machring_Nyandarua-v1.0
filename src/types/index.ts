@@ -30,14 +30,22 @@ export interface User {
 export interface LocalMR {
   id: string;
   name: string;
-  code: string;
+  code?: string;
+  region: string;
+  county: string;
   subcounty: string;
+  sub_county?: string;
   ward: string;
-  managerId: string;
-  managerName: string;
-  regionManagerId?: string;
+  coordinator_id?: string;
+  coordinatorName?: string;
+  managerName?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  status: string;
   totalTots: number;
   totalFarmers: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // Alias

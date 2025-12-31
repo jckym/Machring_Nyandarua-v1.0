@@ -79,7 +79,7 @@ export function LocalMRPerformanceTable({
   // Filter by search term
   const filteredMRs = mrMetrics.filter(mr =>
     mr.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    mr.managerName.toLowerCase().includes(searchTerm.toLowerCase())
+    (mr.managerName || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const formatCurrency = (value: number) => {

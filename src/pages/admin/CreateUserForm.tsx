@@ -165,8 +165,8 @@ export function CreateUserForm({ onSuccess }: CreateUserFormProps) {
             </SelectTrigger>
             <SelectContent>
               {localMRs.map((mr) => (
-                <SelectItem key={mr._id} value={mr._id}>
-                  {mr.name} ({mr.code})
+                <SelectItem key={mr.id} value={mr.id}>
+                  {mr.name} ({mr.code || mr.region})
                 </SelectItem>
               ))}
             </SelectContent>

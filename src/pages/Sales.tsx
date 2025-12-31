@@ -55,12 +55,12 @@ export function Sales() {
   const totalRevenue = completedSales.reduce((acc, sale) => acc + sale.total, 0);
   const totalCommission = completedSales.reduce((acc, sale) => acc + sale.commissionAmount, 0);
 
-  const handleAddSale = (data: Partial<Sale>) => {
+  const handleAddSale = (data: any) => {
     if (!canEdit) {
       toast.error('You do not have permission to record sales');
       return;
     }
-    createSale.mutate(data as any);
+    createSale.mutate(data);
     addNotification({
       title: 'New Sale Recorded',
       message: `Sale recorded successfully`,

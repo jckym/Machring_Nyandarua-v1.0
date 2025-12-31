@@ -35,12 +35,12 @@ export function Visits() {
       visit.purpose.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
-  const handleAddVisit = (data: Partial<Visit>) => {
+  const handleAddVisit = (data: any) => {
     if (!canEdit) {
       toast.error('You do not have permission to log visits');
       return;
     }
-    createVisit.mutate(data as any);
+    createVisit.mutate(data);
     addNotification({
       title: 'Field Visit Logged',
       message: `Visit recorded successfully`,

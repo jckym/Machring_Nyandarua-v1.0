@@ -1,5 +1,4 @@
 // src/pages/dashboard/ManagerDashboard.tsx
-import React from 'react';
 import { 
   Users, ShoppingCart, Tractor, Building2, 
   GraduationCap, TrendingUp, UserCheck, Eye 
@@ -13,40 +12,37 @@ import { TopPerformers } from '@/components/dashboard/TopPerformers';
 import { LocalMRPerformanceTable } from '@/components/dashboard/LocalMRPerformanceTable';
 import { TOTPerformanceOverview } from '@/components/dashboard/TOTPerformanceOverview';
 
-import { useAdminDashboard } from '@/hooks/api/useDashboard';
-import { useLocalMRs } from '@/hooks/api/useLocalMRs';
-import { useFarmers } from '@/hooks/api/useFarmers';
-import { useSales } from '@/hooks/api/useSales';
-import { useMechanisationJobs } from '@/hooks/api/useMechanisation';
-import { useTrainings } from '@/hooks/api/useTrainings';
-import { useUsers } from '@/hooks/api/useUsers';
+import { 
+  useSupabaseAdminStats,
+  useSupabaseLocalMRs,
+  useSupabaseFarmers,
+  useSupabaseSales,
+  useSupabaseMechanisation,
+  useSupabaseTrainings,
+  useSupabaseUsers,
+} from '@/hooks/api/useSupabaseDashboard';
 
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle } from 'lucide-react';
-import { Farmer, Sale, MechanisationJob, Training, LocalMR } from '@/types';
 
 export function ManagerDashboard() {
-  // Fetch organization-wide data (no localMrId filter)
-  const { data: adminStatsResponse, isLoading: statsLoading } = useAdminDashboard();
-  const { data: localMRs = [], isLoading: localMRsLoading } = useLocalMRs();
-  const { data: farmers = [], isLoading: farmersLoading } = useFarmers({});
-  const { data: sales = [], isLoading: salesLoading } = useSales({});
-  const { data: jobs = [], isLoading: jobsLoading } = useMechanisationJobs({});
-  const { data: trainings = [], isLoading: trainingsLoading } = useTrainings({});
-  const { data: users = [], isLoading: usersLoading } = useUsers();
+  // Fetch organization-wide data using Supabase hooks
+  const { data: stats, isLoading: statsLoading } = useSupabaseAdminStats();
+  const { data: localMRs = [], isLoading: localMRsLoading } = useSupabaseLocalMRs();
+  const { data: farmers = [], isLoading: farmersLoading } = useSupabaseFarmers();
+  const { data: sales = [], isLoading: salesLoading } = useSupabaseSales();
+  const { data: jobs = [], isLoading: jobsLoading } = useSupabaseMechanisation();
+  const { data: trainings = [], isLoading: trainingsLoading } = useSupabaseTrainings();
+  const { data: users = [], isLoading: usersLoading } = useSupabaseUsers();
 
   // Count TOTs from users
-  const totalTots = users.filter(u => u.role === 'tot').length;
-  const activeTots = users.filter(u => u.role === 'tot' && u.status === 'active').length;
+  const totalTots = users.filter((u: any) => u.role === 'tot').length;
+  const activeTots = users.filter((u: any) => u.role === 'tot' && u.status === 'active').length;
 
   // Derived stats
-  const totalRevenue = (sales as Sale[])
-    .filter(s => s.status === 'completed')
-    .reduce((acc, s) => acc + (s.total || 0), 0);
-
-  const completedJobs = (jobs as MechanisationJob[]).filter(j => j.status === 'completed').length;
-  const pendingApprovals = (jobs as MechanisationJob[]).filter(j => j.status === 'pending-approval').length;
+  const totalRevenue = sales.reduce((acc: number, s: any) => acc + (Number(s.total_amount) || 0), 0);
+  const completedJobs = jobs.filter((j: any) => j.status === 'completed').length;
+  const pendingApprovals = jobs.filter((j: any) => j.status === 'pending').length;
 
   const formatCurrency = (value: number) => {
     if (value >= 1000000) return `KES ${(value / 1000000).toFixed(1)}M`;
@@ -71,6 +67,55 @@ export function ManagerDashboard() {
     );
   }
 
+  // Transform data for components that expect specific shapes
+  const localMRsForTable = localMRs.map((mr: any) => ({
+    id: mr.id,
+    name: mr.name,
+    code: mr.code,
+    region: mr.region,
+    county: mr.county,
+    subcounty: mr.sub_county,
+    ward: mr.ward,
+    status: mr.status,
+    totalTots: mr.totalTots,
+    totalFarmers: mr.totalFarmers,
+    managerName: mr.coordinatorName,
+  }));
+
+  const salesForTable = sales.map((s: any) => ({
+    id: s.id,
+    localMrId: s.local_mr_id,
+    total: Number(s.total_amount) || 0,
+    status: s.payment_status,
+    date: s.sale_date,
+  }));
+
+  const jobsForTable = jobs.map((j: any) => ({
+    id: j.id,
+    localMrId: j.local_mr_id,
+    status: j.status,
+    scheduledDate: j.scheduled_date,
+  }));
+
+  const farmersForTable = farmers.map((f: any) => ({
+    id: f.id,
+    name: f.name,
+    localMrId: f.local_mr_id,
+    status: f.status,
+  }));
+
+  const totsForOverview = users
+    .filter((u: any) => u.role === 'tot')
+    .map((u: any) => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      phone: u.phone || '',
+      role: u.role,
+      status: u.status,
+      createdAt: u.created_at || new Date().toISOString(),
+    }));
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -86,11 +131,11 @@ export function ManagerDashboard() {
           </Badge>
           <Badge variant="forest" className="text-sm py-1 px-3">
             <Building2 className="w-4 h-4 mr-1" />
-            {(localMRs as LocalMR[]).length} Local MRs
+            {localMRs.length} Local MRs
           </Badge>
           {pendingApprovals > 0 && (
             <Badge variant="warning" className="text-sm py-1 px-3">
-              {pendingApprovals} Pending Approvals
+              {pendingApprovals} Pending
             </Badge>
           )}
         </div>
@@ -100,7 +145,7 @@ export function ManagerDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 stagger-children">
         <StatCard
           title="Total Farmers"
-          value={(farmers as Farmer[]).length}
+          value={farmers.length}
           subtitle="Across all Local MRs"
           icon={Users}
           trend={{ value: 18, isPositive: true }}
@@ -115,7 +160,7 @@ export function ManagerDashboard() {
         />
         <StatCard
           title="Total Sales"
-          value={(sales as Sale[]).length}
+          value={sales.length}
           subtitle="Organization-wide"
           icon={ShoppingCart}
         />
@@ -135,7 +180,7 @@ export function ManagerDashboard() {
         />
         <StatCard
           title="Trainings"
-          value={(trainings as Training[]).length}
+          value={trainings.length}
           subtitle="Sessions held"
           icon={GraduationCap}
           variant="earth"
@@ -144,10 +189,10 @@ export function ManagerDashboard() {
 
       {/* Local MR Performance Table - Key for Manager oversight */}
       <LocalMRPerformanceTable 
-        localMRs={localMRs as LocalMR[]}
-        sales={sales as Sale[]}
-        jobs={jobs as MechanisationJob[]}
-        farmers={farmers as Farmer[]}
+        localMRs={localMRsForTable as any}
+        sales={salesForTable as any}
+        jobs={jobsForTable as any}
+        farmers={farmersForTable as any}
       />
 
       {/* Main Content */}
@@ -155,9 +200,9 @@ export function ManagerDashboard() {
         <div className="lg:col-span-2 space-y-6">
           <SalesChart />
           <TOTPerformanceOverview 
-            tots={users.filter(u => u.role === 'tot')}
-            localMRs={localMRs as LocalMR[]}
-            sales={sales as Sale[]}
+            tots={totsForOverview}
+            localMRs={localMRsForTable as any}
+            sales={salesForTable as any}
           />
         </div>
 

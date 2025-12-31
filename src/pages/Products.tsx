@@ -94,11 +94,11 @@ export function Products() {
     setFormData({
       name: product.name,
       sku: product.sku,
-      category: product.category,
+      category: product.category as ProductCategory,
       unitPrice: product.unitPrice,
       commission: product.commission,
       inStock: product.inStock,
-      description: product.description,
+      description: product.description || '',
     });
     setIsEditDialogOpen(true);
   };

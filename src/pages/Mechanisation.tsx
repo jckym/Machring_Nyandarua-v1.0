@@ -82,7 +82,7 @@ export function Mechanisation() {
 
   const formatCurrency = (value: number) => `KES ${value.toLocaleString()}`;
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | string) => {
     return new Intl.DateTimeFormat('en-KE', {
       day: 'numeric',
       month: 'short',

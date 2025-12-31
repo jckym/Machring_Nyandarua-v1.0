@@ -214,16 +214,16 @@ export function Machinery() {
         {filteredMachinery.map(machine => (
           <Card key={machine.id}>
             <CardContent className="p-4 space-y-3">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <Tractor className="w-5 h-5 text-primary" />
-                  <h3 className="font-semibold">{machine.name}</h3>
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <Tractor className="w-5 h-5 text-primary" />
+                    <h3 className="font-semibold">{machine.name}</h3>
+                  </div>
+                  <Badge variant={getStatusColor(machine.status as MachineryStatus) as any}>
+                    {getStatusIcon(machine.status as MachineryStatus)}
+                    <span className="ml-1 capitalize">{machine.status}</span>
+                  </Badge>
                 </div>
-                <Badge variant={getStatusColor(machine.status) as any}>
-                  {getStatusIcon(machine.status)}
-                  <span className="ml-1 capitalize">{machine.status}</span>
-                </Badge>
-              </div>
 
               <p className="text-sm text-muted-foreground">{machine.category}</p>
 

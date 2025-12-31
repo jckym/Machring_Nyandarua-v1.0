@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import {
   Card,
@@ -13,9 +13,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
-import { authService } from '@/lib/api/services/authService';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Eye, EyeOff, Loader2, Sprout } from 'lucide-react';
+import { toast } from 'sonner';
 
 const loginSchema = z.object({
   email: z.string().trim().email('Invalid email address'),
@@ -25,7 +24,7 @@ const loginSchema = z.object({
 const signupSchema = z.object({
   name: z.string().trim().min(2, 'Name must be at least 2 characters'),
   email: z.string().trim().email('Invalid email address'),
-  phone: z.string().trim().min(10, 'Phone must be at least 10 digits'),
+  phone: z.string().trim().optional(),
   password: z.string().min(6, 'Password must be at least 6 characters'),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -51,9 +50,8 @@ export function Auth() {
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [isSignupLoading, setIsSignupLoading] = useState(false);
 
-  const { login, isAuthenticated } = useAuth();
+  const { signIn, signUp, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -61,39 +59,35 @@ export function Auth() {
     }
   }, [isAuthenticated, navigate]);
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const result = loginSchema.safeParse({ email: loginEmail, password: loginPassword });
     if (!result.success) {
-      toast({
-        title: 'Validation Error',
-        description: result.error.errors[0].message,
-        variant: 'destructive',
-      });
+      toast.error(result.error.errors[0].message);
       return;
     }
 
     setIsLoginLoading(true);
     try {
-      await login(loginEmail, loginPassword);
-      toast({
-        title: 'Welcome back',
-        description: 'Login successful',
-      });
+      const { error } = await signIn(loginEmail, loginPassword);
+      
+      if (error) {
+        toast.error(error.message || 'Login failed. Please try again.');
+      } else {
+        toast.success('Welcome back!');
+        navigate('/dashboard');
+      }
     } catch (err: any) {
-      const description =
-        err?.message ||
-        err?.response?.data?.message ||
-        (err?.code === 'ERR_NETWORK'
-          ? 'Cannot reach the server. If using Render free tier, wait ~30–60s and try again.'
-          : 'Login failed. Please try again.');
-
-      toast({
-        title: 'Login Failed',
-        description,
-        variant: 'destructive',
-      });
+      toast.error('Login failed. Please try again.');
     } finally {
       setIsLoginLoading(false);
     }
@@ -111,29 +105,22 @@ export function Auth() {
     });
 
     if (!result.success) {
-      toast({
-        title: 'Validation Error',
-        description: result.error.errors[0].message,
-        variant: 'destructive',
-      });
+      toast.error(result.error.errors[0].message);
       return;
     }
 
     setIsSignupLoading(true);
     try {
-      const response = await authService.register({
-        name: signupName,
-        email: signupEmail,
-        phone: signupPhone,
-        password: signupPassword,
-      });
+      const { error } = await signUp(signupEmail, signupPassword, signupName, signupPhone);
 
-      if (response.success) {
-        toast({
-          title: 'Account Created',
-          description: 'Your account has been created. Please wait for admin approval or log in.',
-        });
-        // Switch to login tab
+      if (error) {
+        if (error.message.includes('already registered')) {
+          toast.error('This email is already registered. Please sign in instead.');
+        } else {
+          toast.error(error.message || 'Registration failed. Please try again.');
+        }
+      } else {
+        toast.success('Account created successfully! You can now sign in.');
         setActiveTab('login');
         setLoginEmail(signupEmail);
         // Clear signup form
@@ -142,60 +129,49 @@ export function Auth() {
         setSignupPhone('');
         setSignupPassword('');
         setSignupConfirmPassword('');
-      } else {
-        throw new Error(response.message || 'Registration failed');
       }
     } catch (err: any) {
-      const description =
-        err?.response?.data?.message ||
-        err?.message ||
-        'Registration failed. Please try again.';
-
-      toast({
-        title: 'Registration Failed',
-        description,
-        variant: 'destructive',
-      });
+      toast.error('Registration failed. Please try again.');
     } finally {
       setIsSignupLoading(false);
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-muted/30 px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center space-y-4">
-          <div className="flex justify-center">
-            <img
-              src="/mrlogo.png"
-              alt="Company Logo"
-              className="h-16 w-auto"
-            />
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-background via-muted/30 to-background px-4">
+      <div className="w-full max-w-md">
+        {/* Logo and Header */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary mb-4">
+            <Sprout className="h-8 w-8 text-primary-foreground" />
           </div>
-          <CardTitle className="text-2xl">
+          <h1 className="text-2xl font-heading font-bold text-foreground">
             Machinery Ring Nyandarua
-          </CardTitle>
-          <CardDescription>
-            Operations Management System
-          </CardDescription>
-        </CardHeader>
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Operations Management Dashboard
+          </p>
+        </div>
 
-        <CardContent>
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'login' | 'signup')}>
-            <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="login">Sign In</TabsTrigger>
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
-            </TabsList>
+        <Card className="shadow-card border-border/50">
+          <CardHeader className="pb-4">
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'login' | 'signup')}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="login">Sign In</TabsTrigger>
+                <TabsTrigger value="signup">Sign Up</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </CardHeader>
 
-            {/* Login Tab */}
-            <TabsContent value="login">
+          <CardContent>
+            {activeTab === 'login' ? (
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="login-email">Email</Label>
                   <Input
                     id="login-email"
                     type="email"
-                    placeholder="Enter your email"
+                    placeholder="you@example.com"
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
                     disabled={isLoginLoading}
@@ -216,17 +192,11 @@ export function Auth() {
                     <button
                       type="button"
                       onClick={() => setShowLoginPassword(!showLoginPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     >
                       {showLoginPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
-                </div>
-
-                <div className="flex justify-end">
-                  <Link to="/forgot-password" className="text-sm text-primary hover:underline">
-                    Forgot password?
-                  </Link>
                 </div>
 
                 <Button type="submit" className="w-full" disabled={isLoginLoading}>
@@ -240,10 +210,7 @@ export function Auth() {
                   )}
                 </Button>
               </form>
-            </TabsContent>
-
-            {/* Signup Tab */}
-            <TabsContent value="signup">
+            ) : (
               <form onSubmit={handleSignup} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="signup-name">Full Name</Label>
@@ -262,7 +229,7 @@ export function Auth() {
                   <Input
                     id="signup-email"
                     type="email"
-                    placeholder="john@example.com"
+                    placeholder="you@example.com"
                     value={signupEmail}
                     onChange={(e) => setSignupEmail(e.target.value)}
                     disabled={isSignupLoading}
@@ -270,7 +237,7 @@ export function Auth() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="signup-phone">Phone</Label>
+                  <Label htmlFor="signup-phone">Phone (Optional)</Label>
                   <Input
                     id="signup-phone"
                     type="tel"
@@ -295,7 +262,7 @@ export function Auth() {
                     <button
                       type="button"
                       onClick={() => setShowSignupPassword(!showSignupPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     >
                       {showSignupPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
@@ -324,16 +291,20 @@ export function Auth() {
                     'Create Account'
                   )}
                 </Button>
+                
+                <p className="text-xs text-center text-muted-foreground">
+                  New accounts are created with TOT role by default.
+                  Contact an administrator to change your role.
+                </p>
               </form>
-            </TabsContent>
-          </Tabs>
+            )}
+          </CardContent>
+        </Card>
 
-          <p className="text-center text-xs text-muted-foreground mt-6">
-            Need help? Contact{' '}
-            <span className="font-medium">support@machineryring.ke</span>
-          </p>
-        </CardContent>
-      </Card>
+        <p className="text-center text-sm text-muted-foreground mt-6">
+          &copy; {new Date().getFullYear()} Machinery Ring Nyandarua
+        </p>
+      </div>
     </div>
   );
 }

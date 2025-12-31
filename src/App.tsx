@@ -10,13 +10,9 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import { DemoRoleSwitcher } from "@/components/dev/DemoRoleSwitcher";
 
 // Pages
-import { Login } from "@/pages/Login";
 import { Auth } from "@/pages/Auth";
-import { ForgotPassword } from "@/pages/ForgotPassword";
-import { ResetPassword } from "@/pages/ResetPassword";
 import { Dashboard } from "@/pages/Dashboard";
 import { AdminDashboard } from "@/pages/dashboard/AdminDashboard";
 import { ManagerDashboard } from "@/pages/dashboard/ManagerDashboard";
@@ -40,10 +36,16 @@ import { SystemLogs } from "@/pages/admin/SystemLogs";
 import { Commission } from "@/pages/Commission";
 import { TOTManagement } from "@/pages/TOTManagement";
 import { Notifications } from "@/pages/Notifications";
-import { ApprovalRequests } from "@/pages/ApprovalRequests";
 import NotFound from "@/pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      retry: 1,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -55,12 +57,12 @@ const App = () => (
           <BrowserRouter>
             <NotificationProvider>
               <Routes>
-                <Route path="/login" element={<Login />} />
+                {/* Public routes */}
                 <Route path="/auth" element={<Auth />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/login" element={<Navigate to="/auth" replace />} />
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 
+                {/* Protected routes */}
                 <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
                   <Route path="/dashboard" element={<Dashboard />} />
                   
@@ -95,11 +97,17 @@ const App = () => (
                   <Route path="/visits" element={<Visits />} />
                   <Route path="/trainings" element={<Trainings />} />
                   <Route path="/products" element={<Products />} />
-                  <Route path="/reports" element={<Reports />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/support" element={<Support />} />
                   <Route path="/commission" element={<Commission />} />
                   <Route path="/notifications" element={<Notifications />} />
+                  
+                  {/* Reports - Admin, Manager, Coordinator only */}
+                  <Route path="/reports" element={
+                    <ProtectedRoute allowedRoles={['admin', 'manager', 'local_mr_coordinator']}>
+                      <Reports />
+                    </ProtectedRoute>
+                  } />
                   
                   {/* Coordinator, Manager & Admin routes */}
                   <Route path="/tots" element={
@@ -121,11 +129,6 @@ const App = () => (
                       <Users />
                     </ProtectedRoute>
                   } />
-                  <Route path="/approval-requests" element={
-                    <ProtectedRoute allowedRoles={['admin']}>
-                      <ApprovalRequests />
-                    </ProtectedRoute>
-                  } />
                   <Route path="/audit" element={
                     <ProtectedRoute allowedRoles={['admin']}>
                       <AuditLog />
@@ -140,7 +143,6 @@ const App = () => (
                 
                 <Route path="*" element={<NotFound />} />
               </Routes>
-              <DemoRoleSwitcher />
             </NotificationProvider>
           </BrowserRouter>
         </TooltipProvider>

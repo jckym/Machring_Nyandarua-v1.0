@@ -1,103 +1,200 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, UserRole } from '@/types';
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+import { Database } from '@/integrations/supabase/types';
 
-// Demo users for development
-// Role naming:
-// - admin: System Administrator (ONLY data entry role)
-// - manager: Manager (read-only, organization-wide oversight)
-// - local_mr_coordinator: Local MR Coordinator (read-only, scoped to their Local MR)
-// - tot: TOT (read-only, can only view their own data)
-const DEMO_USERS: Record<UserRole, User> = {
-  admin: {
-    id: 'demo-admin-001',
-    name: 'Demo Admin',
-    email: 'admin@demo.com',
-    phone: '0700000001',
-    role: 'admin',
-    status: 'active',
-    createdAt: new Date(),
-  },
-  manager: {
-    id: 'demo-manager-001',
-    name: 'Demo Manager',
-    email: 'manager@demo.com',
-    phone: '0700000002',
-    role: 'manager',
-    status: 'active',
-    createdAt: new Date(),
-  },
-  local_mr_coordinator: {
-    id: 'demo-coordinator-001',
-    name: 'Demo Coordinator',
-    email: 'coordinator@demo.com',
-    phone: '0700000003',
-    role: 'local_mr_coordinator',
-    localMrId: 'demo-localmr-001',
-    localMrName: 'Demo Local MR',
-    status: 'active',
-    createdAt: new Date(),
-  },
-  tot: {
-    id: 'demo-tot-001',
-    name: 'Demo TOT',
-    email: 'tot@demo.com',
-    phone: '0700000004',
-    role: 'tot',
-    localMrId: 'demo-localmr-001',
-    localMrName: 'Demo Local MR',
-    status: 'active',
-    createdAt: new Date(),
-  },
-};
+type AppRole = Database['public']['Enums']['app_role'];
+
+interface AuthUser {
+  id: string;
+  email: string;
+  name: string;
+  phone?: string;
+  role: AppRole;
+  localMrId?: string;
+  localMrName?: string;
+  status: string;
+}
 
 interface AuthContextType {
-  user: User | null;
+  user: AuthUser | null;
+  session: Session | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
   canEdit: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
-  switchDemoRole: (role: UserRole) => void;
+  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, name: string, phone?: string) => Promise<{ error: Error | null }>;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load saved demo role on mount
+  // Fetch user profile and role
+  const fetchUserData = async (userId: string): Promise<AuthUser | null> => {
+    try {
+      // Get profile
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        return null;
+      }
+
+      // Get role
+      const { data: userRole, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .single();
+
+      if (roleError && roleError.code !== 'PGRST116') {
+        console.error('Error fetching role:', roleError);
+      }
+
+      const role: AppRole = userRole?.role || 'tot';
+
+      // Get local MR assignment if applicable
+      let localMrId: string | undefined;
+      let localMrName: string | undefined;
+
+      if (role === 'tot' || role === 'local_mr_coordinator') {
+        const { data: assignment } = await supabase
+          .from('tot_assignments')
+          .select('local_mr_id, local_mrs(name)')
+          .eq('tot_id', userId)
+          .eq('status', 'active')
+          .single();
+
+        if (assignment) {
+          localMrId = assignment.local_mr_id;
+          localMrName = (assignment.local_mrs as any)?.name;
+        }
+
+        // For coordinators, also check local_mrs table
+        if (role === 'local_mr_coordinator') {
+          const { data: coordMr } = await supabase
+            .from('local_mrs')
+            .select('id, name')
+            .eq('coordinator_id', userId)
+            .single();
+
+          if (coordMr) {
+            localMrId = coordMr.id;
+            localMrName = coordMr.name;
+          }
+        }
+      }
+
+      return {
+        id: userId,
+        email: profile.email,
+        name: profile.name,
+        phone: profile.phone || undefined,
+        role,
+        localMrId,
+        localMrName,
+        status: profile.status,
+      };
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      return null;
+    }
+  };
+
   useEffect(() => {
-    const savedRole = localStorage.getItem('demo_role') as UserRole | null;
-    const role = savedRole && DEMO_USERS[savedRole] ? savedRole : 'admin';
-    setUser(DEMO_USERS[role]);
-    setIsLoading(false);
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        
+        if (session?.user) {
+          // Defer Supabase calls with setTimeout
+          setTimeout(async () => {
+            const userData = await fetchUserData(session.user.id);
+            setUser(userData);
+            setIsLoading(false);
+          }, 0);
+        } else {
+          setUser(null);
+          setIsLoading(false);
+        }
+      }
+    );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      
+      if (session?.user) {
+        fetchUserData(session.user.id).then((userData) => {
+          setUser(userData);
+          setIsLoading(false);
+        });
+      } else {
+        setIsLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (email: string, password: string) => {
-    setIsLoading(true);
-    // Demo login - find user by email
-    const demoUser = Object.values(DEMO_USERS).find(
-      (u) => u.email.toLowerCase() === email.toLowerCase()
-    );
-    if (demoUser && password === 'demo123') {
-      localStorage.setItem('demo_role', demoUser.role);
-      setUser(demoUser);
-    } else {
-      throw new Error('Invalid credentials. Use demo123 as password.');
+  const signIn = async (email: string, password: string) => {
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        return { error };
+      }
+      
+      return { error: null };
+    } catch (error) {
+      return { error: error as Error };
     }
-    setIsLoading(false);
   };
 
-  const logout = () => {
-    localStorage.removeItem('demo_role');
+  const signUp = async (email: string, password: string, name: string, phone?: string) => {
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            name,
+            phone,
+          },
+        },
+      });
+      
+      if (error) {
+        return { error };
+      }
+      
+      return { error: null };
+    } catch (error) {
+      return { error: error as Error };
+    }
+  };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-  };
-
-  const switchDemoRole = (role: UserRole) => {
-    localStorage.setItem('demo_role', role);
-    setUser(DEMO_USERS[role]);
+    setSession(null);
   };
 
   // Admin is the ONLY role that can create/edit/delete data
@@ -108,13 +205,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
+        session,
         isLoading,
-        isAuthenticated: !!user,
+        isAuthenticated: !!session && !!user,
         isAdmin,
         canEdit,
-        login,
-        logout,
-        switchDemoRole,
+        signIn,
+        signUp,
+        signOut,
       }}
     >
       {children}

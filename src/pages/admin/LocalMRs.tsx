@@ -19,6 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import {
   DropdownMenu,
@@ -27,13 +28,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
   Search,
   Plus,
   MoreHorizontal,
@@ -41,6 +35,7 @@ import {
   Users,
   MapPin,
   UserCog,
+  Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -48,25 +43,22 @@ import {
   useLocalMRs,
   useCreateLocalMR,
   useUpdateLocalMR,
-} from '@/hooks/api';
-import { LocalMR } from '@/types';
+} from '@/hooks/api/useLocalMRs';
 
 export function LocalMRs() {
   const navigate = useNavigate();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [subcountyFilter, setSubcountyFilter] = useState('all');
-  const [wardFilter, setWardFilter] = useState('all');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedMR, setSelectedMR] = useState<LocalMR | null>(null);
+  const [selectedMR, setSelectedMR] = useState<any>(null);
 
   const [formData, setFormData] = useState({
     name: '',
-    code: '',
+    region: '',
+    county: '',
     subcounty: '',
     ward: '',
-    managerName: '',
   });
 
   /** ================= API ================= */
@@ -75,51 +67,46 @@ export function LocalMRs() {
   const updateMR = useUpdateLocalMR();
 
   /** ================= FILTERS ================= */
-  const subcounties = [...new Set(localMRs.map(mr => mr.subcounty))];
-  const wards = [...new Set(localMRs.map(mr => mr.ward))];
+  const subcounties = [...new Set(localMRs.map((mr: any) => mr.subcounty).filter(Boolean))];
 
-  const filteredMRs = localMRs.filter(mr => {
+  const filteredMRs = localMRs.filter((mr: any) => {
     const matchesSearch =
       mr.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      mr.subcounty.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      mr.ward.toLowerCase().includes(searchQuery.toLowerCase());
+      (mr.subcounty || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (mr.ward || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (mr.county || '').toLowerCase().includes(searchQuery.toLowerCase());
 
-    return (
-      matchesSearch &&
-      (subcountyFilter === 'all' || mr.subcounty === subcountyFilter) &&
-      (wardFilter === 'all' || mr.ward === wardFilter)
-    );
+    return matchesSearch;
   });
 
   /** ================= HELPERS ================= */
   const resetForm = () => {
     setFormData({
       name: '',
-      code: '',
+      region: '',
+      county: '',
       subcounty: '',
       ward: '',
-      managerName: '',
     });
   };
 
   /** ================= ACTIONS ================= */
   const handleAddMR = () => {
-    if (!formData.name || !formData.code || !formData.subcounty || !formData.ward) {
-      toast.error('Please fill all required fields');
+    if (!formData.name || !formData.region || !formData.county) {
+      toast.error('Please fill all required fields (Name, Region, County)');
       return;
     }
 
     createMR.mutate(
       {
         name: formData.name,
-        code: formData.code,
-        subcounty: formData.subcounty,
-        ward: formData.ward,
-        managerId: '', // Will be assigned separately or left empty
+        region: formData.region,
+        county: formData.county,
+        sub_county: formData.subcounty || undefined,
+        ward: formData.ward || undefined,
       },
       {
         onSuccess: () => {
-          toast.success('Local MR created');
           setIsAddDialogOpen(false);
           resetForm();
         },
@@ -133,11 +120,16 @@ export function LocalMRs() {
     updateMR.mutate(
       {
         id: selectedMR.id,
-        data: formData,
+        data: {
+          name: formData.name,
+          region: formData.region,
+          county: formData.county,
+          sub_county: formData.subcounty,
+          ward: formData.ward,
+        },
       },
       {
         onSuccess: () => {
-          toast.success('Local MR updated');
           setIsEditDialogOpen(false);
           setSelectedMR(null);
           resetForm();
@@ -150,22 +142,39 @@ export function LocalMRs() {
     navigate(`/local-mrs/${id}`);
   };
 
+  const handleEditClick = (mr: any) => {
+    setSelectedMR(mr);
+    setFormData({
+      name: mr.name,
+      region: mr.region || '',
+      county: mr.county || '',
+      subcounty: mr.subcounty || '',
+      ward: mr.ward || '',
+    });
+    setIsEditDialogOpen(true);
+  };
+
   /** ================= STATS ================= */
   const totalMRs = localMRs.length;
-  const totalTOTs = localMRs.reduce((s, m) => s + m.totalTots, 0);
-  const totalFarmers = localMRs.reduce((s, m) => s + m.totalFarmers, 0);
+  const totalTOTs = localMRs.reduce((s: number, m: any) => s + (m.totalTots || 0), 0);
+  const totalFarmers = localMRs.reduce((s: number, m: any) => s + (m.totalFarmers || 0), 0);
 
   if (isLoading) {
-    return <p className="text-muted-foreground">Loading Local MRs…</p>;
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-muted-foreground">Loading Local MRs…</span>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
       {/* HEADER */}
-      <div className="flex justify-between">
+      <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold">Local MR Management</h1>
-          <p className="text-muted-foreground">MongoDB-powered registry</p>
+          <p className="text-muted-foreground">Manage local market representatives</p>
         </div>
         <Button onClick={() => setIsAddDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" /> Add Local MR
@@ -181,11 +190,15 @@ export function LocalMRs() {
       </div>
 
       {/* SEARCH */}
-      <Input
-        placeholder="Search Local MRs..."
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-      />
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search Local MRs by name, county, subcounty..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10"
+        />
+      </div>
 
       {/* TABLE */}
       <Card>
@@ -196,67 +209,217 @@ export function LocalMRs() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Code</TableHead>
                 <TableHead>Name</TableHead>
+                <TableHead>Region</TableHead>
+                <TableHead>County</TableHead>
                 <TableHead>Subcounty</TableHead>
                 <TableHead>Ward</TableHead>
-                <TableHead>Manager</TableHead>
+                <TableHead>Coordinator</TableHead>
                 <TableHead>TOTs</TableHead>
                 <TableHead>Farmers</TableHead>
                 <TableHead />
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredMRs.map(mr => (
-                <TableRow key={mr.id}>
-                  <TableCell><Badge variant="outline">{mr.code}</Badge></TableCell>
-                  <TableCell>{mr.name}</TableCell>
-                  <TableCell>{mr.subcounty}</TableCell>
-                  <TableCell>{mr.ward}</TableCell>
-                  <TableCell>{mr.managerName}</TableCell>
-                  <TableCell>{mr.totalTots}</TableCell>
-                  <TableCell>{mr.totalFarmers}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleViewDetails(mr.id)}>
-                          View Details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => {
-                          setSelectedMR(mr);
-                          setFormData({
-                            name: mr.name,
-                            code: mr.code,
-                            subcounty: mr.subcounty,
-                            ward: mr.ward,
-                            managerName: mr.managerName,
-                          });
-                          setIsEditDialogOpen(true);
-                        }}>
-                          Edit
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+              {filteredMRs.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    No Local MRs found. Click "Add Local MR" to create one.
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                filteredMRs.map((mr: any) => (
+                  <TableRow key={mr.id}>
+                    <TableCell className="font-medium">{mr.name}</TableCell>
+                    <TableCell>{mr.region}</TableCell>
+                    <TableCell>{mr.county}</TableCell>
+                    <TableCell>{mr.subcounty || '-'}</TableCell>
+                    <TableCell>{mr.ward || '-'}</TableCell>
+                    <TableCell>
+                      <Badge variant={mr.coordinatorName === 'Unassigned' ? 'secondary' : 'default'}>
+                        {mr.coordinatorName}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{mr.totalTots}</TableCell>
+                    <TableCell>{mr.totalFarmers}</TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleViewDetails(mr.id)}>
+                            View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEditClick(mr)}>
+                            Edit
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
 
-      {/* ADD & EDIT DIALOGS — unchanged from your UI */}
+      {/* ADD DIALOG */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add New Local MR</DialogTitle>
+            <DialogDescription>
+              Create a new local market representative area
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Name *</Label>
+              <Input
+                id="name"
+                placeholder="Enter Local MR name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="region">Region *</Label>
+              <Input
+                id="region"
+                placeholder="Enter region"
+                value={formData.region}
+                onChange={(e) => setFormData({ ...formData, region: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="county">County *</Label>
+              <Input
+                id="county"
+                placeholder="Enter county"
+                value={formData.county}
+                onChange={(e) => setFormData({ ...formData, county: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="subcounty">Subcounty</Label>
+              <Input
+                id="subcounty"
+                placeholder="Enter subcounty (optional)"
+                value={formData.subcounty}
+                onChange={(e) => setFormData({ ...formData, subcounty: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ward">Ward</Label>
+              <Input
+                id="ward"
+                placeholder="Enter ward (optional)"
+                value={formData.ward}
+                onChange={(e) => setFormData({ ...formData, ward: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setIsAddDialogOpen(false); resetForm(); }}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddMR} disabled={createMR.isPending}>
+              {createMR.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                'Create Local MR'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* EDIT DIALOG */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Local MR</DialogTitle>
+            <DialogDescription>
+              Update local market representative details
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Name *</Label>
+              <Input
+                id="edit-name"
+                placeholder="Enter Local MR name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-region">Region *</Label>
+              <Input
+                id="edit-region"
+                placeholder="Enter region"
+                value={formData.region}
+                onChange={(e) => setFormData({ ...formData, region: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-county">County *</Label>
+              <Input
+                id="edit-county"
+                placeholder="Enter county"
+                value={formData.county}
+                onChange={(e) => setFormData({ ...formData, county: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-subcounty">Subcounty</Label>
+              <Input
+                id="edit-subcounty"
+                placeholder="Enter subcounty (optional)"
+                value={formData.subcounty}
+                onChange={(e) => setFormData({ ...formData, subcounty: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-ward">Ward</Label>
+              <Input
+                id="edit-ward"
+                placeholder="Enter ward (optional)"
+                value={formData.ward}
+                onChange={(e) => setFormData({ ...formData, ward: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setIsEditDialogOpen(false); setSelectedMR(null); resetForm(); }}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateMR} disabled={updateMR.isPending}>
+              {updateMR.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                'Update Local MR'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
 /** SMALL STAT CARD */
-function Stat({ icon: Icon, label, value }: any) {
+function Stat({ icon: Icon, label, value }: { icon: any; label: string; value: string | number }) {
   return (
     <Card>
       <CardContent className="flex items-center gap-4 p-4">

@@ -1,55 +1,125 @@
 // src/hooks/api/useLocalMRs.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { localMrService, CreateLocalMRDto, UpdateLocalMRDto, LocalMRFilters } from '@/lib/api';
-import { LocalMR } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
+export interface LocalMRData {
+  id: string;
+  name: string;
+  region: string;
+  county: string;
+  sub_county: string | null;
+  ward: string | null;
+  coordinator_id: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  // Computed fields
+  totalTots?: number;
+  totalFarmers?: number;
+  coordinatorName?: string;
+}
+
+export interface CreateLocalMRDto {
+  name: string;
+  code?: string;
+  region: string;
+  county: string;
+  sub_county?: string;
+  ward?: string;
+  coordinator_id?: string;
+  contact_email?: string;
+  contact_phone?: string;
+}
+
+export interface UpdateLocalMRDto {
+  name?: string;
+  region?: string;
+  county?: string;
+  sub_county?: string;
+  ward?: string;
+  coordinator_id?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  status?: string;
+}
 
 export const localMrKeys = {
   all: ['localMrs'] as const,
   lists: () => [...localMrKeys.all, 'list'] as const,
-  list: (filters: LocalMRFilters = {}) => [...localMrKeys.lists(), filters] as const,
+  list: (filters: Record<string, unknown> = {}) => [...localMrKeys.lists(), filters] as const,
   details: () => [...localMrKeys.all, 'detail'] as const,
   detail: (id: string) => [...localMrKeys.details(), id] as const,
   stats: () => [...localMrKeys.all, 'stats'] as const,
   statsById: (id: string) => [...localMrKeys.stats(), id] as const,
 };
 
-interface UseLocalMRsOptions {
-  filters?: LocalMRFilters;
-  sortBy?: 'name' | 'totalFarmers' | 'totalTots' | 'createdAt';
-  sortOrder?: 'asc' | 'desc';
-}
-
 /**
- * Fetch all Local MRs - Used heavily in Admin Dashboard
+ * Fetch all Local MRs from Supabase
  */
-export function useLocalMRs(options: UseLocalMRsOptions = {}) {
-  const { filters = {}, sortBy = 'name', sortOrder = 'asc' } = options;
-
+export function useLocalMRs() {
   return useQuery({
-    queryKey: localMrKeys.list(filters),
-    queryFn: () => localMrService.getAll(filters),
-    staleTime: 1000 * 60 * 5, // 5 minutes - dashboard data doesn't change frequently
-    gcTime: 1000 * 60 * 10, // 10 minutes
-    select: (response) => {
-      // Handle both array and ApiResponse formats
-      const data = Array.isArray(response) ? response : (response?.data || []);
-      // Client-side sorting for consistent dashboard display
-      const sorted = [...data].sort((a: LocalMR, b: LocalMR) => {
-        let aVal: any = a[sortBy as keyof LocalMR];
-        let bVal: any = b[sortBy as keyof LocalMR];
+    queryKey: localMrKeys.lists(),
+    queryFn: async () => {
+      // Fetch local_mrs with coordinator info
+      const { data: localMrs, error } = await supabase
+        .from('local_mrs')
+        .select(`
+          *,
+          coordinator:profiles!local_mrs_coordinator_id_fkey(id, name)
+        `)
+        .order('name');
 
-        if (sortBy === 'name') {
-          aVal = a.name.toLowerCase();
-          bVal = b.name.toLowerCase();
+      if (error) throw error;
+
+      // Fetch TOT counts per local_mr
+      const { data: totCounts } = await supabase
+        .from('tot_assignments')
+        .select('local_mr_id')
+        .eq('status', 'active');
+
+      // Fetch farmer counts per local_mr
+      const { data: farmerCounts } = await supabase
+        .from('farmers')
+        .select('local_mr_id')
+        .eq('status', 'active');
+
+      // Aggregate counts
+      const totByMr = (totCounts || []).reduce((acc, t) => {
+        acc[t.local_mr_id] = (acc[t.local_mr_id] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      const farmerByMr = (farmerCounts || []).reduce((acc, f) => {
+        if (f.local_mr_id) {
+          acc[f.local_mr_id] = (acc[f.local_mr_id] || 0) + 1;
         }
+        return acc;
+      }, {} as Record<string, number>);
 
-        if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
-        if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
-        return 0;
-      });
-      return sorted;
+      return (localMrs || []).map((mr: any) => ({
+        id: mr.id,
+        name: mr.name,
+        code: mr.name.substring(0, 3).toUpperCase(), // Generate code from name
+        region: mr.region,
+        county: mr.county,
+        subcounty: mr.sub_county || '',
+        ward: mr.ward || '',
+        coordinator_id: mr.coordinator_id,
+        coordinatorName: mr.coordinator?.name || 'Unassigned',
+        managerName: mr.coordinator?.name || 'Unassigned', // Alias for UI
+        contact_email: mr.contact_email,
+        contact_phone: mr.contact_phone,
+        status: mr.status,
+        totalTots: totByMr[mr.id] || 0,
+        totalFarmers: farmerByMr[mr.id] || 0,
+        created_at: mr.created_at,
+        updated_at: mr.updated_at,
+      }));
     },
+    staleTime: 1000 * 60 * 5,
   });
 }
 
@@ -59,10 +129,18 @@ export function useLocalMRs(options: UseLocalMRsOptions = {}) {
 export function useLocalMR(id: string) {
   return useQuery({
     queryKey: localMrKeys.detail(id),
-    queryFn: () => localMrService.getById(id),
-    select: (response) => {
-      const data = Array.isArray(response) ? response[0] : (response?.data);
-      return data as LocalMR | undefined;
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('local_mrs')
+        .select(`
+          *,
+          coordinator:profiles!local_mrs_coordinator_id_fkey(id, name, email, phone)
+        `)
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      return data;
     },
     enabled: !!id,
     staleTime: 1000 * 60 * 2,
@@ -70,103 +148,72 @@ export function useLocalMR(id: string) {
 }
 
 /**
- * Fetch stats for a specific Local MR
- */
-export function useLocalMRStats(id: string) {
-  return useQuery({
-    queryKey: localMrKeys.statsById(id),
-    queryFn: () => localMrService.getStats(id),
-    select: (response) => response?.data,
-    enabled: !!id,
-    staleTime: 1000 * 60 * 10,
-  });
-}
-
-/**
- * Create Local MR with optimistic update
+ * Create Local MR
  */
 export function useCreateLocalMR() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CreateLocalMRDto) => localMrService.create(data),
-    onMutate: async (newMR) => {
-      // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: localMrKeys.all });
+    mutationFn: async (data: CreateLocalMRDto) => {
+      const { data: newMR, error } = await supabase
+        .from('local_mrs')
+        .insert({
+          name: data.name,
+          region: data.region,
+          county: data.county,
+          sub_county: data.sub_county || null,
+          ward: data.ward || null,
+          coordinator_id: data.coordinator_id || null,
+          contact_email: data.contact_email || null,
+          contact_phone: data.contact_phone || null,
+        })
+        .select()
+        .single();
 
-      // Snapshot previous value
-      const previousMRs = queryClient.getQueryData(localMrKeys.lists());
-
-      // Optimistically update list
-      queryClient.setQueryData(localMrKeys.lists(), (old: any[] = []) => [
-        { ...newMR, id: 'temp-id', totalTots: 0, totalFarmers: 0, isActive: true },
-        ...old,
-      ]);
-
-      return { previousMRs };
+      if (error) throw error;
+      return newMR;
     },
-    onSuccess: (newMR) => {
-      // Replace temp item with real one
-      queryClient.setQueryData(localMrKeys.lists(), (old: any[] = []) =>
-        old.map((mr) => (mr.id === 'temp-id' ? newMR : mr))
-      );
-
-      // Invalidate all related queries
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: localMrKeys.all });
-      queryClient.invalidateQueries({ queryKey: localMrKeys.lists() });
-
       toast.success('Local MR created successfully');
     },
-    onError: (error: Error, _variables, context) => {
-      // Revert on error
-      if (context?.previousMRs) {
-        queryClient.setQueryData(localMrKeys.lists(), context.previousMRs);
-      }
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to create Local MR');
     },
   });
 }
 
 /**
- * Update Local MR with optimistic update
+ * Update Local MR
  */
 export function useUpdateLocalMR() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateLocalMRDto }) =>
-      localMrService.update(id, data),
+    mutationFn: async ({ id, data }: { id: string; data: UpdateLocalMRDto }) => {
+      const { data: updated, error } = await supabase
+        .from('local_mrs')
+        .update({
+          name: data.name,
+          region: data.region,
+          county: data.county,
+          sub_county: data.sub_county,
+          ward: data.ward,
+          coordinator_id: data.coordinator_id,
+        })
+        .eq('id', id)
+        .select()
+        .single();
 
-    onMutate: async ({ id, data }) => {
-      await queryClient.cancelQueries({ queryKey: localMrKeys.all });
-
-      const previousMR = queryClient.getQueryData(localMrKeys.detail(id));
-      const previousList = queryClient.getQueryData(localMrKeys.lists());
-
-      // Optimistically update detail
-      queryClient.setQueryData(localMrKeys.detail(id), (old: any) => ({ ...old, ...data }));
-
-      // Optimistically update list
-      queryClient.setQueryData(localMrKeys.lists(), (old: any[] = []) =>
-        old.map((mr) => (mr.id === id ? { ...mr, ...data } : mr))
-      );
-
-      return { previousMR, previousList };
+      if (error) throw error;
+      return updated;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: localMrKeys.all });
       queryClient.invalidateQueries({ queryKey: localMrKeys.detail(variables.id) });
-      queryClient.invalidateQueries({ queryKey: localMrKeys.stats() }); // In case stats change
-
       toast.success('Local MR updated successfully');
     },
-    onError: (error: Error, variables, context) => {
-      if (context?.previousMR) {
-        queryClient.setQueryData(localMrKeys.detail(variables.id), context.previousMR);
-      }
-      if (context?.previousList) {
-        queryClient.setQueryData(localMrKeys.lists(), context.previousList);
-      }
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to update Local MR');
     },
   });
@@ -179,27 +226,19 @@ export function useDeleteLocalMR() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => localMrService.delete(id),
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('local_mrs')
+        .delete()
+        .eq('id', id);
 
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: localMrKeys.all });
-
-      const previousList = queryClient.getQueryData(localMrKeys.lists());
-
-      queryClient.setQueryData(localMrKeys.lists(), (old: any[] = []) =>
-        old.filter((mr) => mr.id !== id)
-      );
-
-      return { previousList };
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: localMrKeys.all });
       toast.success('Local MR deleted successfully');
     },
-    onError: (error: Error, _id, context) => {
-      if (context?.previousList) {
-        queryClient.setQueryData(localMrKeys.lists(), context.previousList);
-      }
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to delete Local MR');
     },
   });

@@ -1,12 +1,12 @@
 // src/pages/dashboard/TotDashboard.tsx
-import React from 'react';
 import { 
   Users, 
   ShoppingCart, 
   Tractor, 
   MapPin, 
   GraduationCap, 
-  TrendingUp 
+  TrendingUp,
+  AlertCircle 
 } from 'lucide-react';
 
 import { StatCard } from '@/components/dashboard/StatCard';
@@ -18,23 +18,22 @@ import { ProductChart } from '@/components/dashboard/ProductChart';
 import { useTotDashboard, TotStats } from '@/hooks/api/useDashboard';
 import { useAuth } from '@/contexts/AuthContext';
 
-import { AlertCircle } from 'lucide-react';
-
 export function TotDashboard() {
   const { user } = useAuth();
-  const totId = user?.id;
+  const totId = user?.id || '';
 
   const { 
     data: statsResponse, 
     isLoading, 
     error 
-  } = useTotDashboard(totId!);
+  } = useTotDashboard(totId);
 
   // Unwrap stats from ApiResponse
   const stats: TotStats | undefined = statsResponse?.data;
 
   const formatCurrency = (value: number) => {
     if (!value) return 'KES 0K';
+    if (value >= 1000000) return `KES ${(value / 1000000).toFixed(1)}M`;
     return `KES ${(value / 1000).toFixed(0)}K`;
   };
 
@@ -82,7 +81,7 @@ export function TotDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 stagger-children">
         <StatCard
           title="My Farmers"
-          value={stats.totalFarmers || 0}
+          value={(stats.totalFarmers || 0).toLocaleString()}
           subtitle="Registered farmers"
           icon={Users}
           trend={{ value: 12, isPositive: true }}
@@ -90,7 +89,7 @@ export function TotDashboard() {
         />
         <StatCard
           title="Total Sales"
-          value={stats.totalSales || 0}
+          value={(stats.totalSales || 0).toLocaleString()}
           subtitle="This month"
           icon={ShoppingCart}
           trend={{ value: 8, isPositive: true }}
@@ -104,20 +103,20 @@ export function TotDashboard() {
         />
         <StatCard
           title="Mechanisation"
-          value={stats.mechanisationJobs || 0}
+          value={(stats.mechanisationJobs || 0).toLocaleString()}
           subtitle="Jobs booked"
           icon={Tractor}
           trend={{ value: 15, isPositive: true }}
         />
         <StatCard
           title="Farm Visits"
-          value={stats.visitsCompleted || 0}
+          value={(stats.visitsCompleted || 0).toLocaleString()}
           subtitle="Completed"
           icon={MapPin}
         />
         <StatCard
           title="Trainings"
-          value={stats.trainingsHeld || 0}
+          value={(stats.trainingsHeld || 0).toLocaleString()}
           subtitle="Sessions held"
           icon={GraduationCap}
           variant="earth"

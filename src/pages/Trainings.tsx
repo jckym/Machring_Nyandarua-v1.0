@@ -38,12 +38,12 @@ export function Trainings() {
   const totalAttendees = trainings.reduce((acc, t) => acc + t.attendees.length, 0);
   const totalHours = trainings.reduce((acc, t) => acc + t.duration, 0);
 
-  const handleAddTraining = (data: Partial<Training>) => {
+  const handleAddTraining = (data: any) => {
     if (!canEdit) {
       toast.error('You do not have permission to schedule trainings');
       return;
     }
-    createTraining.mutate(data as any);
+    createTraining.mutate(data);
     addNotification({
       title: 'New Training Scheduled',
       message: `Training scheduled successfully`,

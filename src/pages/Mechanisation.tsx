@@ -56,12 +56,12 @@ export function Mechanisation() {
   const totalRevenue = jobs.reduce((acc, job) => acc + job.totalPrice, 0);
   const totalAcreage = jobs.reduce((acc, job) => acc + job.acreage, 0);
 
-  const handleAddJob = (data: Partial<MechanisationJob>) => {
+  const handleAddJob = (data: any) => {
     if (!canEdit) {
       toast.error('You do not have permission to create bookings');
       return;
     }
-    createMech.mutate(data as any);
+    createMech.mutate(data);
     addNotification({
       title: 'New Mechanisation Booking',
       message: `Booking created successfully`,

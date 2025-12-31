@@ -1,4 +1,4 @@
-// src/components/FarmerFormDialog.tsx
+// src/components/forms/FarmerFormDialog.tsx
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -18,12 +18,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Farmer, FarmerCategory, ValueChain, LocalMR } from '@/types';
 import { AlertTriangle, Send, Loader2 } from 'lucide-react';
 import { useLocalMRs } from '@/hooks/api/useLocalMRs';
+import { CreateFarmerDto } from '@/hooks/api/useFarmers';
 
-// Full list matching the ValueChain type in types/index.ts
-const valueChains: ValueChain[] = [
+const valueChains = [
   'Maize',
   'Wheat',
   'Dairy',
@@ -39,8 +38,8 @@ const valueChains: ValueChain[] = [
 interface FarmerFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  farmer?: Farmer | null;
-  onSubmit: (farmer: Partial<Farmer>) => void;
+  farmer?: any | null;
+  onSubmit: (farmer: CreateFarmerDto) => void;
 }
 
 export function FarmerFormDialog({
@@ -53,19 +52,20 @@ export function FarmerFormDialog({
   const isEditing = !!farmer;
 
   const { data: localMRsData, isLoading: mrsLoading, error: mrsError } = useLocalMRs();
-  const localMRs: LocalMR[] = Array.isArray(localMRsData) ? localMRsData : [];
+  const localMRs = Array.isArray(localMRsData) ? localMRsData : [];
 
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
     email: '',
     localMrId: '',
-    subcounty: '',
+    sub_county: '',
     village: '',
     ward: '',
     county: '',
-    valueChain: '' as ValueChain,
-    farmerCategory: 'New' as FarmerCategory,
+    farming_type: '',
+    gender: '',
+    farm_size: '',
   });
 
   // Reset / populate form when dialog opens or farmer prop changes
@@ -76,78 +76,73 @@ export function FarmerFormDialog({
           name: farmer.name || '',
           phone: farmer.phone || '',
           email: farmer.email || '',
-          localMrId: farmer.localMrId || '',
-          subcounty: farmer.location?.subcounty || '',
-          village: farmer.location?.village || '',
-          ward: farmer.location?.ward || '',
-          county: farmer.location?.county || '',
-          valueChain: farmer.valueChain,
-          farmerCategory: farmer.farmerCategory,
+          localMrId: farmer.local_mr_id || farmer.localMrId || '',
+          sub_county: farmer.sub_county || farmer.location?.subcounty || '',
+          village: farmer.village || farmer.location?.village || '',
+          ward: farmer.ward || farmer.location?.ward || '',
+          county: farmer.county || farmer.location?.county || '',
+          farming_type: farmer.farming_type || farmer.valueChain || '',
+          gender: farmer.gender || '',
+          farm_size: farmer.farm_size?.toString() || '',
         });
       } else {
         setFormData({
           name: '',
           phone: '',
           email: '',
-          localMrId: '',
-          subcounty: '',
+          localMrId: localMRs[0]?.id || '',
+          sub_county: '',
           village: '',
           ward: '',
           county: '',
-          valueChain: '' as ValueChain,
-          farmerCategory: 'New',
+          farming_type: '',
+          gender: '',
+          farm_size: '',
         });
       }
     }
-  }, [farmer, open]);
+  }, [farmer, open, localMRs]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Comprehensive validation – all required fields per Farmer type
+    // Validation
     if (
       !formData.name.trim() ||
       !formData.phone.trim() ||
       !formData.localMrId ||
-      !formData.valueChain ||
-      !formData.subcounty.trim() ||
-      !formData.ward.trim() ||
       !formData.county.trim()
     ) {
       toast({
         title: 'Validation Error',
-        description: 'Please fill all required fields',
+        description: 'Please fill all required fields (Name, Phone, County, Local MR)',
         variant: 'destructive',
       });
       return;
     }
 
-    const selectedLocalMR = localMRs.find((mr) => mr.id === formData.localMrId);
-
-    const submittedData: Partial<Farmer> = {
-      ...(farmer || {}),
+    // Create farmer DTO for Supabase
+    const farmerData: CreateFarmerDto = {
       name: formData.name.trim(),
-      phone: formData.phone.trim(),
+      phone: formData.phone.trim() || undefined,
       email: formData.email.trim() || undefined,
-      localMrId: formData.localMrId,
-      localMrName: selectedLocalMR?.name || '',
-      location: {
-        village: formData.village.trim(),
-        ward: formData.ward.trim(),
-        subcounty: formData.subcounty.trim(),
-        county: formData.county.trim(),
-      },
-      valueChain: formData.valueChain,
-      farmerCategory: formData.farmerCategory,
+      county: formData.county.trim(),
+      sub_county: formData.sub_county.trim() || undefined,
+      ward: formData.ward.trim() || undefined,
+      village: formData.village.trim() || undefined,
+      farming_type: formData.farming_type || undefined,
+      gender: formData.gender || undefined,
+      farm_size: formData.farm_size ? parseFloat(formData.farm_size) : undefined,
+      local_mr_id: formData.localMrId || undefined,
     };
 
-    onSubmit(submittedData);
+    onSubmit(farmerData);
 
     toast({
-      title: isEditing ? 'Edit Request Sent' : 'Farmer Added',
+      title: isEditing ? 'Farmer Updated' : 'Farmer Added',
       description: isEditing
-        ? 'Your edit request has been sent for approval.'
-        : 'New farmer has been successfully added.',
+        ? 'Farmer details have been updated.'
+        : 'New farmer has been successfully registered.',
     });
 
     onOpenChange(false);
@@ -189,7 +184,6 @@ export function FarmerFormDialog({
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="e.g. James Kiprotich"
-                  disabled={isEditing} // Name usually immutable in edit requests
                 />
               </div>
 
@@ -199,7 +193,7 @@ export function FarmerFormDialog({
                 <Select
                   value={formData.localMrId}
                   onValueChange={(value) => setFormData({ ...formData, localMrId: value })}
-                  disabled={isEditing || localMRs.length === 0}
+                  disabled={localMRs.length === 0}
                 >
                   <SelectTrigger>
                     <SelectValue
@@ -209,57 +203,85 @@ export function FarmerFormDialog({
                   <SelectContent>
                     {localMRs.map((mr) => (
                       <SelectItem key={mr.id} value={mr.id}>
-                        {mr.name} ({mr.code})
+                        {mr.name} - {mr.county}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Phone */}
-              <div className="space-y-2">
-                <Label>Phone *</Label>
-                <Input
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="+2547XXXXXXXX"
-                  disabled={isEditing}
-                />
+              {/* Phone & Email */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Phone *</Label>
+                  <Input
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    placeholder="+2547XXXXXXXX"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  />
+                </div>
               </div>
 
-              {/* Email (Optional) */}
-              <div className="space-y-2">
-                <Label>Email (Optional)</Label>
-                <Input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  disabled={isEditing}
-                />
+              {/* Gender & Farm Size */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Gender</Label>
+                  <Select
+                    value={formData.gender}
+                    onValueChange={(value) => setFormData({ ...formData, gender: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select gender" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="female">Female</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Farm Size (acres)</Label>
+                  <Input
+                    type="number"
+                    step="0.5"
+                    value={formData.farm_size}
+                    onChange={(e) => setFormData({ ...formData, farm_size: e.target.value })}
+                    placeholder="e.g. 2.5"
+                  />
+                </div>
               </div>
 
               {/* Location Fields */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label>Subcounty *</Label>
-                  <Input
-                    value={formData.subcounty}
-                    onChange={(e) => setFormData({ ...formData, subcounty: e.target.value })}
-                    disabled={isEditing}
-                  />
-                </div>
-                <div className="space-y-2">
                   <Label>County *</Label>
                   <Input
                     value={formData.county}
                     onChange={(e) => setFormData({ ...formData, county: e.target.value })}
+                    placeholder="e.g. Nakuru"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Sub-County</Label>
+                  <Input
+                    value={formData.sub_county}
+                    onChange={(e) => setFormData({ ...formData, sub_county: e.target.value })}
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label>Ward *</Label>
+                  <Label>Ward</Label>
                   <Input
                     value={formData.ward}
                     onChange={(e) => setFormData({ ...formData, ward: e.target.value })}
@@ -274,15 +296,15 @@ export function FarmerFormDialog({
                 </div>
               </div>
 
-              {/* Value Chain */}
+              {/* Farming Type */}
               <div className="space-y-2">
-                <Label>Value Chain *</Label>
+                <Label>Farming Type / Value Chain</Label>
                 <Select
-                  value={formData.valueChain}
-                  onValueChange={(value) => setFormData({ ...formData, valueChain: value as ValueChain })}
+                  value={formData.farming_type}
+                  onValueChange={(value) => setFormData({ ...formData, farming_type: value })}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select value chain" />
+                    <SelectValue placeholder="Select farming type" />
                   </SelectTrigger>
                   <SelectContent>
                     {valueChains.map((vc) => (
@@ -290,24 +312,6 @@ export function FarmerFormDialog({
                         {vc}
                       </SelectItem>
                     ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Farmer Category (optional but useful) */}
-              <div className="space-y-2">
-                <Label>Farmer Category</Label>
-                <Select
-                  value={formData.farmerCategory}
-                  onValueChange={(value) => setFormData({ ...formData, farmerCategory: value as FarmerCategory })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="New">New</SelectItem>
-                    <SelectItem value="Existing">Existing</SelectItem>
-                    <SelectItem value="Pioneer">Pioneer</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -328,7 +332,7 @@ export function FarmerFormDialog({
               {isEditing ? (
                 <>
                   <Send className="w-4 h-4 mr-2" />
-                  Request Edit
+                  Update Farmer
                 </>
               ) : (
                 'Add Farmer'

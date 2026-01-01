@@ -17,7 +17,7 @@ const COLORS = [
 export function ProductChart() {
   const { data: response, isLoading, error } = useProductPerformance();
   
-  const chartData = response?.data || [];
+  const chartData = response || [];
 
   if (isLoading) {
     return (

@@ -45,11 +45,7 @@ export function useTrainings(filters: TrainingFilters = {}) {
     queryFn: async () => {
       let query = supabase
         .from('trainings')
-        .select(`
-          *,
-          local_mrs!trainings_local_mr_id_fkey(name),
-          training_attendees(count)
-        `)
+        .select('*')
         .order('scheduled_date', { ascending: false });
 
       if (filters.localMrId) {
@@ -63,18 +59,69 @@ export function useTrainings(filters: TrainingFilters = {}) {
       }
 
       const { data, error } = await query;
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching trainings:', error);
+        throw error;
+      }
+
+      // Get unique local_mr_ids and trainer_ids (filter out null values with type guard)
+      const localMrIds = (data || [])
+        .map(t => t.local_mr_id)
+        .filter((id): id is string => id !== null);
+      const trainerIds = (data || [])
+        .map(t => t.trainer_id)
+        .filter((id): id is string => id !== null);
+
+      // Fetch local MR names
+      let localMrsMap: Record<string, string> = {};
+      if (localMrIds.length > 0) {
+        const { data: localMrs } = await supabase
+          .from('local_mrs')
+          .select('id, name')
+          .in('id', localMrIds);
+        localMrsMap = (localMrs || []).reduce((acc, m) => {
+          acc[m.id] = m.name;
+          return acc;
+        }, {} as Record<string, string>);
+      }
+
+      // Fetch trainer names
+      let trainersMap: Record<string, string> = {};
+      if (trainerIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, name')
+          .in('id', trainerIds);
+        trainersMap = (profiles || []).reduce((acc, p) => {
+          acc[p.id] = p.name;
+          return acc;
+        }, {} as Record<string, string>);
+      }
+
+      // Fetch attendee counts
+      const trainingIds = (data || []).map(t => t.id);
+      let attendeeCounts: Record<string, number> = {};
+      if (trainingIds.length > 0) {
+        const { data: attendees } = await supabase
+          .from('training_attendees')
+          .select('training_id')
+          .in('training_id', trainingIds);
+        attendeeCounts = (attendees || []).reduce((acc, a) => {
+          acc[a.training_id] = (acc[a.training_id] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+      }
 
       return (data || []).map((t: any) => ({
         ...t,
-        local_mr_name: t.local_mrs?.name || '',
-        attendees_count: t.training_attendees?.[0]?.count || 0,
-        trainerName: 'Trainer',
+        local_mr_name: t.local_mr_id ? (localMrsMap[t.local_mr_id] || '') : '',
+        attendees_count: attendeeCounts[t.id] || 0,
+        trainerName: trainersMap[t.trainer_id] || 'Trainer',
         type: t.training_type,
         location: t.venue || '',
         date: t.scheduled_date,
         duration: t.duration_hours || 0,
-        attendees: Array(t.training_attendees?.[0]?.count || 0).fill({}),
+        attendees: Array(attendeeCounts[t.id] || 0).fill({}),
         topics: t.description ? t.description.split(',').map((s: string) => s.trim()) : [],
       }));
     },
@@ -88,24 +135,49 @@ export function useTraining(id: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('trainings')
-        .select(`
-          *,
-          local_mrs!trainings_local_mr_id_fkey(name),
-          training_attendees(farmer_id, attended)
-        `)
+        .select('*')
         .eq('id', id)
         .single();
 
       if (error) throw error;
+      
+      // Fetch local MR name
+      let localMrName = '';
+      if (data.local_mr_id) {
+        const { data: localMr } = await supabase
+          .from('local_mrs')
+          .select('name')
+          .eq('id', data.local_mr_id)
+          .single();
+        localMrName = localMr?.name || '';
+      }
+
+      // Fetch trainer name
+      let trainerName = 'Trainer';
+      if (data.trainer_id) {
+        const { data: trainer } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', data.trainer_id)
+          .single();
+        trainerName = trainer?.name || 'Trainer';
+      }
+
+      // Fetch attendees
+      const { data: attendees } = await supabase
+        .from('training_attendees')
+        .select('farmer_id, attended')
+        .eq('training_id', id);
+
       return {
         ...data,
-        local_mr_name: (data as any).local_mrs?.name || '',
-        trainerName: 'Trainer',
+        local_mr_name: localMrName,
+        trainerName,
         type: data.training_type,
         location: data.venue || '',
         date: data.scheduled_date,
         duration: data.duration_hours || 0,
-        attendees: data.training_attendees || [],
+        attendees: attendees || [],
         topics: data.description ? data.description.split(',').map((s: string) => s.trim()) : [],
       };
     },

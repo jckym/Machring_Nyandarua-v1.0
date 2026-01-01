@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { authService } from '@/lib/api/services/authService';
+import { supabase } from '@/integrations/supabase/client';
 import { Loader2, ArrowLeft, Mail, CheckCircle } from 'lucide-react';
 
 export const ForgotPassword = () => {
@@ -28,25 +28,27 @@ export const ForgotPassword = () => {
 
     setIsLoading(true);
     try {
-      const response = await authService.requestPasswordReset(email);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
       
-      if (response.success) {
+      if (error) {
+        toast({
+          title: 'Request failed',
+          description: error.message || 'Unable to send reset email',
+          variant: 'destructive',
+        });
+      } else {
         setIsSubmitted(true);
         toast({
           title: 'Reset link sent',
           description: 'Check your email for password reset instructions',
         });
-      } else {
-        toast({
-          title: 'Request failed',
-          description: response.message || 'Unable to send reset email',
-          variant: 'destructive',
-        });
       }
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: error?.response?.data?.message || 'Something went wrong. Please try again.',
+        description: 'Something went wrong. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -82,7 +84,7 @@ export const ForgotPassword = () => {
               >
                 Try a different email
               </Button>
-              <Link to="/login" className="w-full">
+              <Link to="/auth" className="w-full">
                 <Button variant="ghost" className="w-full">
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Back to login
@@ -133,7 +135,7 @@ export const ForgotPassword = () => {
               )}
             </Button>
             
-            <Link to="/login" className="block">
+            <Link to="/auth" className="block">
               <Button variant="ghost" className="w-full">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to login

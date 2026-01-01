@@ -1,25 +1,30 @@
-import React, { useState } from 'react';
-import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { authService } from '@/lib/api/services/authService';
+import { supabase } from '@/integrations/supabase/client';
 import { Loader2, ArrowLeft, Lock, Eye, EyeOff, CheckCircle } from 'lucide-react';
 
 export const ResetPassword = () => {
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const token = searchParams.get('token');
-  
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [hasSession, setHasSession] = useState<boolean | null>(null);
   const { toast } = useToast();
+
+  // Check if user has a valid session from the reset link
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setHasSession(!!session);
+    });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,36 +56,27 @@ export const ResetPassword = () => {
       return;
     }
 
-    if (!token) {
-      toast({
-        title: 'Invalid link',
-        description: 'This password reset link is invalid or expired',
-        variant: 'destructive',
-      });
-      return;
-    }
-
     setIsLoading(true);
     try {
-      const response = await authService.resetPassword(token, password);
+      const { error } = await supabase.auth.updateUser({ password });
       
-      if (response.success) {
+      if (error) {
+        toast({
+          title: 'Reset failed',
+          description: error.message || 'Unable to reset password',
+          variant: 'destructive',
+        });
+      } else {
         setIsSuccess(true);
         toast({
           title: 'Password reset successful',
           description: 'You can now log in with your new password',
         });
-      } else {
-        toast({
-          title: 'Reset failed',
-          description: response.message || 'Unable to reset password',
-          variant: 'destructive',
-        });
       }
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: error?.response?.data?.message || 'This link may be expired. Please request a new reset link.',
+        description: 'This link may be expired. Please request a new reset link.',
         variant: 'destructive',
       });
     } finally {
@@ -88,7 +84,17 @@ export const ResetPassword = () => {
     }
   };
 
-  if (!token) {
+  // Still checking session
+  if (hasSession === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // No valid session - invalid or expired link
+  if (!hasSession) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
@@ -122,7 +128,7 @@ export const ResetPassword = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => navigate('/login')} className="w-full">
+            <Button onClick={() => navigate('/auth')} className="w-full">
               Go to login
             </Button>
           </CardContent>
@@ -200,7 +206,7 @@ export const ResetPassword = () => {
               )}
             </Button>
             
-            <Link to="/login" className="block">
+            <Link to="/auth" className="block">
               <Button variant="ghost" className="w-full">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to login

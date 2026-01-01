@@ -48,12 +48,7 @@ export function useMechanisationJobs(filters: MechanisationFilters = {}) {
     queryFn: async () => {
       let query = supabase
         .from('mechanisation_jobs')
-        .select(`
-          *,
-          farmers!mechanisation_jobs_farmer_id_fkey(name),
-          machinery!mechanisation_jobs_machinery_id_fkey(name, daily_rate),
-          local_mrs!mechanisation_jobs_local_mr_id_fkey(name)
-        `)
+        .select('*')
         .order('scheduled_date', { ascending: false });
 
       if (filters.localMrId) {
@@ -70,21 +65,44 @@ export function useMechanisationJobs(filters: MechanisationFilters = {}) {
       }
 
       const { data, error } = await query;
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching mechanisation jobs:', error);
+        throw error;
+      }
+
+      // Get unique IDs
+      const farmerIds = [...new Set((data || []).map(j => j.farmer_id).filter(Boolean))];
+      const machineryIds = [...new Set((data || []).map(j => j.machinery_id).filter(Boolean))];
+      const localMrIds = [...new Set((data || []).map(j => j.local_mr_id).filter(Boolean))];
+      const totIds = [...new Set((data || []).map(j => j.tot_id).filter(Boolean))];
+
+      // Fetch related data in parallel
+      const [farmersRes, machineryRes, localMrsRes, totsRes] = await Promise.all([
+        farmerIds.length > 0 ? supabase.from('farmers').select('id, name').in('id', farmerIds) : { data: [] },
+        machineryIds.length > 0 ? supabase.from('machinery').select('id, name, daily_rate').in('id', machineryIds) : { data: [] },
+        localMrIds.length > 0 ? supabase.from('local_mrs').select('id, name').in('id', localMrIds) : { data: [] },
+        totIds.length > 0 ? supabase.from('profiles').select('id, name').in('id', totIds) : { data: [] },
+      ]);
+
+      const farmersMap = (farmersRes.data || []).reduce((acc, f) => { acc[f.id] = f.name; return acc; }, {} as Record<string, string>);
+      const machineryMap = (machineryRes.data || []).reduce((acc, m) => { acc[m.id] = { name: m.name, daily_rate: m.daily_rate }; return acc; }, {} as Record<string, { name: string; daily_rate: number }>);
+      const localMrsMap = (localMrsRes.data || []).reduce((acc, m) => { acc[m.id] = m.name; return acc; }, {} as Record<string, string>);
+      const totsMap = (totsRes.data || []).reduce((acc, t) => { acc[t.id] = t.name; return acc; }, {} as Record<string, string>);
 
       return (data || []).map((j: any) => ({
         ...j,
-        farmer_name: j.farmers?.name || '',
-        machinery_name: j.machinery?.name || '',
-        local_mr_name: j.local_mrs?.name || '',
-        farmerName: j.farmers?.name || '',
-        machineryName: j.machinery?.name || '',
+        farmer_name: farmersMap[j.farmer_id] || '',
+        machinery_name: machineryMap[j.machinery_id]?.name || '',
+        local_mr_name: localMrsMap[j.local_mr_id] || '',
+        tot_name: totsMap[j.tot_id] || '',
+        farmerName: farmersMap[j.farmer_id] || '',
+        machineryName: machineryMap[j.machinery_id]?.name || '',
         farmerId: j.farmer_id,
         machineryId: j.machinery_id,
         totId: j.tot_id,
         localMrId: j.local_mr_id,
         acreage: j.area_acres || 0,
-        pricePerAcre: j.machinery?.daily_rate || 0,
+        pricePerAcre: machineryMap[j.machinery_id]?.daily_rate || 0,
         totalPrice: j.total_cost,
         serviceType: j.service_type,
         scheduledDate: j.scheduled_date,
@@ -106,23 +124,28 @@ export function useMechanisationJob(id: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('mechanisation_jobs')
-        .select(`
-          *,
-          farmers!mechanisation_jobs_farmer_id_fkey(name),
-          machinery!mechanisation_jobs_machinery_id_fkey(name, daily_rate),
-          local_mrs!mechanisation_jobs_local_mr_id_fkey(name)
-        `)
+        .select('*')
         .eq('id', id)
         .single();
 
       if (error) throw error;
+
+      // Fetch related data
+      const [farmerRes, machineryRes, localMrRes, totRes] = await Promise.all([
+        supabase.from('farmers').select('name').eq('id', data.farmer_id).single(),
+        supabase.from('machinery').select('name, daily_rate').eq('id', data.machinery_id).single(),
+        supabase.from('local_mrs').select('name').eq('id', data.local_mr_id).single(),
+        supabase.from('profiles').select('name').eq('id', data.tot_id).single(),
+      ]);
+
       return {
         ...data,
-        farmerName: data.farmers?.name || '',
-        machineryName: data.machinery?.name || '',
-        localMrName: data.local_mrs?.name || '',
+        farmerName: farmerRes.data?.name || '',
+        machineryName: machineryRes.data?.name || '',
+        localMrName: localMrRes.data?.name || '',
+        totName: totRes.data?.name || '',
         acreage: data.area_acres || 0,
-        pricePerAcre: data.machinery?.daily_rate || 0,
+        pricePerAcre: machineryRes.data?.daily_rate || 0,
         totalPrice: data.total_cost,
         scheduledDate: data.scheduled_date,
       };
@@ -137,12 +160,7 @@ export function usePendingMechanisation(localMrId?: string) {
     queryFn: async () => {
       let query = supabase
         .from('mechanisation_jobs')
-        .select(`
-          *,
-          farmers!mechanisation_jobs_farmer_id_fkey(name),
-          machinery!mechanisation_jobs_machinery_id_fkey(name),
-          local_mrs!mechanisation_jobs_local_mr_id_fkey(name)
-        `)
+        .select('*')
         .eq('status', 'pending')
         .order('scheduled_date', { ascending: true });
 
@@ -152,7 +170,28 @@ export function usePendingMechanisation(localMrId?: string) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data || [];
+
+      // Get unique IDs for related data
+      const farmerIds = [...new Set((data || []).map(j => j.farmer_id).filter(Boolean))];
+      const machineryIds = [...new Set((data || []).map(j => j.machinery_id).filter(Boolean))];
+      const localMrIds = [...new Set((data || []).map(j => j.local_mr_id).filter(Boolean))];
+
+      const [farmersRes, machineryRes, localMrsRes] = await Promise.all([
+        farmerIds.length > 0 ? supabase.from('farmers').select('id, name').in('id', farmerIds) : { data: [] },
+        machineryIds.length > 0 ? supabase.from('machinery').select('id, name').in('id', machineryIds) : { data: [] },
+        localMrIds.length > 0 ? supabase.from('local_mrs').select('id, name').in('id', localMrIds) : { data: [] },
+      ]);
+
+      const farmersMap = (farmersRes.data || []).reduce((acc, f) => { acc[f.id] = f.name; return acc; }, {} as Record<string, string>);
+      const machineryMap = (machineryRes.data || []).reduce((acc, m) => { acc[m.id] = m.name; return acc; }, {} as Record<string, string>);
+      const localMrsMap = (localMrsRes.data || []).reduce((acc, m) => { acc[m.id] = m.name; return acc; }, {} as Record<string, string>);
+
+      return (data || []).map(j => ({
+        ...j,
+        farmers: { name: farmersMap[j.farmer_id] || '' },
+        machinery: { name: machineryMap[j.machinery_id] || '' },
+        local_mrs: { name: localMrsMap[j.local_mr_id] || '' },
+      }));
     },
     staleTime: 1000 * 60 * 2,
   });

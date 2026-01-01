@@ -51,12 +51,7 @@ export function useSales(filters: SaleFilters = {}) {
     queryFn: async () => {
       let query = supabase
         .from('sales')
-        .select(`
-          *,
-          farmers!sales_farmer_id_fkey(name),
-          products!sales_product_id_fkey(name),
-          local_mrs!sales_local_mr_id_fkey(name)
-        `)
+        .select('*')
         .order('sale_date', { ascending: false });
 
       if (filters.localMrId) {
@@ -76,13 +71,36 @@ export function useSales(filters: SaleFilters = {}) {
       }
 
       const { data, error } = await query;
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching sales:', error);
+        throw error;
+      }
+
+      // Get unique IDs
+      const farmerIds = [...new Set((data || []).map(s => s.farmer_id).filter(Boolean))];
+      const productIds = [...new Set((data || []).map(s => s.product_id).filter(Boolean))];
+      const localMrIds = [...new Set((data || []).map(s => s.local_mr_id).filter(Boolean))];
+      const totIds = [...new Set((data || []).map(s => s.tot_id).filter(Boolean))];
+
+      // Fetch names in parallel
+      const [farmersRes, productsRes, localMrsRes, totsRes] = await Promise.all([
+        farmerIds.length > 0 ? supabase.from('farmers').select('id, name').in('id', farmerIds) : { data: [] },
+        productIds.length > 0 ? supabase.from('products').select('id, name').in('id', productIds) : { data: [] },
+        localMrIds.length > 0 ? supabase.from('local_mrs').select('id, name').in('id', localMrIds) : { data: [] },
+        totIds.length > 0 ? supabase.from('profiles').select('id, name').in('id', totIds) : { data: [] },
+      ]);
+
+      const farmersMap = (farmersRes.data || []).reduce((acc, f) => { acc[f.id] = f.name; return acc; }, {} as Record<string, string>);
+      const productsMap = (productsRes.data || []).reduce((acc, p) => { acc[p.id] = p.name; return acc; }, {} as Record<string, string>);
+      const localMrsMap = (localMrsRes.data || []).reduce((acc, m) => { acc[m.id] = m.name; return acc; }, {} as Record<string, string>);
+      const totsMap = (totsRes.data || []).reduce((acc, t) => { acc[t.id] = t.name; return acc; }, {} as Record<string, string>);
 
       return (data || []).map((s: any) => ({
         ...s,
-        farmerName: s.farmers?.name || '',
-        productName: s.products?.name || '',
-        localMrName: s.local_mrs?.name || '',
+        farmerName: farmersMap[s.farmer_id] || '',
+        productName: productsMap[s.product_id] || '',
+        localMrName: localMrsMap[s.local_mr_id] || '',
+        totName: totsMap[s.tot_id] || '',
         farmerId: s.farmer_id,
         productId: s.product_id,
         totId: s.tot_id,
@@ -103,21 +121,26 @@ export function useSale(id: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('sales')
-        .select(`
-          *,
-          farmers!sales_farmer_id_fkey(name),
-          products!sales_product_id_fkey(name),
-          local_mrs!sales_local_mr_id_fkey(name)
-        `)
+        .select('*')
         .eq('id', id)
         .single();
 
       if (error) throw error;
+
+      // Fetch related data
+      const [farmerRes, productRes, localMrRes, totRes] = await Promise.all([
+        supabase.from('farmers').select('name').eq('id', data.farmer_id).single(),
+        supabase.from('products').select('name').eq('id', data.product_id).single(),
+        supabase.from('local_mrs').select('name').eq('id', data.local_mr_id).single(),
+        supabase.from('profiles').select('name').eq('id', data.tot_id).single(),
+      ]);
+
       return {
         ...data,
-        farmerName: data.farmers?.name || '',
-        productName: data.products?.name || '',
-        localMrName: data.local_mrs?.name || '',
+        farmerName: farmerRes.data?.name || '',
+        productName: productRes.data?.name || '',
+        localMrName: localMrRes.data?.name || '',
+        totName: totRes.data?.name || '',
         total: data.total_amount,
         commissionAmount: data.commission_amount,
         status: data.payment_status,

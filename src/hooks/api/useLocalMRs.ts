@@ -63,16 +63,35 @@ export function useLocalMRs() {
   return useQuery({
     queryKey: localMrKeys.lists(),
     queryFn: async () => {
-      // Fetch local_mrs with coordinator info
+      // Fetch local_mrs
       const { data: localMrs, error } = await supabase
         .from('local_mrs')
-        .select(`
-          *,
-          coordinator:profiles!local_mrs_coordinator_id_fkey(id, name)
-        `)
+        .select('*')
         .order('name');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching local MRs:', error);
+        throw error;
+      }
+
+      // Get unique coordinator IDs (filter out null values)
+      const coordinatorIds = (localMrs || [])
+        .map(mr => mr.coordinator_id)
+        .filter((id): id is string => id !== null);
+      
+      // Fetch coordinator profiles separately
+      let coordinatorsMap: Record<string, string> = {};
+      if (coordinatorIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, name')
+          .in('id', coordinatorIds);
+        
+        coordinatorsMap = (profiles || []).reduce((acc, p) => {
+          acc[p.id] = p.name;
+          return acc;
+        }, {} as Record<string, string>);
+      }
 
       // Fetch TOT counts per local_mr
       const { data: totCounts } = await supabase
@@ -102,14 +121,14 @@ export function useLocalMRs() {
       return (localMrs || []).map((mr: any) => ({
         id: mr.id,
         name: mr.name,
-        code: mr.name.substring(0, 3).toUpperCase(), // Generate code from name
+        code: mr.name.substring(0, 3).toUpperCase(),
         region: mr.region,
         county: mr.county,
         subcounty: mr.sub_county || '',
         ward: mr.ward || '',
         coordinator_id: mr.coordinator_id,
-        coordinatorName: mr.coordinator?.name || 'Unassigned',
-        managerName: mr.coordinator?.name || 'Unassigned', // Alias for UI
+        coordinatorName: mr.coordinator_id ? (coordinatorsMap[mr.coordinator_id] || 'Unassigned') : 'Unassigned',
+        managerName: mr.coordinator_id ? (coordinatorsMap[mr.coordinator_id] || 'Unassigned') : 'Unassigned',
         contact_email: mr.contact_email,
         contact_phone: mr.contact_phone,
         status: mr.status,
@@ -132,15 +151,24 @@ export function useLocalMR(id: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('local_mrs')
-        .select(`
-          *,
-          coordinator:profiles!local_mrs_coordinator_id_fkey(id, name, email, phone)
-        `)
+        .select('*')
         .eq('id', id)
         .single();
 
       if (error) throw error;
-      return data;
+      
+      // Fetch coordinator profile separately if exists
+      let coordinator: { id: string; name: string; email: string; phone: string | null } | null = null;
+      if (data.coordinator_id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id, name, email, phone')
+          .eq('id', data.coordinator_id)
+          .single();
+        coordinator = profile;
+      }
+
+      return { ...data, coordinator };
     },
     enabled: !!id,
     staleTime: 1000 * 60 * 2,

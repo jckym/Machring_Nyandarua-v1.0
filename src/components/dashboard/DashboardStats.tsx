@@ -19,7 +19,7 @@ export function DashboardStats() {
     );
   }
 
-  const stats: AdminStats | undefined = response?.data;
+  const stats: AdminStats | undefined = response;
 
   if (error || !stats) {
     return (

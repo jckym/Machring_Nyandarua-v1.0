@@ -15,7 +15,7 @@ interface Performer {
 export function TopPerformers({ type = 'tots' }: { type?: 'tots' | 'farmers' }) {
   const { data: response, isLoading, error } = useTopPerformers(type);
   
-  const performers: Performer[] = response?.data || [];
+  const performers: Performer[] = response || [];
   const title = type === 'tots' ? 'Top TOTs This Month' : 'Most Active Farmers';
 
   const getRankColor = (rank: number) => {

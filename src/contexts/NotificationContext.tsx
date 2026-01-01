@@ -1,9 +1,10 @@
 // src/contexts/NotificationContext.tsx
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { notificationService } from '@/lib/api';
+import { supabase } from '@/integrations/supabase/client';
 import { Notification } from '@/types';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface NotificationContextType {
   notifications: Notification[];
@@ -20,29 +21,62 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
-  // Fetch notifications from API - unwrap ApiResponse
+  // Fetch notifications from Supabase
   const {
     data: notifications = [],
     isLoading,
     error,
   } = useQuery<Notification[]>({
-    queryKey: ['notifications'],
+    queryKey: ['notifications', user?.id],
     queryFn: async () => {
-      const response = await notificationService.getAll();
-      return response.data || [];
+      if (!user?.id) return [];
+      
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+
+      return (data || []).map((n) => ({
+        id: n.id,
+        type: n.type as Notification['type'],
+        title: n.title,
+        message: n.message,
+        read: n.read,
+        createdAt: new Date(n.created_at),
+        userId: n.user_id || undefined,
+        localMrId: n.local_mr_id || undefined,
+      }));
     },
+    enabled: !!user?.id,
     refetchInterval: 60000,
     staleTime: 30000,
   });
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  // Mutations
+  // Add notification mutation
   const addMutation = useMutation({
     mutationFn: async (data: Omit<Notification, 'id' | 'createdAt' | 'read'>) => {
-      const response = await notificationService.create(data as any);
-      return response.data;
+      const { data: result, error } = await supabase
+        .from('notifications')
+        .insert({
+          type: data.type,
+          title: data.title,
+          message: data.message,
+          user_id: data.userId || user?.id,
+          local_mr_id: data.localMrId,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
@@ -53,23 +87,28 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  // Mark as read mutation
   const markReadMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await notificationService.markAsRead(id);
-      return response.data;
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true, read_at: new Date().toISOString() })
+        .eq('id', id);
+
+      if (error) throw error;
     },
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: ['notifications'] });
-      const previous = queryClient.getQueryData<Notification[]>(['notifications']);
+      const previous = queryClient.getQueryData<Notification[]>(['notifications', user?.id]);
 
-      queryClient.setQueryData<Notification[]>(['notifications'], (old = []) =>
+      queryClient.setQueryData<Notification[]>(['notifications', user?.id], (old = []) =>
         old.map(n => (n.id === id ? { ...n, read: true } : n))
       );
 
       return { previous };
     },
-    onError: (err, id, context) => {
-      queryClient.setQueryData(['notifications'], context?.previous);
+    onError: (_err, _id, context) => {
+      queryClient.setQueryData(['notifications', user?.id], context?.previous);
       toast.error('Failed to mark as read');
     },
     onSettled: () => {
@@ -77,10 +116,18 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  // Mark all as read mutation
   const markAllReadMutation = useMutation({
     mutationFn: async () => {
-      const response = await notificationService.markAllAsRead();
-      return response.data;
+      if (!user?.id) return;
+      
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true, read_at: new Date().toISOString() })
+        .eq('user_id', user.id)
+        .eq('read', false);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
@@ -88,10 +135,15 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  // Delete notification mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await notificationService.delete(id);
-      return response.data;
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });

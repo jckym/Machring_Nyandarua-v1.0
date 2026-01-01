@@ -15,7 +15,7 @@ import { useMonthlySalesData } from '@/hooks/api/useDashboard';
 export function SalesChart() {
   const { data: response, isLoading, error } = useMonthlySalesData();
   
-  const chartData = response?.data || [];
+  const chartData = response || [];
 
   const formatCurrency = (value: number) => {
     return `KES ${(value / 1000).toFixed(0)}K`;

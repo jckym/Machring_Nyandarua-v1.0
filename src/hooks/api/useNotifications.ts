@@ -1,36 +1,92 @@
 // src/hooks/api/useNotifications.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { notificationService, NotificationFilters } from '@/lib/api';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+
+export interface NotificationFilters {
+  userId?: string;
+  localMrId?: string;
+  type?: string;
+  read?: boolean;
+  startDate?: string;
+  endDate?: string;
+  page?: number;
+  limit?: number;
+}
 
 export const notificationKeys = {
   all: ['notifications'] as const,
   lists: () => [...notificationKeys.all, 'list'] as const,
   list: (filters: NotificationFilters = {}) => [...notificationKeys.lists(), filters] as const,
-  mine: () => [...notificationKeys.all, 'mine'] as const,
-  unreadCount: () => [...notificationKeys.all, 'unread-count'] as const,
+  mine: (userId?: string) => [...notificationKeys.all, 'mine', userId] as const,
+  unreadCount: (userId?: string) => [...notificationKeys.all, 'unread-count', userId] as const,
 };
 
 /**
  * Fetch all notifications (admin view - with filters)
  */
-export function useNotifications(filters?: NotificationFilters) {
+export function useNotificationsQuery(filters?: NotificationFilters) {
   return useQuery({
     queryKey: notificationKeys.list(filters || {}),
-    queryFn: () => notificationService.getAll(filters),
-    staleTime: 1000 * 60 * 2, // 2 minutes
+    queryFn: async () => {
+      let query = supabase
+        .from('notifications')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (filters?.userId) {
+        query = query.eq('user_id', filters.userId);
+      }
+      if (filters?.localMrId) {
+        query = query.eq('local_mr_id', filters.localMrId);
+      }
+      if (filters?.read !== undefined) {
+        query = query.eq('read', filters.read);
+      }
+      if (filters?.limit) {
+        query = query.limit(filters.limit);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 1000 * 60 * 2,
   });
 }
 
 /**
- * Fetch current user's notifications (TOT/Manager/Admin personal inbox)
+ * Fetch current user's notifications
  */
 export function useMyNotifications(filters?: Omit<NotificationFilters, 'userId'>) {
+  const { user } = useAuth();
+  
   return useQuery({
-    queryKey: notificationKeys.mine(),
-    queryFn: () => notificationService.getMyNotifications(filters),
-    staleTime: 1000 * 30, // 30 seconds
-    refetchInterval: 60000, // Poll every minute
+    queryKey: notificationKeys.mine(user?.id),
+    queryFn: async () => {
+      if (!user?.id) return [];
+
+      let query = supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (filters?.read !== undefined) {
+        query = query.eq('read', filters.read);
+      }
+      if (filters?.limit) {
+        query = query.limit(filters.limit);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user?.id,
+    staleTime: 1000 * 30,
+    refetchInterval: 60000,
   });
 }
 
@@ -38,10 +94,24 @@ export function useMyNotifications(filters?: Omit<NotificationFilters, 'userId'>
  * Real-time unread count for bell badge
  */
 export function useUnreadCount() {
+  const { user } = useAuth();
+
   return useQuery({
-    queryKey: notificationKeys.unreadCount(),
-    queryFn: () => notificationService.getUnreadCount(),
-    refetchInterval: 30000, // Every 30 seconds
+    queryKey: notificationKeys.unreadCount(user?.id),
+    queryFn: async () => {
+      if (!user?.id) return 0;
+
+      const { count, error } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('read', false);
+
+      if (error) throw error;
+      return count || 0;
+    },
+    enabled: !!user?.id,
+    refetchInterval: 30000,
     staleTime: 10000,
   });
 }
@@ -53,60 +123,19 @@ export function useMarkAsRead() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => notificationService.markAsRead(id),
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: notificationKeys.all });
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true, read_at: new Date().toISOString() })
+        .eq('id', id);
 
-      // Optimistically update my notifications
-      queryClient.setQueryData(notificationKeys.mine(), (old: any[] = []) =>
-        old.map(n => (n.id === id ? { ...n, read: true } : n))
-      );
-
-      // Optimistically decrement unread count
-      queryClient.setQueryData(notificationKeys.unreadCount(), (old: number = 0) =>
-        old > 0 ? old - 1 : 0
-      );
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: notificationKeys.all });
     },
-    onError: (error) => {
+    onError: () => {
       toast.error('Failed to mark as read');
-      console.error(error);
-    },
-  });
-}
-
-/**
- * Mark multiple as read
- */
-export function useMarkMultipleAsRead() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (ids: string[]) => notificationService.markMultipleAsRead(ids),
-    onMutate: async (ids) => {
-      await queryClient.cancelQueries({ queryKey: notificationKeys.all });
-
-      const previousCount = queryClient.getQueryData<number>(notificationKeys.unreadCount()) || 0;
-
-      queryClient.setQueryData(notificationKeys.mine(), (old: any[] = []) =>
-        old.map(n => (ids.includes(n.id) ? { ...n, read: true } : n))
-      );
-
-      queryClient.setQueryData(notificationKeys.unreadCount(), previousCount - ids.length);
-
-      return { previousCount };
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: notificationKeys.all });
-      toast.success('Notifications marked as read');
-    },
-    onError: (_, __, context) => {
-      if (context?.previousCount !== undefined) {
-        queryClient.setQueryData(notificationKeys.unreadCount(), context.previousCount);
-      }
-      toast.error('Failed to update notifications');
     },
   });
 }
@@ -116,12 +145,22 @@ export function useMarkMultipleAsRead() {
  */
 export function useMarkAllAsRead() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
-    mutationFn: () => notificationService.markAllAsRead(),
+    mutationFn: async () => {
+      if (!user?.id) return;
+
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true, read_at: new Date().toISOString() })
+        .eq('user_id', user.id)
+        .eq('read', false);
+
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: notificationKeys.all });
-      queryClient.setQueryData(notificationKeys.unreadCount(), 0);
       toast.success('All notifications marked as read');
     },
     onError: () => {
@@ -137,31 +176,20 @@ export function useDeleteNotification() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => notificationService.delete(id),
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: notificationKeys.all });
       toast.success('Notification deleted');
     },
     onError: () => {
       toast.error('Failed to delete notification');
-    },
-  });
-}
-
-/**
- * Delete multiple notifications
- */
-export function useDeleteMultipleNotifications() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (ids: string[]) => notificationService.deleteMultiple(ids),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: notificationKeys.all });
-      toast.success('Notifications deleted');
-    },
-    onError: () => {
-      toast.error('Failed to delete notifications');
     },
   });
 }

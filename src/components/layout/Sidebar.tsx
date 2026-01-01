@@ -60,6 +60,7 @@ const coordinatorNavItems: NavItem[] = [
   { to: '/sales', icon: ShoppingCart, label: 'Sales' },
   { to: '/mechanisation', icon: Tractor, label: 'Mechanisation' },
   { to: '/trainings', icon: GraduationCap, label: 'Trainings' },
+  { to: '/products', icon: Package, label: 'Products' },
   { to: '/reports', icon: FileText, label: 'Reports' },
   { to: '/commission', icon: Calculator, label: 'Commission' },
 ];
@@ -73,6 +74,7 @@ const managerNavItems: NavItem[] = [
   { to: '/sales', icon: ShoppingCart, label: 'Sales Overview' },
   { to: '/mechanisation', icon: Tractor, label: 'Mechanisation' },
   { to: '/trainings', icon: GraduationCap, label: 'Trainings' },
+  { to: '/products', icon: Package, label: 'Products' },
   { to: '/reports', icon: FileText, label: 'Reports' },
   { to: '/notifications', icon: Bell, label: 'Notifications' },
 ];

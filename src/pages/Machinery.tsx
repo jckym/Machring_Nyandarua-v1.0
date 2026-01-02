@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, Tractor, CheckCircle, Clock, MoreVertical, Wrench } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Plus, Tractor, CheckCircle, Clock, MoreVertical, Wrench, Calendar, History, CalendarPlus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useMachinery, useCreateMachinery, useUpdateMachineryStatus } from '@/hooks/api';
@@ -20,6 +21,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import {
   Select,
@@ -30,6 +32,12 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { BookingDialog } from '@/components/machinery/BookingDialog';
+import { ServiceDialog } from '@/components/machinery/ServiceDialog';
+import { MachineryBookingsList } from '@/components/machinery/MachineryBookingsList';
+import { MachineryServiceHistory } from '@/components/machinery/MachineryServiceHistory';
+import { UpcomingMaintenance } from '@/components/machinery/UpcomingMaintenance';
+
 type MachineryStatus = 'available' | 'in_use' | 'maintenance' | 'retired';
 
 const MACHINERY_CATEGORIES = [
@@ -43,18 +51,6 @@ const MACHINERY_CATEGORIES = [
   'Transport',
   'Other',
 ] as const;
-
-interface MachineryItem {
-  id: string;
-  name: string;
-  category: string;
-  type?: string;
-  status: MachineryStatus;
-  pricePerAcre: number;
-  localMrId?: string;
-  description?: string;
-  createdAt?: Date;
-}
 
 const getStatusColor = (status: MachineryStatus) => {
   switch (status) {
@@ -82,6 +78,15 @@ export function Machinery() {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('fleet');
+
+  // Booking and service dialogs
+  const [bookingDialog, setBookingDialog] = useState<{ open: boolean; machineryId: string; name: string }>({
+    open: false, machineryId: '', name: ''
+  });
+  const [serviceDialog, setServiceDialog] = useState<{ open: boolean; machineryId: string; name: string }>({
+    open: false, machineryId: '', name: ''
+  });
 
   const [newMachinery, setNewMachinery] = useState<{
     name: string;
@@ -179,7 +184,7 @@ export function Machinery() {
         <div>
           <h1 className="text-2xl font-bold">Machinery Management</h1>
           <p className="text-muted-foreground">
-            {isAdmin ? 'Manage fleet availability' : 'View machinery availability'}
+            {isAdmin ? 'Manage fleet, bookings & maintenance' : 'View machinery availability'}
           </p>
         </div>
         {isAdmin && (
@@ -221,80 +226,139 @@ export function Machinery() {
         </Card>
       </div>
 
-      {/* Search and Filter */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <Input
-          placeholder="Search machinery..."
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          className="flex-1"
-        />
-        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="w-full sm:w-[200px]">
-            <SelectValue placeholder="Filter by category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            {uniqueCategories.map(cat => (
-              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="fleet" className="flex items-center gap-2">
+            <Tractor className="w-4 h-4" />
+            Fleet
+          </TabsTrigger>
+          <TabsTrigger value="bookings" className="flex items-center gap-2">
+            <Calendar className="w-4 h-4" />
+            Bookings
+          </TabsTrigger>
+          <TabsTrigger value="service" className="flex items-center gap-2">
+            <History className="w-4 h-4" />
+            Service History
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {filteredMachinery.length === 0 ? (
-          <div className="col-span-full text-center py-8 text-muted-foreground">
-            No machinery found matching your filters
+        {/* Fleet Tab */}
+        <TabsContent value="fleet" className="space-y-4">
+          {/* Search and Filter */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Input
+              placeholder="Search machinery..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="flex-1"
+            />
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue placeholder="Filter by category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {uniqueCategories.map(cat => (
+                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        ) : filteredMachinery.map(machine => (
-          <Card key={machine.id}>
-            <CardContent className="p-4 space-y-3">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <Tractor className="w-5 h-5 text-primary" />
-                    <h3 className="font-semibold">{machine.name}</h3>
+
+          {/* Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {filteredMachinery.length === 0 ? (
+              <div className="col-span-full text-center py-8 text-muted-foreground">
+                No machinery found matching your filters
+              </div>
+            ) : filteredMachinery.map(machine => (
+              <Card key={machine.id}>
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <Tractor className="w-5 h-5 text-primary" />
+                      <h3 className="font-semibold">{machine.name}</h3>
+                    </div>
+                    <Badge variant={getStatusColor(machine.status as MachineryStatus) as any}>
+                      {getStatusIcon(machine.status as MachineryStatus)}
+                      <span className="ml-1 capitalize">{machine.status.replace('_', ' ')}</span>
+                    </Badge>
                   </div>
-                  <Badge variant={getStatusColor(machine.status as MachineryStatus) as any}>
-                    {getStatusIcon(machine.status as MachineryStatus)}
-                    <span className="ml-1 capitalize">{machine.status}</span>
-                  </Badge>
-                </div>
 
-              <p className="text-sm text-muted-foreground">{machine.category}</p>
+                  <p className="text-sm text-muted-foreground">{machine.category}</p>
 
-              <p className="font-semibold text-primary">
-                {formatCurrency(machine.pricePerAcre)} / acre
-              </p>
+                  <p className="font-semibold text-primary">
+                    {formatCurrency(machine.pricePerAcre)} / acre
+                  </p>
 
-              {isAdmin && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <MoreVertical className="w-4 h-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuItem onClick={() => handleStatusChange(machine.id, 'available')}>
-                      Set Available
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleStatusChange(machine.id, 'in_use')}>
-                      Set In Use
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleStatusChange(machine.id, 'maintenance')}>
-                      Set Maintenance
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleStatusChange(machine.id, 'retired')}>
-                      Set Retired
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                  <div className="flex justify-between items-center">
+                    {isAdmin && machine.status === 'available' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setBookingDialog({ open: true, machineryId: machine.id, name: machine.name })}
+                      >
+                        <CalendarPlus className="w-4 h-4 mr-1" />
+                        Book
+                      </Button>
+                    )}
+                    {isAdmin && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuItem onClick={() => handleStatusChange(machine.id, 'available')}>
+                            Set Available
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleStatusChange(machine.id, 'in_use')}>
+                            Set In Use
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleStatusChange(machine.id, 'maintenance')}>
+                            Set Maintenance
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleStatusChange(machine.id, 'retired')}>
+                            Set Retired
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => setBookingDialog({ open: true, machineryId: machine.id, name: machine.name })}>
+                            <Calendar className="w-4 h-4 mr-2" />
+                            Create Booking
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setServiceDialog({ open: true, machineryId: machine.id, name: machine.name })}>
+                            <Wrench className="w-4 h-4 mr-2" />
+                            Log Service
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+
+        {/* Bookings Tab */}
+        <TabsContent value="bookings" className="space-y-4">
+          <MachineryBookingsList showMachineryName isAdmin={isAdmin} />
+        </TabsContent>
+
+        {/* Service History Tab */}
+        <TabsContent value="service" className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <MachineryServiceHistory showMachineryName />
+            </div>
+            <div>
+              <UpcomingMaintenance />
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Add Machinery Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -365,6 +429,22 @@ export function Machinery() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Booking Dialog */}
+      <BookingDialog
+        open={bookingDialog.open}
+        onOpenChange={(open) => setBookingDialog(p => ({ ...p, open }))}
+        machineryId={bookingDialog.machineryId}
+        machineryName={bookingDialog.name}
+      />
+
+      {/* Service Dialog */}
+      <ServiceDialog
+        open={serviceDialog.open}
+        onOpenChange={(open) => setServiceDialog(p => ({ ...p, open }))}
+        machineryId={serviceDialog.machineryId}
+        machineryName={serviceDialog.name}
+      />
     </div>
   );
 }

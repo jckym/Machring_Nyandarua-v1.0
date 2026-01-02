@@ -9,8 +9,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useFarmers } from '@/hooks/api/useFarmers';
 import { useProducts } from '@/hooks/api/useProducts';
 import { useLocalMRs } from '@/hooks/api/useLocalMRs';
+import { useTotsByLocalMR } from '@/hooks/api/useTotsByLocalMR';
 import { Loader2 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
 import { CreateSaleDto } from '@/hooks/api/useSales';
 
 interface SaleFormDialogProps {
@@ -21,11 +21,11 @@ interface SaleFormDialogProps {
 
 export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogProps) {
   const { toast } = useToast();
-  const { user } = useAuth();
   const [formData, setFormData] = useState({
     farmerId: '',
     productId: '',
     localMrId: '',
+    totId: '',
     quantity: 1,
     date: new Date().toISOString().split('T')[0],
   });
@@ -33,6 +33,7 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
   const { data: farmers = [], isLoading: farmersLoading, error: farmersError, refetch: refetchFarmers } = useFarmers();
   const { data: products = [], isLoading: productsLoading, error: productsError, refetch: refetchProducts } = useProducts();
   const { data: localMRs = [] } = useLocalMRs();
+  const { data: tots = [], isLoading: totsLoading } = useTotsByLocalMR(formData.localMrId);
 
   const selectedProduct = useMemo(() => products.find((p) => p.id === formData.productId), [formData.productId, products]);
   const selectedFarmer = useMemo(() => farmers.find((f) => f.id === formData.farmerId), [formData.farmerId, farmers]);
@@ -50,11 +51,17 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
         farmerId: '',
         productId: '',
         localMrId: localMRs[0]?.id || '',
+        totId: '',
         quantity: 1,
         date: new Date().toISOString().split('T')[0],
       });
     }
   }, [open, localMRs]);
+
+  // Reset TOT when Local MR changes
+  useEffect(() => {
+    setFormData(prev => ({ ...prev, totId: '' }));
+  }, [formData.localMrId]);
 
   // Auto-select local MR from farmer
   useEffect(() => {
@@ -83,6 +90,11 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
       return;
     }
 
+    if (!formData.totId) {
+      toast({ title: 'Validation Error', description: 'Please select a TOT who made this sale', variant: 'destructive' });
+      return;
+    }
+
     if (formData.quantity > (selectedProduct?.inStock || 0)) {
       toast({ title: 'Stock Error', description: 'Quantity exceeds available stock', variant: 'destructive' });
       return;
@@ -92,7 +104,7 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
     const saleData: CreateSaleDto = {
       farmer_id: formData.farmerId,
       product_id: formData.productId,
-      tot_id: user?.id || '',
+      tot_id: formData.totId,
       local_mr_id: formData.localMrId,
       quantity: formData.quantity,
     };
@@ -136,9 +148,34 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
                   <SelectTrigger>
                     <SelectValue placeholder="Choose Local MR" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[200]">
                     {localMRs.map((mr) => (
                       <SelectItem key={mr.id} value={mr.id}>{mr.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Select TOT *</Label>
+                <Select 
+                  value={formData.totId} 
+                  onValueChange={(value) => setFormData({ ...formData, totId: value })}
+                  disabled={!formData.localMrId || totsLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={
+                      !formData.localMrId ? 'Select Local MR first' : 
+                      totsLoading ? 'Loading TOTs...' : 
+                      tots.length === 0 ? 'No TOTs in this MR' : 
+                      'Choose TOT'
+                    } />
+                  </SelectTrigger>
+                  <SelectContent className="z-[200]">
+                    {tots.map((tot) => (
+                      <SelectItem key={tot.id} value={tot.id}>
+                        {tot.name} ({tot.email})
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -150,7 +187,7 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
                   <SelectTrigger>
                     <SelectValue placeholder={farmers.length === 0 ? 'No farmers' : 'Choose farmer'} />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[200]">
                     {farmers.map((farmer) => (
                       <SelectItem key={farmer.id} value={farmer.id}>
                         {farmer.name} - {farmer.phone}
@@ -164,11 +201,15 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
                 <Label>Select Product *</Label>
                 <Select value={formData.productId} onValueChange={(value) => setFormData({ ...formData, productId: value })}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Choose product" />
+                    <SelectValue placeholder={products.length === 0 ? 'No products' : 'Choose product'} />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[200] max-h-[200px]">
                     {products.map((product) => (
-                      <SelectItem key={product.id} value={product.id} disabled={product.inStock === 0}>
+                      <SelectItem 
+                        key={product.id} 
+                        value={product.id} 
+                        disabled={product.inStock === 0}
+                      >
                         {product.name} - {formatCurrency(product.unitPrice)} ({product.inStock} in stock)
                       </SelectItem>
                     ))}

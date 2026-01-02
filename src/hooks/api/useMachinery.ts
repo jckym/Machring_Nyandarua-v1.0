@@ -195,7 +195,7 @@ export function useUpdateMachineryStatus() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: 'available' | 'booked' | 'maintenance' }) => {
+    mutationFn: async ({ id, status }: { id: string; status: 'available' | 'in_use' | 'maintenance' | 'retired' }) => {
       const { error } = await supabase
         .from('machinery')
         .update({ status })

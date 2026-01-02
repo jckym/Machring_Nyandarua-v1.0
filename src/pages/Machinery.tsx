@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { MachineryStatus } from '@/types';
+type MachineryStatus = 'available' | 'in_use' | 'maintenance' | 'retired';
 
 const MACHINERY_CATEGORIES = [
   'Tractors',
@@ -59,8 +59,9 @@ interface MachineryItem {
 const getStatusColor = (status: MachineryStatus) => {
   switch (status) {
     case 'available': return 'success';
-    case 'booked': return 'warning';
+    case 'in_use': return 'warning';
     case 'maintenance': return 'destructive';
+    case 'retired': return 'secondary';
     default: return 'secondary';
   }
 };
@@ -68,8 +69,9 @@ const getStatusColor = (status: MachineryStatus) => {
 const getStatusIcon = (status: MachineryStatus) => {
   switch (status) {
     case 'available': return <CheckCircle className="w-4 h-4" />;
-    case 'booked': return <Clock className="w-4 h-4" />;
+    case 'in_use': return <Clock className="w-4 h-4" />;
     case 'maintenance': return <Wrench className="w-4 h-4" />;
+    case 'retired': return null;
     default: return null;
   }
 };
@@ -115,7 +117,7 @@ export function Machinery() {
   });
 
   const availableCount = machinery.filter(m => m.status === 'available').length;
-  const bookedCount = machinery.filter(m => m.status === 'booked').length;
+  const inUseCount = machinery.filter(m => m.status === 'in_use').length;
   const maintenanceCount = machinery.filter(m => m.status === 'maintenance').length;
 
   const handleAddMachinery = () => {
@@ -128,8 +130,7 @@ export function Machinery() {
       name: newMachinery.name,
       category: newMachinery.category,
       status: newMachinery.status,
-      pricePerAcre: Number(newMachinery.pricePerAcre),
-      description: newMachinery.description,
+      daily_rate: Number(newMachinery.pricePerAcre),
     };
 
     createMachinery.mutate(newItem as any);
@@ -150,7 +151,7 @@ export function Machinery() {
     });
   };
 
-  const handleStatusChange = (machineryId: string, newStatus: MachineryStatus) => {
+  const handleStatusChange = (machineryId: string, newStatus: 'available' | 'in_use' | 'maintenance' | 'retired') => {
     updateStatus.mutate({ id: machineryId, status: newStatus });
   };
 
@@ -204,8 +205,8 @@ export function Machinery() {
           <CardContent className="p-4 flex items-center gap-3">
             <Clock className="w-5 h-5 text-yellow-600" />
             <div>
-              <p className="text-2xl font-bold">{bookedCount}</p>
-              <p className="text-sm text-muted-foreground">Booked</p>
+              <p className="text-2xl font-bold">{inUseCount}</p>
+              <p className="text-sm text-muted-foreground">In Use</p>
             </div>
           </CardContent>
         </Card>
@@ -278,11 +279,14 @@ export function Machinery() {
                     <DropdownMenuItem onClick={() => handleStatusChange(machine.id, 'available')}>
                       Set Available
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleStatusChange(machine.id, 'booked')}>
-                      Set Booked
+                    <DropdownMenuItem onClick={() => handleStatusChange(machine.id, 'in_use')}>
+                      Set In Use
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleStatusChange(machine.id, 'maintenance')}>
                       Set Maintenance
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleStatusChange(machine.id, 'retired')}>
+                      Set Retired
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -338,7 +342,9 @@ export function Machinery() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="available">Available</SelectItem>
+                <SelectItem value="in_use">In Use</SelectItem>
                 <SelectItem value="maintenance">Maintenance</SelectItem>
+                <SelectItem value="retired">Retired</SelectItem>
               </SelectContent>
             </Select>
 

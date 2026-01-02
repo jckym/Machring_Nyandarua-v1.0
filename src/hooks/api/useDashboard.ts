@@ -295,22 +295,22 @@ export function useTopPerformers(type: 'tots' | 'farmers', localMrId?: string) {
     queryKey: dashboardKeys.topPerformers(type, localMrId),
     queryFn: async (): Promise<TopPerformer[]> => {
       if (type === 'tots') {
-        // Get TOT performance from the view
+        // Get TOT performance from the secure function
         const { data, error } = await supabase
-          .from('tot_performance')
-          .select('tot_id, tot_name, total_sales, total_revenue')
-          .order('total_revenue', { ascending: false })
-          .limit(5);
+          .rpc('get_tot_performance', localMrId ? { _local_mr_id: localMrId } : {});
 
         if (error) throw error;
 
-        return (data || []).map((t, index) => ({
-          id: t.tot_id || '',
-          name: t.tot_name || 'Unknown',
-          metric: 'Revenue',
-          value: `KES ${Number(t.total_revenue || 0).toLocaleString()}`,
-          rank: index + 1,
-        }));
+        return (data || [])
+          .sort((a: any, b: any) => Number(b.total_revenue || 0) - Number(a.total_revenue || 0))
+          .slice(0, 5)
+          .map((t: any, index: number) => ({
+            id: t.tot_id || '',
+            name: t.tot_name || 'Unknown',
+            metric: 'Revenue',
+            value: `KES ${Number(t.total_revenue || 0).toLocaleString()}`,
+            rank: index + 1,
+          }));
       } else {
         // Get top farmers by sales
         let query = supabase

@@ -1,17 +1,19 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Search, Plus, Tractor, Calendar, Download, MapPin, Clock, FileSpreadsheet, FileText, FileCheck } from 'lucide-react';
+import { Search, Plus, Tractor, Calendar, Download, MapPin, Clock, FileSpreadsheet, FileText, FileCheck, CheckCircle } from 'lucide-react';
 import { exportMechanisationToExcel, exportMechanisationToPDF } from '@/lib/exportUtils';
 import { MechanisationFormDialog } from '@/components/forms/MechanisationFormDialog';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { MechanisationJob } from '@/types';
-import { useMechanisationJobs, useCreateMechanisation } from '@/hooks/api';
+import { useMechanisationJobs, useCreateMechanisation, useCompleteMechanisation } from '@/hooks/api';
+import { useMechanisationRealtime } from '@/hooks/api/useMechanisationRealtime';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,6 +35,7 @@ import {
 } from '@/components/ui/dialog';
 
 export function Mechanisation() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -41,9 +44,13 @@ export function Mechanisation() {
   const { addNotification } = useNotifications();
   const { user, isAdmin, canEdit } = useAuth();
 
+  // Enable realtime updates
+  useMechanisationRealtime();
+
   // API hooks
   const { data: jobs = [], isLoading } = useMechanisationJobs();
   const createMech = useCreateMechanisation();
+  const completeMech = useCompleteMechanisation();
 
   const filteredJobs = jobs.filter(job => {
     const farmerName = job.farmerName ?? '';
@@ -254,19 +261,23 @@ export function Mechanisation() {
               <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Acreage:</span>
-                  <span className="font-medium">{job.acreage} acres</span>
+                  <span className="font-medium">{job.acreage || job.area_acres || 0} acres</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Price/Acre:</span>
-                  <span className="font-medium">{formatCurrency(job.pricePerAcre)}</span>
+                  <span className="font-medium">{formatCurrency(job.pricePerAcre || 0)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Total:</span>
-                  <span className="font-semibold text-primary">{formatCurrency(job.totalPrice)}</span>
+                  <span className="font-semibold text-primary">{formatCurrency(job.totalPrice || job.total_cost || 0)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">TOT Commission:</span>
+                  <span className="font-semibold text-success">{formatCurrency(job.tot_commission || (job.area_acres || 0) * (job.commission_per_acre || 100))}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Scheduled:</span>
-                  <span className="font-medium">{formatDate(job.scheduledDate)}</span>
+                  <span className="font-medium">{formatDate(job.scheduledDate || job.scheduled_date)}</span>
                 </div>
               </div>
               
@@ -290,7 +301,29 @@ export function Mechanisation() {
               )}
               
               <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-border flex gap-2">
-                <Button variant="outline" size="sm" className="flex-1 text-xs h-8 sm:h-9">Details</Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex-1 text-xs h-8 sm:h-9"
+                  onClick={() => navigate(`/mechanisation/${job.id}`)}
+                >
+                  Details
+                </Button>
+                {isAdmin && (job.status === 'approved' || job.status === 'in-progress') && (
+                  <Button 
+                    variant="success" 
+                    size="sm" 
+                    className="flex-1 text-xs h-8 sm:h-9"
+                    onClick={() => completeMech.mutate({ 
+                      id: job.id, 
+                      report: { summary: 'Job completed', duration: '0', outcome: 'Successful' } 
+                    })}
+                    disabled={completeMech.isPending}
+                  >
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    Complete
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>

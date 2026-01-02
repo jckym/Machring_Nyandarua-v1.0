@@ -39,6 +39,7 @@ export function MechanisationFormDialog({ open, onOpenChange, onSubmit }: Mechan
     serviceType: '',
     acreage: 1,
     scheduledDate: '',
+    commissionPerAcre: 100,
     notes: '',
   });
 
@@ -51,6 +52,7 @@ export function MechanisationFormDialog({ open, onOpenChange, onSubmit }: Mechan
   const selectedFarmer = useMemo(() => farmers.find((f) => f.id === formData.farmerId), [formData.farmerId, farmers]);
 
   const total = selectedMachinery ? (selectedMachinery.pricePerAcre || selectedMachinery.daily_rate || 0) * formData.acreage : 0;
+  const commission = formData.acreage * formData.commissionPerAcre;
   const formatCurrency = (value: number) => `KES ${value.toLocaleString()}`;
   const isLoading = farmersLoading || machineryLoading;
   const hasError = farmersError || machineryError;
@@ -65,6 +67,7 @@ export function MechanisationFormDialog({ open, onOpenChange, onSubmit }: Mechan
         serviceType: '',
         acreage: 1,
         scheduledDate: new Date().toISOString().split('T')[0],
+        commissionPerAcre: 100,
         notes: '',
       });
     }
@@ -99,6 +102,7 @@ export function MechanisationFormDialog({ open, onOpenChange, onSubmit }: Mechan
       scheduled_date: formData.scheduledDate,
       area_acres: formData.acreage,
       total_cost: total,
+      commission_per_acre: formData.commissionPerAcre,
     };
 
     onSubmit(jobData);
@@ -211,6 +215,18 @@ export function MechanisationFormDialog({ open, onOpenChange, onSubmit }: Mechan
               </div>
 
               <div className="space-y-2">
+                <Label>Commission per Acre (KES)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="10"
+                  value={formData.commissionPerAcre}
+                  onChange={(e) => setFormData({ ...formData, commissionPerAcre: parseFloat(e.target.value) || 100 })}
+                />
+                <p className="text-xs text-muted-foreground">TOT earns this commission per acre mechanized</p>
+              </div>
+
+              <div className="space-y-2">
                 <Label>Notes (Optional)</Label>
                 <Textarea
                   value={formData.notes}
@@ -222,9 +238,13 @@ export function MechanisationFormDialog({ open, onOpenChange, onSubmit }: Mechan
               {selectedMachinery && (
                 <div className="bg-muted/50 rounded-lg p-4 space-y-2">
                   <h4 className="font-medium text-sm">Summary</h4>
-                  <div className="flex justify-between font-semibold">
-                    <span>Total:</span>
-                    <span>{formatCurrency(total)}</span>
+                  <div className="flex justify-between text-sm">
+                    <span>Total Cost:</span>
+                    <span className="font-semibold">{formatCurrency(total)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm text-success">
+                    <span>TOT Commission:</span>
+                    <span className="font-semibold">{formatCurrency(commission)}</span>
                   </div>
                 </div>
               )}

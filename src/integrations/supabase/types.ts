@@ -460,6 +460,7 @@ export type Database = {
       mechanisation_jobs: {
         Row: {
           area_acres: number | null
+          commission_per_acre: number | null
           completed_at: string | null
           completion_notes: string | null
           created_at: string
@@ -472,12 +473,14 @@ export type Database = {
           scheduled_time: string | null
           service_type: string
           status: string
+          tot_commission: number | null
           tot_id: string
           total_cost: number
           updated_at: string
         }
         Insert: {
           area_acres?: number | null
+          commission_per_acre?: number | null
           completed_at?: string | null
           completion_notes?: string | null
           created_at?: string
@@ -490,12 +493,14 @@ export type Database = {
           scheduled_time?: string | null
           service_type: string
           status?: string
+          tot_commission?: number | null
           tot_id: string
           total_cost?: number
           updated_at?: string
         }
         Update: {
           area_acres?: number | null
+          commission_per_acre?: number | null
           completed_at?: string | null
           completion_notes?: string | null
           created_at?: string
@@ -508,6 +513,7 @@ export type Database = {
           scheduled_time?: string | null
           service_type?: string
           status?: string
+          tot_commission?: number | null
           tot_id?: string
           total_cost?: number
           updated_at?: string

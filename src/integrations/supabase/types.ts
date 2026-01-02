@@ -941,51 +941,7 @@ export type Database = {
       }
     }
     Views: {
-      sales_summary: {
-        Row: {
-          active_tots: number | null
-          local_mr_id: string | null
-          local_mr_name: string | null
-          month: string | null
-          total_commission: number | null
-          total_revenue: number | null
-          total_sales: number | null
-          unique_farmers: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sales_local_mr_id_fkey"
-            columns: ["local_mr_id"]
-            isOneToOne: false
-            referencedRelation: "local_mrs"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      tot_performance: {
-        Row: {
-          farmers_served: number | null
-          local_mr_id: string | null
-          local_mr_name: string | null
-          paid_commission: number | null
-          pending_commission: number | null
-          tot_id: string | null
-          tot_name: string | null
-          total_commission: number | null
-          total_revenue: number | null
-          total_sales: number | null
-          total_visits: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tot_assignments_local_mr_id_fkey"
-            columns: ["local_mr_id"]
-            isOneToOne: false
-            referencedRelation: "local_mrs"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
+      [_ in never]: never
     }
     Functions: {
       get_local_mr_performance: {
@@ -1031,6 +987,35 @@ export type Database = {
           unit: string
           unit_price: number
           updated_at: string
+        }[]
+      }
+      get_sales_summary: {
+        Args: { _local_mr_id?: string }
+        Returns: {
+          active_tots: number
+          local_mr_id: string
+          local_mr_name: string
+          month: string
+          total_commission: number
+          total_revenue: number
+          total_sales: number
+          unique_farmers: number
+        }[]
+      }
+      get_tot_performance: {
+        Args: { _local_mr_id?: string }
+        Returns: {
+          farmers_served: number
+          local_mr_id: string
+          local_mr_name: string
+          paid_commission: number
+          pending_commission: number
+          tot_id: string
+          tot_name: string
+          total_commission: number
+          total_revenue: number
+          total_sales: number
+          total_visits: number
         }[]
       }
       get_user_local_mr_id: { Args: { _user_id: string }; Returns: string }

@@ -85,7 +85,14 @@ export function Products() {
       toast.error('Please fill in all required fields');
       return;
     }
-    createProduct.mutate(formData as any);
+    createProduct.mutate({
+      name: formData.name,
+      category: formData.category,
+      description: formData.description || undefined,
+      unit_price: formData.unitPrice,
+      commission_per_unit: formData.commission,
+      stock_quantity: formData.inStock,
+    });
     setIsAddDialogOpen(false);
     resetForm();
   };
@@ -104,7 +111,17 @@ export function Products() {
   };
   const handleUpdateProduct = () => {
     if (!selectedProduct) return;
-    updateProduct.mutate({ id: selectedProduct.id, data: formData as any });
+    updateProduct.mutate({
+      id: selectedProduct.id,
+      data: {
+        name: formData.name,
+        category: formData.category,
+        description: formData.description || undefined,
+        unit_price: formData.unitPrice,
+        commission_per_unit: formData.commission,
+        stock_quantity: formData.inStock,
+      }
+    });
     setIsEditDialogOpen(false);
     setSelectedProduct(null);
     resetForm();

@@ -5,6 +5,7 @@
 export * from './useFarmers';
 export * from './useSales';
 export * from './useMechanisation';
+export * from './useMechanisationRealtime';
 export * from './useTrainings';
 export * from './useVisits';
 export * from './useMachinery';

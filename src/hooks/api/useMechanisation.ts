@@ -15,6 +15,8 @@ export interface MechanisationJob {
   area_acres: number | null;
   duration_hours: number | null;
   total_cost: number;
+  commission_per_acre: number | null;
+  tot_commission: number | null;
   status: string;
   completion_notes: string | null;
   completed_at: string | null;
@@ -25,6 +27,22 @@ export interface MechanisationJob {
   machinery_name?: string;
   tot_name?: string;
   local_mr_name?: string;
+  // Computed
+  farmerName?: string;
+  machineryName?: string;
+  totName?: string;
+  localMrName?: string;
+  acreage?: number;
+  pricePerAcre?: number;
+  totalPrice?: number;
+  serviceType?: string;
+  scheduledDate?: string;
+  completionReport?: {
+    summary: string;
+    duration: string;
+    completedAt: string;
+    outcome: string;
+  } | null;
 }
 
 export interface MechanisationFilters {
@@ -207,6 +225,7 @@ export interface CreateMechanisationDto {
   scheduled_time?: string;
   area_acres?: number;
   total_cost?: number;
+  commission_per_acre?: number;
 }
 
 export function useCreateMechanisation() {
@@ -226,6 +245,7 @@ export function useCreateMechanisation() {
           scheduled_time: data.scheduled_time,
           area_acres: data.area_acres,
           total_cost: data.total_cost || 0,
+          commission_per_acre: data.commission_per_acre || 100,
           status: 'pending',
         })
         .select()

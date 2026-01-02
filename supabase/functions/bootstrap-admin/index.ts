@@ -18,10 +18,21 @@ Deno.serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false }
     });
 
-    const adminEmail = "jckym001@gmail.com";
-    const adminPassword = "Admin.mr01";
-    const adminName = "System Admin";
-    const adminPhone = "0711417507";
+    // Get admin credentials from environment variables
+    const adminEmail = Deno.env.get("BOOTSTRAP_ADMIN_EMAIL");
+    const adminPassword = Deno.env.get("BOOTSTRAP_ADMIN_PASSWORD");
+    const adminName = Deno.env.get("BOOTSTRAP_ADMIN_NAME") || "System Admin";
+    const adminPhone = Deno.env.get("BOOTSTRAP_ADMIN_PHONE") || "";
+
+    if (!adminEmail || !adminPassword) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Missing required environment variables: BOOTSTRAP_ADMIN_EMAIL and BOOTSTRAP_ADMIN_PASSWORD" 
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Check if admin already exists
     const { data: existingUsers } = await supabase.auth.admin.listUsers();

@@ -188,13 +188,6 @@ export type Database = {
             foreignKeyName: "farmers_local_mr_id_fkey"
             columns: ["local_mr_id"]
             isOneToOne: false
-            referencedRelation: "local_mr_performance"
-            referencedColumns: ["local_mr_id"]
-          },
-          {
-            foreignKeyName: "farmers_local_mr_id_fkey"
-            columns: ["local_mr_id"]
-            isOneToOne: false
             referencedRelation: "local_mrs"
             referencedColumns: ["id"]
           },
@@ -299,13 +292,6 @@ export type Database = {
             foreignKeyName: "machinery_local_mr_id_fkey"
             columns: ["local_mr_id"]
             isOneToOne: false
-            referencedRelation: "local_mr_performance"
-            referencedColumns: ["local_mr_id"]
-          },
-          {
-            foreignKeyName: "machinery_local_mr_id_fkey"
-            columns: ["local_mr_id"]
-            isOneToOne: false
             referencedRelation: "local_mrs"
             referencedColumns: ["id"]
           },
@@ -370,13 +356,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "farmers"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "machinery_bookings_local_mr_id_fkey"
-            columns: ["local_mr_id"]
-            isOneToOne: false
-            referencedRelation: "local_mr_performance"
-            referencedColumns: ["local_mr_id"]
           },
           {
             foreignKeyName: "machinery_bookings_local_mr_id_fkey"
@@ -530,13 +509,6 @@ export type Database = {
             foreignKeyName: "mechanisation_jobs_local_mr_id_fkey"
             columns: ["local_mr_id"]
             isOneToOne: false
-            referencedRelation: "local_mr_performance"
-            referencedColumns: ["local_mr_id"]
-          },
-          {
-            foreignKeyName: "mechanisation_jobs_local_mr_id_fkey"
-            columns: ["local_mr_id"]
-            isOneToOne: false
             referencedRelation: "local_mrs"
             referencedColumns: ["id"]
           },
@@ -584,13 +556,6 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "notifications_local_mr_id_fkey"
-            columns: ["local_mr_id"]
-            isOneToOne: false
-            referencedRelation: "local_mr_performance"
-            referencedColumns: ["local_mr_id"]
-          },
           {
             foreignKeyName: "notifications_local_mr_id_fkey"
             columns: ["local_mr_id"]
@@ -751,13 +716,6 @@ export type Database = {
             foreignKeyName: "sales_local_mr_id_fkey"
             columns: ["local_mr_id"]
             isOneToOne: false
-            referencedRelation: "local_mr_performance"
-            referencedColumns: ["local_mr_id"]
-          },
-          {
-            foreignKeyName: "sales_local_mr_id_fkey"
-            columns: ["local_mr_id"]
-            isOneToOne: false
             referencedRelation: "local_mrs"
             referencedColumns: ["id"]
           },
@@ -793,13 +751,6 @@ export type Database = {
           tot_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "tot_assignments_local_mr_id_fkey"
-            columns: ["local_mr_id"]
-            isOneToOne: false
-            referencedRelation: "local_mr_performance"
-            referencedColumns: ["local_mr_id"]
-          },
           {
             foreignKeyName: "tot_assignments_local_mr_id_fkey"
             columns: ["local_mr_id"]
@@ -905,13 +856,6 @@ export type Database = {
             foreignKeyName: "trainings_local_mr_id_fkey"
             columns: ["local_mr_id"]
             isOneToOne: false
-            referencedRelation: "local_mr_performance"
-            referencedColumns: ["local_mr_id"]
-          },
-          {
-            foreignKeyName: "trainings_local_mr_id_fkey"
-            columns: ["local_mr_id"]
-            isOneToOne: false
             referencedRelation: "local_mrs"
             referencedColumns: ["id"]
           },
@@ -990,13 +934,6 @@ export type Database = {
             foreignKeyName: "visits_local_mr_id_fkey"
             columns: ["local_mr_id"]
             isOneToOne: false
-            referencedRelation: "local_mr_performance"
-            referencedColumns: ["local_mr_id"]
-          },
-          {
-            foreignKeyName: "visits_local_mr_id_fkey"
-            columns: ["local_mr_id"]
-            isOneToOne: false
             referencedRelation: "local_mrs"
             referencedColumns: ["id"]
           },
@@ -1004,34 +941,6 @@ export type Database = {
       }
     }
     Views: {
-      local_mr_performance: {
-        Row: {
-          county: string | null
-          local_mr_id: string | null
-          local_mr_name: string | null
-          region: string | null
-          total_bookings: number | null
-          total_commission: number | null
-          total_farmers: number | null
-          total_revenue: number | null
-          total_sales: number | null
-          total_tots: number | null
-          total_trainings: number | null
-          total_visits: number | null
-        }
-        Relationships: []
-      }
-      monthly_trends: {
-        Row: {
-          commission: number | null
-          farmers: number | null
-          month: string | null
-          revenue: number | null
-          sales_count: number | null
-          tots: number | null
-        }
-        Relationships: []
-      }
       sales_summary: {
         Row: {
           active_tots: number | null
@@ -1044,13 +953,6 @@ export type Database = {
           unique_farmers: number | null
         }
         Relationships: [
-          {
-            foreignKeyName: "sales_local_mr_id_fkey"
-            columns: ["local_mr_id"]
-            isOneToOne: false
-            referencedRelation: "local_mr_performance"
-            referencedColumns: ["local_mr_id"]
-          },
           {
             foreignKeyName: "sales_local_mr_id_fkey"
             columns: ["local_mr_id"]
@@ -1079,13 +981,6 @@ export type Database = {
             foreignKeyName: "tot_assignments_local_mr_id_fkey"
             columns: ["local_mr_id"]
             isOneToOne: false
-            referencedRelation: "local_mr_performance"
-            referencedColumns: ["local_mr_id"]
-          },
-          {
-            foreignKeyName: "tot_assignments_local_mr_id_fkey"
-            columns: ["local_mr_id"]
-            isOneToOne: false
             referencedRelation: "local_mrs"
             referencedColumns: ["id"]
           },
@@ -1093,6 +988,34 @@ export type Database = {
       }
     }
     Functions: {
+      get_local_mr_performance: {
+        Args: { _local_mr_id?: string }
+        Returns: {
+          county: string
+          local_mr_id: string
+          local_mr_name: string
+          region: string
+          total_bookings: number
+          total_commission: number
+          total_farmers: number
+          total_revenue: number
+          total_sales: number
+          total_tots: number
+          total_trainings: number
+          total_visits: number
+        }[]
+      }
+      get_monthly_trends: {
+        Args: never
+        Returns: {
+          commission: number
+          farmers: number
+          month: string
+          revenue: number
+          sales_count: number
+          tots: number
+        }[]
+      }
       get_user_local_mr_id: { Args: { _user_id: string }; Returns: string }
       get_user_role: {
         Args: { _user_id: string }

@@ -3,6 +3,31 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+// Helper to create notifications for admins and managers
+async function createProductNotification(productName: string, action: 'created' | 'updated' | 'deleted') {
+  try {
+    // Get all admin and manager user IDs
+    const { data: roleData } = await supabase
+      .from('user_roles')
+      .select('user_id')
+      .in('role', ['admin', 'manager']);
+    
+    if (!roleData || roleData.length === 0) return;
+
+    const notifications = roleData.map(r => ({
+      user_id: r.user_id,
+      type: 'system',
+      title: `Product ${action.charAt(0).toUpperCase() + action.slice(1)}`,
+      message: `Product "${productName}" has been ${action} in the catalog.`,
+      read: false,
+    }));
+
+    await supabase.from('notifications').insert(notifications);
+  } catch (error) {
+    console.error('Failed to create product notification:', error);
+  }
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -124,9 +149,11 @@ export function useCreateProduct() {
       if (error) throw error;
       return product;
     },
-    onSuccess: async () => {
+    onSuccess: async (product) => {
       await queryClient.invalidateQueries({ queryKey: productKeys.all });
       await queryClient.refetchQueries({ queryKey: productKeys.all });
+      // Create notification for admins and managers
+      await createProductNotification(product.name, 'created');
       toast.success('Product created successfully');
     },
     onError: (error: Error) => {
@@ -160,9 +187,11 @@ export function useUpdateProduct() {
       if (error) throw error;
       return product;
     },
-    onSuccess: async () => {
+    onSuccess: async (product) => {
       await queryClient.invalidateQueries({ queryKey: productKeys.all });
       await queryClient.refetchQueries({ queryKey: productKeys.all });
+      // Create notification for admins and managers
+      await createProductNotification(product.name, 'updated');
       toast.success('Product updated successfully');
     },
     onError: (error: Error) => {

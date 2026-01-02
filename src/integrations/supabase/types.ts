@@ -1030,6 +1030,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_authenticated: { Args: never; Returns: boolean }
       is_coordinator_of: {
         Args: { _local_mr_id: string; _user_id: string }
         Returns: boolean

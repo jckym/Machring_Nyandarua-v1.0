@@ -32,3 +32,6 @@ export {
   useDeleteProduct,
   productKeys 
 } from './useProducts';
+
+// Real-time subscriptions
+export { useProductsRealtime } from './useProductsRealtime';

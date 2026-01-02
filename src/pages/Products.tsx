@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Search, Plus, Package, Filter, AlertTriangle, TrendingUp, Edit, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useProducts, useCreateProduct, useUpdateProductStock, useUpdateProduct } from '@/hooks/api';
+import { useProducts, useCreateProduct, useUpdateProductStock, useUpdateProduct, useProductsRealtime } from '@/hooks/api';
 import {
   Dialog,
   DialogContent,
@@ -51,6 +51,9 @@ export function Products() {
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
   const updateStock = useUpdateProductStock();
+  
+  // Enable real-time updates
+  useProductsRealtime();
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||

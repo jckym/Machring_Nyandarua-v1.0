@@ -208,9 +208,10 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
                       <SelectItem 
                         key={product.id} 
                         value={product.id} 
-                        disabled={product.inStock === 0}
+                        disabled={(product.inStock ?? 0) <= 0}
+                        className="cursor-pointer"
                       >
-                        {product.name} - {formatCurrency(product.unitPrice)} ({product.inStock} in stock)
+                        {product.name} - {formatCurrency(product.unitPrice)} ({product.inStock ?? 0} in stock)
                       </SelectItem>
                     ))}
                   </SelectContent>

@@ -311,6 +311,152 @@ export type Database = {
           },
         ]
       }
+      machinery_bookings: {
+        Row: {
+          booked_by: string
+          created_at: string
+          end_date: string
+          end_time: string | null
+          farmer_id: string | null
+          id: string
+          local_mr_id: string | null
+          machinery_id: string
+          mechanisation_job_id: string | null
+          notes: string | null
+          purpose: string | null
+          start_date: string
+          start_time: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          booked_by: string
+          created_at?: string
+          end_date: string
+          end_time?: string | null
+          farmer_id?: string | null
+          id?: string
+          local_mr_id?: string | null
+          machinery_id: string
+          mechanisation_job_id?: string | null
+          notes?: string | null
+          purpose?: string | null
+          start_date: string
+          start_time?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          booked_by?: string
+          created_at?: string
+          end_date?: string
+          end_time?: string | null
+          farmer_id?: string | null
+          id?: string
+          local_mr_id?: string | null
+          machinery_id?: string
+          mechanisation_job_id?: string | null
+          notes?: string | null
+          purpose?: string | null
+          start_date?: string
+          start_time?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "machinery_bookings_farmer_id_fkey"
+            columns: ["farmer_id"]
+            isOneToOne: false
+            referencedRelation: "farmers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "machinery_bookings_local_mr_id_fkey"
+            columns: ["local_mr_id"]
+            isOneToOne: false
+            referencedRelation: "local_mr_performance"
+            referencedColumns: ["local_mr_id"]
+          },
+          {
+            foreignKeyName: "machinery_bookings_local_mr_id_fkey"
+            columns: ["local_mr_id"]
+            isOneToOne: false
+            referencedRelation: "local_mrs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "machinery_bookings_machinery_id_fkey"
+            columns: ["machinery_id"]
+            isOneToOne: false
+            referencedRelation: "machinery"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "machinery_bookings_mechanisation_job_id_fkey"
+            columns: ["mechanisation_job_id"]
+            isOneToOne: false
+            referencedRelation: "mechanisation_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      machinery_service_history: {
+        Row: {
+          cost: number | null
+          created_at: string
+          description: string
+          id: string
+          machinery_id: string
+          next_service_date: string | null
+          notes: string | null
+          odometer_reading: number | null
+          parts_replaced: string[] | null
+          performed_by: string | null
+          service_date: string
+          service_type: string
+          updated_at: string
+        }
+        Insert: {
+          cost?: number | null
+          created_at?: string
+          description: string
+          id?: string
+          machinery_id: string
+          next_service_date?: string | null
+          notes?: string | null
+          odometer_reading?: number | null
+          parts_replaced?: string[] | null
+          performed_by?: string | null
+          service_date: string
+          service_type: string
+          updated_at?: string
+        }
+        Update: {
+          cost?: number | null
+          created_at?: string
+          description?: string
+          id?: string
+          machinery_id?: string
+          next_service_date?: string | null
+          notes?: string | null
+          odometer_reading?: number | null
+          parts_replaced?: string[] | null
+          performed_by?: string | null
+          service_date?: string
+          service_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "machinery_service_history_machinery_id_fkey"
+            columns: ["machinery_id"]
+            isOneToOne: false
+            referencedRelation: "machinery"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mechanisation_jobs: {
         Row: {
           area_acres: number | null

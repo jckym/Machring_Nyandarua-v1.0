@@ -8,6 +8,8 @@ export * from './useMechanisation';
 export * from './useTrainings';
 export * from './useVisits';
 export * from './useMachinery';
+export * from './useMachineryBookings';
+export * from './useMachineryService';
 export * from './useLocalMRs';
 export * from './useUsers';
 export * from './useNotifications';

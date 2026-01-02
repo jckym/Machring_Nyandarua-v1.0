@@ -124,8 +124,9 @@ export function useCreateProduct() {
       if (error) throw error;
       return product;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: productKeys.all });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: productKeys.all });
+      await queryClient.refetchQueries({ queryKey: productKeys.all });
       toast.success('Product created successfully');
     },
     onError: (error: Error) => {
@@ -159,8 +160,9 @@ export function useUpdateProduct() {
       if (error) throw error;
       return product;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: productKeys.all });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: productKeys.all });
+      await queryClient.refetchQueries({ queryKey: productKeys.all });
       toast.success('Product updated successfully');
     },
     onError: (error: Error) => {

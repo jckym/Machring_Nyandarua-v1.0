@@ -1016,6 +1016,23 @@ export type Database = {
           tots: number
         }[]
       }
+      get_products_for_role: {
+        Args: never
+        Returns: {
+          category: string
+          commission_per_unit: number
+          created_at: string
+          description: string
+          id: string
+          min_stock_level: number
+          name: string
+          status: string
+          stock_quantity: number
+          unit: string
+          unit_price: number
+          updated_at: string
+        }[]
+      }
       get_user_local_mr_id: { Args: { _user_id: string }; Returns: string }
       get_user_role: {
         Args: { _user_id: string }

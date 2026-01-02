@@ -32,6 +32,18 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { MachineryStatus } from '@/types';
 
+const MACHINERY_CATEGORIES = [
+  'Tractors',
+  'Harvesters',
+  'Ploughs',
+  'Planters',
+  'Sprayers',
+  'Irrigation Equipment',
+  'Threshers',
+  'Transport',
+  'Other',
+] as const;
+
 interface MachineryItem {
   id: string;
   name: string;
@@ -66,6 +78,7 @@ const formatCurrency = (value: number) => `KES ${value.toLocaleString()}`;
 
 export function Machinery() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
   const [newMachinery, setNewMachinery] = useState<{
@@ -91,10 +104,15 @@ export function Machinery() {
   const createMachinery = useCreateMachinery();
   const updateStatus = useUpdateMachineryStatus();
 
-  const filteredMachinery = machinery.filter(m =>
-    m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    m.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Get unique categories from machinery for filter
+  const uniqueCategories = [...new Set(machinery.map(m => m.category))].filter(Boolean).sort();
+
+  const filteredMachinery = machinery.filter(m => {
+    const matchesSearch = m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      m.category.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = categoryFilter === 'all' || m.category === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
 
   const availableCount = machinery.filter(m => m.status === 'available').length;
   const bookedCount = machinery.filter(m => m.status === 'booked').length;
@@ -202,16 +220,34 @@ export function Machinery() {
         </Card>
       </div>
 
-      {/* Search */}
-      <Input
-        placeholder="Search machinery..."
-        value={searchQuery}
-        onChange={e => setSearchQuery(e.target.value)}
-      />
+      {/* Search and Filter */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <Input
+          placeholder="Search machinery..."
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          className="flex-1"
+        />
+        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <SelectTrigger className="w-full sm:w-[200px]">
+            <SelectValue placeholder="Filter by category" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Categories</SelectItem>
+            {uniqueCategories.map(cat => (
+              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       {/* Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {filteredMachinery.map(machine => (
+        {filteredMachinery.length === 0 ? (
+          <div className="col-span-full text-center py-8 text-muted-foreground">
+            No machinery found matching your filters
+          </div>
+        ) : filteredMachinery.map(machine => (
           <Card key={machine.id}>
             <CardContent className="p-4 space-y-3">
                 <div className="flex justify-between items-center">
@@ -270,11 +306,19 @@ export function Machinery() {
               onChange={e => setNewMachinery(p => ({ ...p, name: e.target.value }))}
             />
 
-            <Input
-              placeholder="Category (e.g., Tractor, Harvester)"
+            <Select
               value={newMachinery.category}
-              onChange={e => setNewMachinery(p => ({ ...p, category: e.target.value }))}
-            />
+              onValueChange={(value) => setNewMachinery(p => ({ ...p, category: value }))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                {MACHINERY_CATEGORIES.map(cat => (
+                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
             <Input
               type="number"

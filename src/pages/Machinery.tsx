@@ -5,10 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Tractor, CheckCircle, Clock, MoreVertical, Wrench, Calendar, History, CalendarPlus } from 'lucide-react';
+import { Plus, Tractor, CheckCircle, Clock, MoreVertical, Wrench, Calendar, History, CalendarPlus, Edit, Trash2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
-import { useMachinery, useCreateMachinery, useUpdateMachineryStatus } from '@/hooks/api';
+import { useMachinery, useCreateMachinery, useUpdateMachineryStatus, useDeleteMachinery } from '@/hooks/api';
 import {
   Dialog,
   DialogContent,
@@ -30,6 +30,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { BookingDialog } from '@/components/machinery/BookingDialog';
@@ -37,6 +47,7 @@ import { ServiceDialog } from '@/components/machinery/ServiceDialog';
 import { MachineryBookingsList } from '@/components/machinery/MachineryBookingsList';
 import { MachineryServiceHistory } from '@/components/machinery/MachineryServiceHistory';
 import { UpcomingMaintenance } from '@/components/machinery/UpcomingMaintenance';
+import { EditMachineryDialog } from '@/components/machinery/EditMachineryDialog';
 
 type MachineryStatus = 'available' | 'in_use' | 'maintenance' | 'retired';
 
@@ -88,6 +99,14 @@ export function Machinery() {
     open: false, machineryId: '', name: ''
   });
 
+  // Edit/Delete machinery dialogs
+  const [editDialog, setEditDialog] = useState<{ open: boolean; machinery: any | null }>({
+    open: false, machinery: null
+  });
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; machineryId: string; name: string }>({
+    open: false, machineryId: '', name: ''
+  });
+
   const [newMachinery, setNewMachinery] = useState<{
     name: string;
     category: string;
@@ -110,6 +129,7 @@ export function Machinery() {
   const { data: machinery = [], isLoading } = useMachinery();
   const createMachinery = useCreateMachinery();
   const updateStatus = useUpdateMachineryStatus();
+  const deleteMachinery = useDeleteMachinery();
 
   // Get unique categories from machinery for filter
   const uniqueCategories = [...new Set(machinery.map(m => m.category))].filter(Boolean).sort();
@@ -158,6 +178,16 @@ export function Machinery() {
 
   const handleStatusChange = (machineryId: string, newStatus: 'available' | 'in_use' | 'maintenance' | 'retired') => {
     updateStatus.mutate({ id: machineryId, status: newStatus });
+  };
+
+  const handleDeleteMachinery = () => {
+    if (!deleteDialog.machineryId) return;
+    
+    deleteMachinery.mutate(deleteDialog.machineryId, {
+      onSuccess: () => {
+        setDeleteDialog({ open: false, machineryId: '', name: '' });
+      },
+    });
   };
 
   if (isLoading) {
@@ -332,6 +362,18 @@ export function Machinery() {
                             <Wrench className="w-4 h-4 mr-2" />
                             Log Service
                           </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => setEditDialog({ open: true, machinery: machine })}>
+                            <Edit className="w-4 h-4 mr-2" />
+                            Edit Machinery
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            className="text-destructive"
+                            onClick={() => setDeleteDialog({ open: true, machineryId: machine.id, name: machine.name })}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete Machinery
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     )}
@@ -445,6 +487,35 @@ export function Machinery() {
         machineryId={serviceDialog.machineryId}
         machineryName={serviceDialog.name}
       />
+
+      {/* Edit Machinery Dialog */}
+      <EditMachineryDialog
+        open={editDialog.open}
+        onOpenChange={(open) => setEditDialog(p => ({ ...p, open }))}
+        machinery={editDialog.machinery}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog(p => ({ ...p, open }))}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Machinery</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{deleteDialog.name}"? This action cannot be undone.
+              Active bookings for this machinery will also be affected.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteMachinery}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

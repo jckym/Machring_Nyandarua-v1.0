@@ -3,6 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
 import { 
   FileText, 
   Download, 
@@ -64,6 +65,8 @@ const managerReports = [
 export function Reports() {
   const { user } = useAuth();
   const [loadingReport, setLoadingReport] = useState<string | null>(null);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const currentMonth = format(new Date(), 'MMMM yyyy');
 
   // Fetch all data
@@ -75,30 +78,50 @@ export function Reports() {
 
   const isLoading = farmersLoading || salesLoading || mechLoading || trainingsLoading || visitsLoading;
 
+  // Filter data by date range
+  const filterByDateRange = <T extends { created_at?: string; sale_date?: string; scheduled_date?: string; visit_date?: string }>(data: T[]) => {
+    if (!startDate && !endDate) return data;
+    
+    return data.filter(item => {
+      const itemDate = item.sale_date || item.scheduled_date || item.visit_date || item.created_at;
+      if (!itemDate) return true;
+      
+      const date = new Date(itemDate);
+      if (startDate && date < new Date(startDate)) return false;
+      if (endDate && date > new Date(endDate + 'T23:59:59')) return false;
+      return true;
+    });
+  };
+
+  const filteredSales = filterByDateRange(sales);
+  const filteredMechanisation = filterByDateRange(mechanisation);
+  const filteredTrainings = filterByDateRange(trainings);
+  const filteredVisits = filterByDateRange(visits);
+
   const allReports = user?.role === 'manager' || user?.role === 'admin' 
     ? [...reportTypes, ...managerReports] 
     : reportTypes;
 
-  // Calculate summary stats
+  // Calculate summary stats using filtered data
   const summary = useMemo(() => {
-    const totalSales = sales.reduce((sum, s) => sum + (s.total || s.total_amount || 0), 0);
-    const totalCommission = sales.reduce((sum, s) => sum + (s.commissionAmount || s.commission_amount || 0), 0);
+    const totalSales = filteredSales.reduce((sum, s) => sum + (s.total || s.total_amount || 0), 0);
+    const totalCommission = filteredSales.reduce((sum, s) => sum + (s.commissionAmount || s.commission_amount || 0), 0);
     return {
       farmers: farmers.length,
-      sales: sales.length,
+      sales: filteredSales.length,
       totalSales,
       totalCommission,
-      trainings: trainings.length,
-      visits: visits.length,
-      mechanisation: mechanisation.length,
+      trainings: filteredTrainings.length,
+      visits: filteredVisits.length,
+      mechanisation: filteredMechanisation.length,
     };
-  }, [farmers, sales, trainings, visits, mechanisation]);
+  }, [farmers, filteredSales, filteredTrainings, filteredVisits, filteredMechanisation]);
 
-  // Prepare commission data
+  // Prepare commission data using filtered sales
   const commissionData: CommissionData[] = useMemo(() => {
     const totMap = new Map<string, CommissionData>();
     
-    sales.forEach(sale => {
+    filteredSales.forEach(sale => {
       const totId = sale.totId || sale.tot_id || '';
       const existing = totMap.get(totId) || {
         totName: sale.totName || 'Unknown TOT',
@@ -123,14 +146,14 @@ export function Reports() {
     });
     
     return Array.from(totMap.values());
-  }, [sales]);
+  }, [filteredSales]);
 
-  // Prepare performance data
+  // Prepare performance data using filtered data
   const performanceData: PerformanceData[] = useMemo(() => {
     const totMap = new Map<string, PerformanceData>();
     
     // Aggregate sales data
-    sales.forEach(sale => {
+    filteredSales.forEach(sale => {
       const totId = sale.totId || sale.tot_id || '';
       const existing = totMap.get(totId) || {
         name: sale.totName || 'Unknown TOT',
@@ -149,7 +172,7 @@ export function Reports() {
     });
     
     // Add mechanisation data
-    mechanisation.forEach(job => {
+    filteredMechanisation.forEach(job => {
       const totId = job.tot_id || '';
       if (totMap.has(totId)) {
         totMap.get(totId)!.mechanisationJobs += 1;
@@ -157,7 +180,7 @@ export function Reports() {
     });
     
     // Add trainings data
-    trainings.forEach(training => {
+    filteredTrainings.forEach(training => {
       const trainerId = training.trainer_id || '';
       if (totMap.has(trainerId)) {
         totMap.get(trainerId)!.trainingsHeld += 1;
@@ -165,7 +188,7 @@ export function Reports() {
     });
     
     // Add visits data
-    visits.forEach(visit => {
+    filteredVisits.forEach(visit => {
       const totId = visit.tot_id || '';
       if (totMap.has(totId)) {
         totMap.get(totId)!.visitsLogged += 1;
@@ -173,7 +196,12 @@ export function Reports() {
     });
     
     return Array.from(totMap.values());
-  }, [sales, mechanisation, trainings, visits]);
+  }, [filteredSales, filteredMechanisation, filteredTrainings, filteredVisits]);
+
+  const clearDateFilters = () => {
+    setStartDate('');
+    setEndDate('');
+  };
 
   const getColorClass = (color: string) => {
     switch (color) {
@@ -201,33 +229,33 @@ export function Reports() {
           
         case 'sales':
           if (format === 'pdf') {
-            await exportSalesToPDF(sales as any, 'sales_report', userName);
+            await exportSalesToPDF(filteredSales as any, 'sales_report', userName);
           } else {
-            exportSalesToExcel(sales as any, 'sales_report');
+            exportSalesToExcel(filteredSales as any, 'sales_report');
           }
           break;
           
         case 'mechanisation':
           if (format === 'pdf') {
-            await exportMechanisationToPDF(mechanisation as any, 'mechanisation_report', userName);
+            await exportMechanisationToPDF(filteredMechanisation as any, 'mechanisation_report', userName);
           } else {
-            exportMechanisationToExcel(mechanisation as any, 'mechanisation_report');
+            exportMechanisationToExcel(filteredMechanisation as any, 'mechanisation_report');
           }
           break;
           
         case 'trainings':
           if (format === 'pdf') {
-            await exportTrainingsToPDF(trainings as any, 'trainings_report', userName);
+            await exportTrainingsToPDF(filteredTrainings as any, 'trainings_report', userName);
           } else {
-            exportTrainingsToExcel(trainings as any, 'trainings_report');
+            exportTrainingsToExcel(filteredTrainings as any, 'trainings_report');
           }
           break;
           
         case 'visits':
           if (format === 'pdf') {
-            await exportVisitsToPDF(visits as any, 'visits_report', userName);
+            await exportVisitsToPDF(filteredVisits as any, 'visits_report', userName);
           } else {
-            exportVisitsToExcel(visits as any, 'visits_report');
+            exportVisitsToExcel(filteredVisits as any, 'visits_report');
           }
           break;
           
@@ -270,20 +298,54 @@ export function Reports() {
           <h1 className="font-heading text-xl sm:text-2xl font-bold text-foreground">Reports</h1>
           <p className="text-sm text-muted-foreground">Generate and export reports in PDF or Excel</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" disabled>
-            <Calendar className="w-4 h-4 mr-2" />
-            <span className="hidden sm:inline">Select </span>Date Range
+      </div>
+
+      {/* Date Range Filter */}
+      <Card className="p-4">
+        <div className="flex flex-col sm:flex-row gap-4 items-end">
+          <div className="flex-1 space-y-2">
+            <label className="text-sm font-medium">Start Date</label>
+            <Input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-full"
+            />
+          </div>
+          <div className="flex-1 space-y-2">
+            <label className="text-sm font-medium">End Date</label>
+            <Input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-full"
+            />
+          </div>
+          <Button 
+            variant="outline" 
+            onClick={clearDateFilters}
+            disabled={!startDate && !endDate}
+          >
+            Clear Filters
           </Button>
         </div>
-      </div>
+        {(startDate || endDate) && (
+          <p className="text-xs text-muted-foreground mt-2">
+            Showing data from {startDate || 'beginning'} to {endDate || 'now'}
+          </p>
+        )}
+      </Card>
 
       {/* Monthly Summary */}
       <Card variant="gradient" className="p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h3 className="font-heading text-base sm:text-lg font-semibold mb-1">Monthly Summary</h3>
-            <p className="text-xs sm:text-sm opacity-80">{currentMonth} overview</p>
+            <h3 className="font-heading text-base sm:text-lg font-semibold mb-1">
+              {startDate || endDate ? 'Filtered Summary' : 'Monthly Summary'}
+            </h3>
+            <p className="text-xs sm:text-sm opacity-80">
+              {startDate || endDate ? 'Based on selected date range' : `${currentMonth} overview`}
+            </p>
           </div>
           {isLoading ? (
             <div className="flex gap-4">
@@ -320,10 +382,10 @@ export function Reports() {
           const getRecordCount = () => {
             switch (report.id) {
               case 'farmers': return farmers.length;
-              case 'sales': return sales.length;
-              case 'mechanisation': return mechanisation.length;
-              case 'trainings': return trainings.length;
-              case 'visits': return visits.length;
+              case 'sales': return filteredSales.length;
+              case 'mechanisation': return filteredMechanisation.length;
+              case 'trainings': return filteredTrainings.length;
+              case 'visits': return filteredVisits.length;
               case 'commission': return commissionData.length;
               case 'performance':
               case 'branch': return performanceData.length;

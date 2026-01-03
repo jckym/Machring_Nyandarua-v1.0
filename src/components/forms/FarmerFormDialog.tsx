@@ -22,18 +22,27 @@ import { AlertTriangle, Send, Loader2 } from 'lucide-react';
 import { useLocalMRs } from '@/hooks/api/useLocalMRs';
 import { CreateFarmerDto } from '@/hooks/api/useFarmers';
 
-const valueChains = [
+// Updated farming types per request - removed Coffee, Tea, Sugarcane; added Potato, Barley
+const farmingTypes = [
   'Maize',
   'Wheat',
+  'Potato',
+  'Barley',
   'Dairy',
   'Poultry',
   'Horticulture',
-  'Coffee',
-  'Tea',
-  'Sugarcane',
   'Livestock',
   'Mixed Farming',
 ];
+
+// Sub-Counties and Wards for Nyandarua County
+const subCountyWards: Record<string, string[]> = {
+  'Olkalou': ['Karau', 'Kanjuiri', 'Kaimbaga', 'Mirangine'],
+  'Ol Joro Orok': ['Gathanji', 'Gatimu', 'Weru', 'Charagita'],
+  'Ndaragwa': ['Leshau', 'Kiriita', 'Central', 'Shamata'],
+  'Kinangop': ['Engineer', 'Gathara', 'North Kinangop', 'Murungaru', 'Njabini', 'Nyakio', 'Magumu', 'Githambi'],
+  'Kipipiri': ['Wanjohi', 'Kipipiri', 'Geta', 'Githioro'],
+};
 
 interface FarmerFormDialogProps {
   open: boolean;
@@ -62,11 +71,13 @@ export function FarmerFormDialog({
     sub_county: '',
     village: '',
     ward: '',
-    county: '',
     farming_type: '',
     gender: '',
     farm_size: '',
   });
+
+  // Get available wards based on selected sub-county
+  const availableWards = formData.sub_county ? subCountyWards[formData.sub_county] || [] : [];
 
   // Reset / populate form when dialog opens or farmer prop changes
   useEffect(() => {
@@ -80,7 +91,6 @@ export function FarmerFormDialog({
           sub_county: farmer.sub_county || farmer.location?.subcounty || '',
           village: farmer.village || farmer.location?.village || '',
           ward: farmer.ward || farmer.location?.ward || '',
-          county: farmer.county || farmer.location?.county || '',
           farming_type: farmer.farming_type || farmer.valueChain || '',
           gender: farmer.gender || '',
           farm_size: farmer.farm_size?.toString() || '',
@@ -94,7 +104,6 @@ export function FarmerFormDialog({
           sub_county: '',
           village: '',
           ward: '',
-          county: '',
           farming_type: '',
           gender: '',
           farm_size: '',
@@ -106,27 +115,27 @@ export function FarmerFormDialog({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validation
+    // Validation - County is now fixed to Nyandarua
     if (
       !formData.name.trim() ||
       !formData.phone.trim() ||
       !formData.localMrId ||
-      !formData.county.trim()
+      !formData.sub_county
     ) {
       toast({
         title: 'Validation Error',
-        description: 'Please fill all required fields (Name, Phone, County, Local MR)',
+        description: 'Please fill all required fields (Name, Phone, Sub-County, Local MR)',
         variant: 'destructive',
       });
       return;
     }
 
-    // Create farmer DTO for Supabase
+    // Create farmer DTO for Supabase - County is fixed to Nyandarua
     const farmerData: CreateFarmerDto = {
       name: formData.name.trim(),
       phone: formData.phone.trim() || undefined,
       email: formData.email.trim() || undefined,
-      county: formData.county.trim(),
+      county: 'Nyandarua', // Fixed county
       sub_county: formData.sub_county.trim() || undefined,
       ward: formData.ward.trim() || undefined,
       village: formData.village.trim() || undefined,
@@ -260,45 +269,59 @@ export function FarmerFormDialog({
                 </div>
               </div>
 
-              {/* Location Fields */}
+              {/* Location Fields - Sub-County with dependent Ward */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label>County *</Label>
-                  <Input
-                    value={formData.county}
-                    onChange={(e) => setFormData({ ...formData, county: e.target.value })}
-                    placeholder="e.g. Nakuru"
-                  />
+                  <Label>Sub-County *</Label>
+                  <Select
+                    value={formData.sub_county}
+                    onValueChange={(value) => setFormData({ ...formData, sub_county: value, ward: '' })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Sub-County" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.keys(subCountyWards).map((sc) => (
+                        <SelectItem key={sc} value={sc}>
+                          {sc}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Sub-County</Label>
-                  <Input
-                    value={formData.sub_county}
-                    onChange={(e) => setFormData({ ...formData, sub_county: e.target.value })}
-                  />
+                  <Label>Ward</Label>
+                  <Select
+                    value={formData.ward}
+                    onValueChange={(value) => setFormData({ ...formData, ward: value })}
+                    disabled={!formData.sub_county}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={formData.sub_county ? "Select Ward" : "Select Sub-County first"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableWards.map((ward) => (
+                        <SelectItem key={ward} value={ward}>
+                          {ward}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label>Ward</Label>
-                  <Input
-                    value={formData.ward}
-                    onChange={(e) => setFormData({ ...formData, ward: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Village</Label>
-                  <Input
-                    value={formData.village}
-                    onChange={(e) => setFormData({ ...formData, village: e.target.value })}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label>Village</Label>
+                <Input
+                  value={formData.village}
+                  onChange={(e) => setFormData({ ...formData, village: e.target.value })}
+                  placeholder="Enter village name"
+                />
               </div>
 
               {/* Farming Type */}
               <div className="space-y-2">
-                <Label>Farming Type / Value Chain</Label>
+                <Label>Farming Type</Label>
                 <Select
                   value={formData.farming_type}
                   onValueChange={(value) => setFormData({ ...formData, farming_type: value })}
@@ -307,9 +330,9 @@ export function FarmerFormDialog({
                     <SelectValue placeholder="Select farming type" />
                   </SelectTrigger>
                   <SelectContent>
-                    {valueChains.map((vc) => (
-                      <SelectItem key={vc} value={vc}>
-                        {vc}
+                    {farmingTypes.map((ft) => (
+                      <SelectItem key={ft} value={ft}>
+                        {ft}
                       </SelectItem>
                     ))}
                   </SelectContent>

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Search, Plus, GraduationCap, Calendar, MapPin, Users, Clock, Filter, Download, FileSpreadsheet, FileText } from 'lucide-react';
+import { Search, Plus, GraduationCap, Calendar, MapPin, Users, Clock, Download, FileSpreadsheet, FileText, CheckCircle, Eye } from 'lucide-react';
 import { exportTrainingsToExcel, exportTrainingsToPDF } from '@/lib/exportUtils';
 import {
   DropdownMenu,
@@ -12,15 +12,26 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { TrainingFormDialog } from '@/components/forms/TrainingFormDialog';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Training } from '@/types';
-import { useTrainings, useCreateTraining } from '@/hooks/api';
+import { useTrainings, useCreateTraining, useCompleteTraining } from '@/hooks/api/useTrainings';
+
+// Training types per request
+const TRAINING_TYPES = ['Field Day', 'Demonstration', 'Online Training'];
 
 export function Trainings() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const { addNotification } = useNotifications();
   const { user, isAdmin, canEdit } = useAuth();
@@ -28,15 +39,19 @@ export function Trainings() {
   // API hooks
   const { data: trainings = [], isLoading } = useTrainings();
   const createTraining = useCreateTraining();
+  const completeTraining = useCompleteTraining();
 
   const filteredTrainings = trainings.filter(training => {
     const trainingType = training.type ?? '';
-    return training.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const matchesSearch = training.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       trainingType.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesType = typeFilter === 'all' || trainingType.toLowerCase() === typeFilter.toLowerCase();
+    return matchesSearch && matchesType;
   });
 
-  const totalAttendees = trainings.reduce((acc, t) => acc + t.attendees.length, 0);
-  const totalHours = trainings.reduce((acc, t) => acc + t.duration, 0);
+  // Updated stats per request - removed Attendees and Hours, added Completed Trainings
+  const completedCount = trainings.filter(t => t.status === 'Completed').length;
+  const upcomingCount = trainings.filter(t => t.status === 'Upcoming').length;
 
   const handleAddTraining = (data: any) => {
     if (!canEdit) {
@@ -51,6 +66,19 @@ export function Trainings() {
     });
   };
 
+  const handleMarkComplete = (trainingId: string) => {
+    completeTraining.mutate(trainingId, {
+      onSuccess: () => {
+        toast.success('Training marked as completed');
+        addNotification({
+          title: 'Training Completed',
+          message: 'Training has been marked as completed. You can now add attendance.',
+          type: 'training',
+        });
+      },
+    });
+  };
+
   const formatDate = (date: Date | string) => {
     return new Intl.DateTimeFormat('en-KE', {
       day: 'numeric',
@@ -61,9 +89,9 @@ export function Trainings() {
 
   const getTypeColor = (type: string) => {
     switch (type.toLowerCase()) {
-      case 'workshop': return 'forest';
       case 'field day': return 'wheat';
-      case 'seminar': return 'earth';
+      case 'demonstration': return 'forest';
+      case 'online training': return 'info';
       default: return 'sage';
     }
   };
@@ -129,7 +157,7 @@ export function Trainings() {
         </div>
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats Cards - Updated per request */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card className="p-3 sm:p-4" variant="forest">
           <div className="flex items-center gap-2 sm:gap-3">
@@ -138,42 +166,42 @@ export function Trainings() {
             </div>
             <div>
               <p className="text-lg sm:text-2xl font-bold font-heading">{trainings.length}</p>
-              <p className="text-xs sm:text-sm opacity-80">Sessions</p>
-            </div>
-          </div>
-        </Card>
-        <Card className="p-3 sm:p-4">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-accent/20 flex items-center justify-center">
-              <Users className="w-4 h-4 sm:w-5 sm:h-5 text-accent-foreground" />
-            </div>
-            <div>
-              <p className="text-lg sm:text-2xl font-bold font-heading text-accent-foreground">{totalAttendees}</p>
-              <p className="text-xs sm:text-sm text-muted-foreground">Attendees</p>
-            </div>
-          </div>
-        </Card>
-        <Card className="p-3 sm:p-4">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-secondary/20 flex items-center justify-center">
-              <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-secondary" />
-            </div>
-            <div>
-              <p className="text-lg sm:text-2xl font-bold font-heading text-secondary">{totalHours} hrs</p>
-              <p className="text-xs sm:text-sm text-muted-foreground">Hours</p>
+              <p className="text-xs sm:text-sm opacity-80">Total Sessions</p>
             </div>
           </div>
         </Card>
         <Card className="p-3 sm:p-4">
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
-              <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-700" />
+              <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-700" />
             </div>
             <div>
-              <p className="text-lg sm:text-2xl font-bold font-heading text-emerald-700">
-                {trainings.filter(t => t.status === 'Upcoming').length}
-              </p>
+              <p className="text-lg sm:text-2xl font-bold font-heading text-emerald-700">{completedCount}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">Completed</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-3 sm:p-4">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-accent/20 flex items-center justify-center">
+              <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-accent-foreground" />
+            </div>
+            <div>
+              <p className="text-lg sm:text-2xl font-bold font-heading text-accent-foreground">{upcomingCount}</p>
               <p className="text-xs sm:text-sm text-muted-foreground">Upcoming</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-3 sm:p-4">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-secondary/20 flex items-center justify-center">
+              <Users className="w-4 h-4 sm:w-5 sm:h-5 text-secondary" />
+            </div>
+            <div>
+              <p className="text-lg sm:text-2xl font-bold font-heading text-secondary">
+                {trainings.reduce((acc, t) => acc + t.attendees.length, 0)}
+              </p>
+              <p className="text-xs sm:text-sm text-muted-foreground">Total Attendees</p>
             </div>
           </div>
         </Card>
@@ -192,10 +220,17 @@ export function Trainings() {
                 className="pl-10 h-10"
               />
             </div>
-            <Button variant="outline" size="sm" className="w-full sm:w-auto">
-              <Filter className="w-4 h-4 mr-2" />
-              Filters
-            </Button>
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue placeholder="Filter by type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                {TRAINING_TYPES.map((type) => (
+                  <SelectItem key={type} value={type.toLowerCase()}>{type}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
@@ -223,7 +258,22 @@ export function Trainings() {
                         <Badge variant={getTypeColor(training.type ?? '') as any} className="text-xs">{training.type ?? ''}</Badge>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        <Button variant="outline" size="sm" className="text-xs h-8">Details</Button>
+                        <Button variant="outline" size="sm" className="text-xs h-8">
+                          <Eye className="w-3 h-3 mr-1" />
+                          Details
+                        </Button>
+                        {isAdmin && training.status === 'Upcoming' && (
+                          <Button 
+                            variant="success" 
+                            size="sm" 
+                            className="text-xs h-8"
+                            onClick={() => handleMarkComplete(training.id)}
+                            disabled={completeTraining.isPending}
+                          >
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Mark Complete
+                          </Button>
+                        )}
                       </div>
                     </div>
                     <p className="text-xs sm:text-sm text-muted-foreground mt-1">

@@ -9,13 +9,11 @@ import {
   X,
   Users,
   ShoppingCart,
-  Tractor,
   MapPin,
   GraduationCap,
 } from 'lucide-react';
 import { FarmerFormDialog } from '@/components/forms/FarmerFormDialog';
 import { SaleFormDialog } from '@/components/forms/SaleFormDialog';
-import { MechanisationFormDialog } from '@/components/forms/MechanisationFormDialog';
 import { VisitFormDialog } from '@/components/forms/VisitFormDialog';
 import { TrainingFormDialog } from '@/components/forms/TrainingFormDialog';
 import { useAuth } from '@/contexts/AuthContext';
@@ -34,7 +32,6 @@ export function FloatingActions() {
   // Dialog states (declared before any conditional returns to keep hook order stable)
   const [farmerDialogOpen, setFarmerDialogOpen] = useState(false);
   const [saleDialogOpen, setSaleDialogOpen] = useState(false);
-  const [mechanisationDialogOpen, setMechanisationDialogOpen] = useState(false);
   const [visitDialogOpen, setVisitDialogOpen] = useState(false);
   const [trainingDialogOpen, setTrainingDialogOpen] = useState(false);
 
@@ -62,11 +59,6 @@ export function FloatingActions() {
         dialog: <SaleFormDialog open={saleDialogOpen} onOpenChange={setSaleDialogOpen} onSubmit={() => {}} />,
       },
       {
-        icon: Tractor,
-        label: 'New Booking',
-        dialog: <MechanisationFormDialog open={mechanisationDialogOpen} onOpenChange={setMechanisationDialogOpen} onSubmit={() => {}} />,
-      },
-      {
         icon: GraduationCap,
         label: 'Schedule Training',
         dialog: <TrainingFormDialog open={trainingDialogOpen} onOpenChange={setTrainingDialogOpen} onSubmit={() => {}} />,
@@ -89,7 +81,7 @@ export function FloatingActions() {
     const relevantPages: Record<string, boolean> = {
       farmers: action.label.includes('Farmer'),
       sales: action.label.includes('Sale'),
-      mechanisation: action.label.includes('Booking'),
+      machinery: action.label.includes('Booking'),
       visits: action.label.includes('Visit'),
       trainings: action.label.includes('Training'),
       dashboard: true,
@@ -114,7 +106,6 @@ export function FloatingActions() {
               const setOpen: Record<string, React.Dispatch<React.SetStateAction<boolean>>> = {
                 'Add Farmer': setFarmerDialogOpen,
                 'Record Sale': setSaleDialogOpen,
-                'New Booking': setMechanisationDialogOpen,
                 'Log Visit': setVisitDialogOpen,
                 'Schedule Training': setTrainingDialogOpen,
               };
@@ -160,7 +151,6 @@ export function FloatingActions() {
                   const setOpen: Record<string, React.Dispatch<React.SetStateAction<boolean>>> = {
                     'Add Farmer': setFarmerDialogOpen,
                     'Record Sale': setSaleDialogOpen,
-                    'New Booking': setMechanisationDialogOpen,
                     'Log Visit': setVisitDialogOpen,
                     'Schedule Training': setTrainingDialogOpen,
                   };

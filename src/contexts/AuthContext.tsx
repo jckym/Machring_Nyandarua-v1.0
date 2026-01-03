@@ -150,13 +150,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       
       if (error) {
         return { error };
+      }
+      
+      // Check if user is active before allowing login
+      if (data.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('status')
+          .eq('id', data.user.id)
+          .single();
+        
+        if (profile?.status === 'inactive') {
+          // Sign out immediately if user is inactive
+          await supabase.auth.signOut();
+          return { error: new Error('Your account has been deactivated. Please contact an administrator.') };
+        }
       }
       
       return { error: null };

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Table,
   TableBody,
@@ -36,6 +37,10 @@ import {
   MapPin,
   UserCog,
   Loader2,
+  TrendingUp,
+  ShoppingCart,
+  GraduationCap,
+  Calendar,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -44,9 +49,14 @@ import {
   useCreateLocalMR,
   useUpdateLocalMR,
 } from '@/hooks/api/useLocalMRs';
+import { useSales } from '@/hooks/api/useSales';
+import { useTrainings } from '@/hooks/api/useTrainings';
+import { useVisits } from '@/hooks/api/useVisits';
+import { useMachineryBookings } from '@/hooks/api/useMachineryBookings';
 
 export function LocalMRs() {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('list');
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -65,6 +75,12 @@ export function LocalMRs() {
   const { data: localMRs = [], isLoading } = useLocalMRs();
   const createMR = useCreateLocalMR();
   const updateMR = useUpdateLocalMR();
+  
+  // Additional data for performance overview
+  const { data: sales = [] } = useSales();
+  const { data: trainings = [] } = useTrainings();
+  const { data: visits = [] } = useVisits();
+  const { data: bookings = [] } = useMachineryBookings();
 
   /** ================= FILTERS ================= */
   const subcounties = [...new Set(localMRs.map((mr: any) => mr.subcounty).filter(Boolean))];
@@ -159,6 +175,29 @@ export function LocalMRs() {
   const totalTOTs = localMRs.reduce((s: number, m: any) => s + (m.totalTots || 0), 0);
   const totalFarmers = localMRs.reduce((s: number, m: any) => s + (m.totalFarmers || 0), 0);
 
+  // Calculate performance metrics per Local MR
+  const mrPerformanceData = localMRs.map((mr: any) => {
+    const mrSales = sales.filter((s: any) => s.local_mr_id === mr.id);
+    const mrTrainings = trainings.filter((t: any) => t.local_mr_id === mr.id);
+    const mrVisits = visits.filter((v: any) => v.local_mr_id === mr.id);
+    const mrBookings = bookings.filter((b: any) => b.local_mr_id === mr.id);
+
+    const completedSales = mrSales.length;
+    const totalRevenue = mrSales.reduce((sum: number, s: any) => sum + (s.total_amount || 0), 0);
+    const completedTrainings = mrTrainings.filter((t: any) => t.status === 'completed').length;
+    const completedBookings = mrBookings.filter((b: any) => b.status === 'completed').length;
+    const totalVisits = mrVisits.length;
+
+    return {
+      ...mr,
+      completedSales,
+      totalRevenue,
+      completedTrainings,
+      completedBookings,
+      totalVisits,
+    };
+  });
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -189,83 +228,182 @@ export function LocalMRs() {
         <Stat icon={Users} label="Farmers" value={totalFarmers.toLocaleString()} />
       </div>
 
-      {/* SEARCH */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search Local MRs by name, county, subcounty..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10"
-        />
-      </div>
+      {/* Tabs for List and Performance */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="list" className="flex items-center gap-2">
+            <Building2 className="w-4 h-4" />
+            Local MR List
+          </TabsTrigger>
+          <TabsTrigger value="performance" className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4" />
+            Performance Overview
+          </TabsTrigger>
+        </TabsList>
 
-      {/* TABLE */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Local MRs ({filteredMRs.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Region</TableHead>
-                <TableHead>County</TableHead>
-                <TableHead>Subcounty</TableHead>
-                <TableHead>Ward</TableHead>
-                <TableHead>Coordinator</TableHead>
-                <TableHead>TOTs</TableHead>
-                <TableHead>Farmers</TableHead>
-                <TableHead />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredMRs.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                    No Local MRs found. Click "Add Local MR" to create one.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredMRs.map((mr: any) => (
-                  <TableRow key={mr.id}>
-                    <TableCell className="font-medium">{mr.name}</TableCell>
-                    <TableCell>{mr.region}</TableCell>
-                    <TableCell>{mr.county}</TableCell>
-                    <TableCell>{mr.subcounty || '-'}</TableCell>
-                    <TableCell>{mr.ward || '-'}</TableCell>
-                    <TableCell>
-                      <Badge variant={mr.coordinatorName === 'Unassigned' ? 'secondary' : 'default'}>
-                        {mr.coordinatorName}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{mr.totalTots}</TableCell>
-                    <TableCell>{mr.totalFarmers}</TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleViewDetails(mr.id)}>
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleEditClick(mr)}>
-                            Edit
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
+        {/* List Tab */}
+        <TabsContent value="list" className="space-y-4">
+          {/* SEARCH */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search Local MRs by name, county, subcounty..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          {/* TABLE */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Local MRs ({filteredMRs.length})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Region</TableHead>
+                    <TableHead>County</TableHead>
+                    <TableHead>Subcounty</TableHead>
+                    <TableHead>Ward</TableHead>
+                    <TableHead>Coordinator</TableHead>
+                    <TableHead>TOTs</TableHead>
+                    <TableHead>Farmers</TableHead>
+                    <TableHead />
                   </TableRow>
-                ))
+                </TableHeader>
+                <TableBody>
+                  {filteredMRs.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                        No Local MRs found. Click "Add Local MR" to create one.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredMRs.map((mr: any) => (
+                      <TableRow key={mr.id}>
+                        <TableCell className="font-medium">{mr.name}</TableCell>
+                        <TableCell>{mr.region}</TableCell>
+                        <TableCell>{mr.county}</TableCell>
+                        <TableCell>{mr.subcounty || '-'}</TableCell>
+                        <TableCell>{mr.ward || '-'}</TableCell>
+                        <TableCell>
+                          <Badge variant={mr.coordinatorName === 'Unassigned' ? 'secondary' : 'default'}>
+                            {mr.coordinatorName}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{mr.totalTots}</TableCell>
+                        <TableCell>{mr.totalFarmers}</TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleViewDetails(mr.id)}>
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEditClick(mr)}>
+                                Edit
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Performance Tab */}
+        <TabsContent value="performance" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Local MR Performance Overview</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {mrPerformanceData.length === 0 ? (
+                <p className="text-center py-8 text-muted-foreground">
+                  No performance data available.
+                </p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Local MR</TableHead>
+                      <TableHead>Coordinator</TableHead>
+                      <TableHead className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <ShoppingCart className="w-4 h-4" />
+                          Sales
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <TrendingUp className="w-4 h-4" />
+                          Revenue
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <GraduationCap className="w-4 h-4" />
+                          Trainings
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Calendar className="w-4 h-4" />
+                          Bookings
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <MapPin className="w-4 h-4" />
+                          Visits
+                        </div>
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {mrPerformanceData.map((mr: any) => (
+                      <TableRow key={mr.id}>
+                        <TableCell className="font-medium">{mr.name}</TableCell>
+                        <TableCell>
+                          <Badge variant={mr.coordinatorName === 'Unassigned' ? 'secondary' : 'default'}>
+                            {mr.coordinatorName}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center font-semibold">
+                          {mr.completedSales}
+                        </TableCell>
+                        <TableCell className="text-center text-primary font-semibold">
+                          KES {(mr.totalRevenue / 1000).toFixed(0)}K
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {mr.completedTrainings}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {mr.completedBookings}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {mr.totalVisits}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* ADD DIALOG */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>

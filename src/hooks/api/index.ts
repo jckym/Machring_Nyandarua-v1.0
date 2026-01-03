@@ -4,8 +4,6 @@
 // Core entities
 export * from './useFarmers';
 export * from './useSales';
-export * from './useMechanisation';
-export * from './useMechanisationRealtime';
 export * from './useTrainings';
 export * from './useVisits';
 export * from './useMachinery';
@@ -38,3 +36,4 @@ export {
 
 // Real-time subscriptions
 export { useProductsRealtime } from './useProductsRealtime';
+export { useDashboardRealtime, useFarmersRealtime } from './useDashboardRealtime';

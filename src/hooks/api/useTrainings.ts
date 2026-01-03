@@ -269,6 +269,31 @@ export function useDeleteTraining() {
   });
 }
 
+export function useCompleteTraining() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('trainings')
+        .update({
+          status: 'Completed',
+          completed_at: new Date().toISOString(),
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: trainingKeys.all });
+      toast.success('Training marked as completed');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to complete training');
+    },
+  });
+}
+
 export function useAddAttendee() {
   const queryClient = useQueryClient();
 
@@ -289,6 +314,34 @@ export function useAddAttendee() {
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to add attendee');
+    },
+  });
+}
+
+export function useAddMultipleAttendees() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ trainingId, farmerIds }: { trainingId: string; farmerIds: string[] }) => {
+      const attendees = farmerIds.map(farmerId => ({
+        training_id: trainingId,
+        farmer_id: farmerId,
+        attended: true,
+      }));
+
+      const { error } = await supabase
+        .from('training_attendees')
+        .upsert(attendees, { onConflict: 'training_id,farmer_id' });
+
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: trainingKeys.detail(variables.trainingId) });
+      queryClient.invalidateQueries({ queryKey: trainingKeys.all });
+      toast.success('Attendance recorded');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to record attendance');
     },
   });
 }

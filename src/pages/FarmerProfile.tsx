@@ -3,12 +3,13 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useFarmers, useSales, useMechanisationJobs, useVisits, useTrainings, useLocalMRs } from '@/hooks/api';
+import { useFarmers, useSales, useVisits, useTrainings, useLocalMRs } from '@/hooks/api';
+import { useMachineryBookings } from '@/hooks/api/useMachineryBookings';
 import { 
   ArrowLeft, Phone, Mail, MapPin, Calendar, ShoppingCart, Tractor, 
   GraduationCap, Users, Star, Edit, TrendingUp 
 } from 'lucide-react';
-import { Farmer, Sale, MechanisationJob, Visit, Training } from '@/types';
+import { Farmer, Sale, Visit, Training } from '@/types';
 
 export function FarmerProfile() {
   const { id } = useParams();
@@ -17,7 +18,7 @@ export function FarmerProfile() {
   // API hooks - data is already normalized by select transforms
   const { data: farmers = [] } = useFarmers();
   const { data: sales = [] } = useSales();
-  const { data: mechJobs = [] } = useMechanisationJobs();
+  const { data: bookings = [] } = useMachineryBookings();
   const { data: visits = [] } = useVisits();
   const { data: trainings = [] } = useTrainings();
   const { data: localMRs = [] } = useLocalMRs();
@@ -38,12 +39,12 @@ export function FarmerProfile() {
 
   const localMr = (localMRs as { id: string; name: string }[]).find(mr => mr.id === farmer.localMrId);
   const farmerSales = (sales as Sale[]).filter(s => s.farmerId === farmer.id);
-  const farmerJobs = (mechJobs as MechanisationJob[]).filter(j => j.farmerId === farmer.id);
+  const farmerBookings = (bookings || []).filter(b => b.farmer_id === farmer.id);
   const farmerVisits = (visits as Visit[]).filter(v => v.farmerId === farmer.id);
   const farmerTrainings = (trainings as Training[]).filter(t => t.attendees.includes(farmer.id));
 
   const totalSpent = farmerSales.reduce((acc, s) => acc + s.total, 0);
-  const mechanisationSpent = farmerJobs.reduce((acc, j) => acc + j.totalPrice, 0);
+  const bookingsSpent = 0; // Bookings don't have direct cost - calculated from machinery rates
 
   const getCategoryColor = (category: string) => {
     switch (category) {
@@ -150,12 +151,12 @@ export function FarmerProfile() {
                 <span className="font-semibold">{formatCurrency(totalSpent)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="opacity-80">Mechanisation Jobs</span>
-                <span className="font-semibold">{farmer.mechanisationCount}</span>
+                <span className="opacity-80">Machinery Bookings</span>
+                <span className="font-semibold">{farmerBookings.length}</span>
               </div>
               <div className="flex justify-between">
-                <span className="opacity-80">Mechanisation Spent</span>
-                <span className="font-semibold">{formatCurrency(mechanisationSpent)}</span>
+                <span className="opacity-80">Booking Value</span>
+                <span className="font-semibold">{formatCurrency(bookingsSpent)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="opacity-80">Trainings Attended</span>
@@ -189,8 +190,8 @@ export function FarmerProfile() {
               <Tractor className="w-4 h-4 sm:w-5 sm:h-5 text-secondary" />
             </div>
             <div>
-              <p className="text-lg sm:text-2xl font-bold font-heading text-secondary">{farmerJobs.length}</p>
-              <p className="text-xs sm:text-sm text-muted-foreground">Mechanisation</p>
+              <p className="text-lg sm:text-2xl font-bold font-heading text-secondary">{farmerBookings.length}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">Bookings</p>
             </div>
           </div>
         </Card>
@@ -224,7 +225,7 @@ export function FarmerProfile() {
           <CardHeader className="pb-0">
             <TabsList className="w-full sm:w-auto">
               <TabsTrigger value="sales" className="flex-1 sm:flex-none">Sales ({farmerSales.length})</TabsTrigger>
-              <TabsTrigger value="mechanisation" className="flex-1 sm:flex-none">Mechanisation ({farmerJobs.length})</TabsTrigger>
+              <TabsTrigger value="bookings" className="flex-1 sm:flex-none">Bookings ({farmerBookings.length})</TabsTrigger>
               <TabsTrigger value="trainings" className="flex-1 sm:flex-none">Trainings ({farmerTrainings.length})</TabsTrigger>
               <TabsTrigger value="visits" className="flex-1 sm:flex-none">Visits ({farmerVisits.length})</TabsTrigger>
             </TabsList>
@@ -252,20 +253,19 @@ export function FarmerProfile() {
               )}
             </TabsContent>
 
-            <TabsContent value="mechanisation" className="mt-0">
-              {farmerJobs.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">No mechanisation jobs recorded yet.</p>
+            <TabsContent value="bookings" className="mt-0">
+              {farmerBookings.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">No machinery bookings recorded yet.</p>
               ) : (
                 <div className="space-y-3">
-                  {farmerJobs.map(job => (
-                    <div key={job.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                  {farmerBookings.map(booking => (
+                    <div key={booking.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                       <div>
-                        <p className="font-medium text-sm capitalize">{job.serviceType} - {job.machineryName}</p>
-                        <p className="text-xs text-muted-foreground">{formatDate(job.scheduledDate)} • {job.acreage} acres</p>
+                        <p className="font-medium text-sm">{booking.machinery_name || 'Machinery'}</p>
+                        <p className="text-xs text-muted-foreground">{formatDate(booking.start_date)} - {formatDate(booking.end_date)}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-semibold text-secondary text-sm">{formatCurrency(job.totalPrice)}</p>
-                        <Badge variant={job.status === 'completed' ? 'success' : 'info'} className="text-xs">{job.status}</Badge>
+                        <Badge variant={booking.status === 'completed' ? 'success' : 'info'} className="text-xs">{booking.status}</Badge>
                       </div>
                     </div>
                   ))}

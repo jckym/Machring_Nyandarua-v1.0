@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Search, Plus, MapPin, Calendar, Filter, Camera, MessageSquare, Download, FileSpreadsheet, FileText } from 'lucide-react';
+import { Search, Plus, MapPin, Calendar, MessageSquare, Download, FileSpreadsheet, FileText, Eye } from 'lucide-react';
 import { exportVisitsToExcel, exportVisitsToPDF } from '@/lib/exportUtils';
 import {
   DropdownMenu,
@@ -12,6 +12,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { VisitFormDialog } from '@/components/forms/VisitFormDialog';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,8 +26,21 @@ import { toast } from 'sonner';
 import { Visit } from '@/types';
 import { useVisits, useCreateVisit } from '@/hooks/api';
 
+// Visit purposes per request (multi-select supported)
+const VISIT_PURPOSES = [
+  'Follow-up',
+  'Soil Testing',
+  'Crop Monitoring',
+  'Product Delivery',
+  'Training',
+  'Group Meeting',
+  'Problem Solving',
+  'New Registration',
+];
+
 export function Visits() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [purposeFilter, setPurposeFilter] = useState<string>('all');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const { addNotification } = useNotifications();
   const { user, isAdmin } = useAuth();
@@ -34,8 +54,10 @@ export function Visits() {
 
   const filteredVisits = visits.filter(visit => {
     const farmerName = visit.farmerName ?? '';
-    return farmerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const matchesSearch = farmerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       visit.purpose.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesPurpose = purposeFilter === 'all' || visit.purpose.toLowerCase().includes(purposeFilter.toLowerCase());
+    return matchesSearch && matchesPurpose;
   });
 
   const handleAddVisit = (data: any) => {
@@ -59,17 +81,20 @@ export function Visits() {
     }).format(new Date(date));
   };
 
-  // Calculate stats
-  const thisWeekVisits = visits.filter(v => {
+  // Calculate stats - Updated per request: removed "With Photo" and "GPS Tagged", added "Total Visits (Current Month)"
+  const now = new Date();
+  const thisMonthVisits = visits.filter(v => {
     const visitDate = new Date(v.date);
-    const now = new Date();
-    const weekStart = new Date(now.setDate(now.getDate() - now.getDay()));
-    return visitDate >= weekStart;
+    return visitDate.getMonth() === now.getMonth() && visitDate.getFullYear() === now.getFullYear();
   }).length;
 
-  const withPhotos = 0; // Photo URLs not in type - will show 0 for now
-  const gpsTagged = visits.filter(v => v.gpsLocation).length;
-  const gpsPercentage = visits.length > 0 ? Math.round((gpsTagged / visits.length) * 100) : 0;
+  const thisWeekVisits = visits.filter(v => {
+    const visitDate = new Date(v.date);
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    weekStart.setHours(0, 0, 0, 0);
+    return visitDate >= weekStart;
+  }).length;
 
   // Manager and Coordinator can export reports
   const canExport = user?.role === 'admin' || user?.role === 'manager' || user?.role === 'local_mr_coordinator';
@@ -132,8 +157,8 @@ export function Visits() {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      {/* Stats Cards - Updated per request */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         <Card className="p-3 sm:p-4" variant="earth">
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-secondary-foreground/20 flex items-center justify-center">
@@ -151,30 +176,19 @@ export function Visits() {
               <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
             </div>
             <div>
-              <p className="text-lg sm:text-2xl font-bold font-heading text-primary">{thisWeekVisits}</p>
-              <p className="text-xs sm:text-sm text-muted-foreground">This Week</p>
+              <p className="text-lg sm:text-2xl font-bold font-heading text-primary">{thisMonthVisits}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">This Month</p>
             </div>
           </div>
         </Card>
         <Card className="p-3 sm:p-4">
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-accent/20 flex items-center justify-center">
-              <Camera className="w-4 h-4 sm:w-5 sm:h-5 text-accent-foreground" />
+              <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-accent-foreground" />
             </div>
             <div>
-              <p className="text-lg sm:text-2xl font-bold font-heading text-accent-foreground">{withPhotos}</p>
-              <p className="text-xs sm:text-sm text-muted-foreground">With Photos</p>
-            </div>
-          </div>
-        </Card>
-        <Card className="p-3 sm:p-4">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
-              <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-700" />
-            </div>
-            <div>
-              <p className="text-lg sm:text-2xl font-bold font-heading text-emerald-700">{gpsPercentage}%</p>
-              <p className="text-xs sm:text-sm text-muted-foreground">GPS Tagged</p>
+              <p className="text-lg sm:text-2xl font-bold font-heading text-accent-foreground">{thisWeekVisits}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">This Week</p>
             </div>
           </div>
         </Card>
@@ -193,10 +207,17 @@ export function Visits() {
                 className="pl-10 h-10"
               />
             </div>
-            <Button variant="outline" size="sm" className="w-full sm:w-auto">
-              <Filter className="w-4 h-4 mr-2" />
-              Filters
-            </Button>
+            <Select value={purposeFilter} onValueChange={setPurposeFilter}>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue placeholder="Filter by purpose" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Purposes</SelectItem>
+                {VISIT_PURPOSES.map((purpose) => (
+                  <SelectItem key={purpose} value={purpose.toLowerCase()}>{purpose}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
@@ -224,7 +245,10 @@ export function Visits() {
                         <Badge variant="sage" className="text-xs">{visit.purpose}</Badge>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        <Button variant="outline" size="sm" className="text-xs h-8">Details</Button>
+                        <Button variant="outline" size="sm" className="text-xs h-8">
+                          <Eye className="w-3 h-3 mr-1" />
+                          Details
+                        </Button>
                       </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground mt-2">

@@ -72,6 +72,25 @@ export interface TopPerformer {
   rank: number;
 }
 
+// Helper function to fetch profile names for given IDs
+async function fetchProfileNames(userIds: string[]): Promise<Map<string, string>> {
+  if (userIds.length === 0) return new Map();
+  
+  const uniqueIds = [...new Set(userIds.filter(Boolean))];
+  if (uniqueIds.length === 0) return new Map();
+
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, name")
+    .in("id", uniqueIds);
+
+  const nameMap = new Map<string, string>();
+  (profiles || []).forEach((p) => {
+    nameMap.set(p.id, p.name);
+  });
+  return nameMap;
+}
+
 /**
  * Fetch admin dashboard stats (organization-wide)
  */
@@ -118,16 +137,6 @@ export async function fetchAdminStats(): Promise<AdminStats> {
  * Fetch TOT dashboard stats (personal stats)
  */
 export async function fetchTotStats(totId: string): Promise<TotStats> {
-  // First get the TOT's local_mr_id
-  const { data: assignment } = await supabase
-    .from("tot_assignments")
-    .select("local_mr_id")
-    .eq("tot_id", totId)
-    .eq("status", "active")
-    .maybeSingle();
-
-  const localMrId = assignment?.local_mr_id;
-
   // Fetch TOT-specific data
   const [salesResult, visitsResult, mechanisationResult, trainingsResult] = await Promise.all([
     supabase.from("sales").select("id, total_amount, commission_amount").eq("tot_id", totId),
@@ -136,7 +145,7 @@ export async function fetchTotStats(totId: string): Promise<TotStats> {
     supabase.from("trainings").select("id", { count: "exact", head: true }).eq("trainer_id", totId),
   ]);
 
-  // Count unique farmers from sales and visits
+  // Count unique farmers from sales
   const { data: farmerIds } = await supabase
     .from("sales")
     .select("farmer_id")
@@ -165,23 +174,20 @@ export async function fetchTotStats(totId: string): Promise<TotStats> {
 export async function fetchLocalMRsWithStats(): Promise<LocalMRWithStats[]> {
   const { data: localMrs, error } = await supabase
     .from("local_mrs")
-    .select(`
-      id,
-      name,
-      region,
-      county,
-      sub_county,
-      ward,
-      status,
-      coordinator_id,
-      profiles!local_mrs_coordinator_id_fkey(name)
-    `)
+    .select("id, name, region, county, sub_county, ward, status, coordinator_id")
     .eq("status", "active");
 
   if (error) {
     console.error("Error fetching local MRs:", error);
     return [];
   }
+
+  // Collect coordinator IDs and fetch names
+  const coordinatorIds = (localMrs || [])
+    .map((mr) => mr.coordinator_id)
+    .filter(Boolean) as string[];
+  
+  const profileNames = await fetchProfileNames(coordinatorIds);
 
   // Fetch counts for each local MR
   const enrichedMRs = await Promise.all(
@@ -203,7 +209,7 @@ export async function fetchLocalMRsWithStats(): Promise<LocalMRWithStats[]> {
         coordinator_id: mr.coordinator_id,
         totalTots: totsResult.count || 0,
         totalFarmers: farmersResult.count || 0,
-        coordinatorName: (mr.profiles as any)?.name || undefined,
+        coordinatorName: mr.coordinator_id ? profileNames.get(mr.coordinator_id) : undefined,
       };
     })
   );
@@ -314,10 +320,10 @@ export async function fetchTopPerformers(
   localMrId?: string
 ): Promise<TopPerformer[]> {
   if (type === "tots") {
-    // Get TOTs with their sales performance
+    // Get sales data without FK join to profiles
     let query = supabase
       .from("sales")
-      .select("tot_id, total_amount, profiles!sales_tot_id_fkey(name)");
+      .select("tot_id, total_amount");
 
     if (localMrId) {
       query = query.eq("local_mr_id", localMrId);
@@ -331,24 +337,27 @@ export async function fetchTopPerformers(
     }
 
     // Aggregate by TOT
-    const totMap: Record<string, { name: string; revenue: number; salesCount: number }> = {};
+    const totMap: Record<string, { revenue: number; salesCount: number }> = {};
 
     (sales || []).forEach((sale) => {
       const totId = sale.tot_id;
-      const totName = (sale.profiles as any)?.name || "Unknown TOT";
       if (!totMap[totId]) {
-        totMap[totId] = { name: totName, revenue: 0, salesCount: 0 };
+        totMap[totId] = { revenue: 0, salesCount: 0 };
       }
       totMap[totId].revenue += Number(sale.total_amount) || 0;
       totMap[totId].salesCount += 1;
     });
+
+    // Fetch profile names for TOTs
+    const totIds = Object.keys(totMap);
+    const profileNames = await fetchProfileNames(totIds);
 
     return Object.entries(totMap)
       .sort((a, b) => b[1].revenue - a[1].revenue)
       .slice(0, 5)
       .map(([id, data], index) => ({
         id,
-        name: data.name,
+        name: profileNames.get(id) || "Unknown TOT",
         metric: `${data.salesCount} sales`,
         value: `KES ${(data.revenue / 1000).toFixed(0)}K`,
         rank: index + 1,
@@ -430,7 +439,7 @@ export async function fetchFarmers(filters?: {
 }
 
 /**
- * Fetch all sales with optional filters
+ * Fetch all sales with optional filters - fetches TOT names separately
  */
 export async function fetchSales(filters?: {
   localMrId?: string;
@@ -443,8 +452,7 @@ export async function fetchSales(filters?: {
     .select(`
       *,
       products(name, category),
-      farmers(name, phone),
-      profiles!sales_tot_id_fkey(name)
+      farmers(name, phone)
     `)
     .order("sale_date", { ascending: false });
 
@@ -468,7 +476,14 @@ export async function fetchSales(filters?: {
     return [];
   }
 
-  return data || [];
+  // Fetch TOT profile names
+  const totIds = (data || []).map((s) => s.tot_id).filter(Boolean);
+  const profileNames = await fetchProfileNames(totIds);
+
+  return (data || []).map((sale) => ({
+    ...sale,
+    tot_name: profileNames.get(sale.tot_id) || "Unknown TOT",
+  }));
 }
 
 /**
@@ -482,8 +497,7 @@ export async function fetchVisits(filters?: {
     .from("visits")
     .select(`
       *,
-      farmers(name, phone),
-      profiles!visits_tot_id_fkey(name)
+      farmers(name, phone)
     `)
     .order("visit_date", { ascending: false });
 
@@ -501,7 +515,14 @@ export async function fetchVisits(filters?: {
     return [];
   }
 
-  return data || [];
+  // Fetch TOT profile names
+  const totIds = (data || []).map((v) => v.tot_id).filter(Boolean);
+  const profileNames = await fetchProfileNames(totIds);
+
+  return (data || []).map((visit) => ({
+    ...visit,
+    tot_name: profileNames.get(visit.tot_id) || "Unknown TOT",
+  }));
 }
 
 /**
@@ -517,8 +538,7 @@ export async function fetchMechanisationJobs(filters?: {
     .select(`
       *,
       machinery(name, category),
-      farmers(name),
-      profiles!mechanisation_jobs_tot_id_fkey(name)
+      farmers(name)
     `)
     .order("scheduled_date", { ascending: false });
 
@@ -539,7 +559,14 @@ export async function fetchMechanisationJobs(filters?: {
     return [];
   }
 
-  return data || [];
+  // Fetch TOT profile names
+  const totIds = (data || []).map((j) => j.tot_id).filter(Boolean);
+  const profileNames = await fetchProfileNames(totIds);
+
+  return (data || []).map((job) => ({
+    ...job,
+    tot_name: profileNames.get(job.tot_id) || "Unknown TOT",
+  }));
 }
 
 /**
@@ -553,7 +580,6 @@ export async function fetchTrainings(filters?: {
     .from("trainings")
     .select(`
       *,
-      profiles!trainings_trainer_id_fkey(name),
       local_mrs(name)
     `)
     .order("scheduled_date", { ascending: false });
@@ -572,29 +598,50 @@ export async function fetchTrainings(filters?: {
     return [];
   }
 
-  return data || [];
+  // Fetch trainer profile names
+  const trainerIds = (data || []).map((t) => t.trainer_id).filter(Boolean);
+  const profileNames = await fetchProfileNames(trainerIds);
+
+  return (data || []).map((training) => ({
+    ...training,
+    trainer_name: profileNames.get(training.trainer_id) || "Unknown Trainer",
+  }));
 }
 
 /**
- * Fetch users with their roles
+ * Fetch users with their roles - separate queries
  */
 export async function fetchUsers() {
-  const { data, error } = await supabase
+  // Fetch profiles
+  const { data: profiles, error: profilesError } = await supabase
     .from("profiles")
-    .select(`
-      *,
-      user_roles(role)
-    `)
+    .select("*")
     .order("created_at", { ascending: false });
 
-  if (error) {
-    console.error("Error fetching users:", error);
+  if (profilesError) {
+    console.error("Error fetching profiles:", profilesError);
     return [];
   }
 
-  return (data || []).map((user) => ({
+  // Fetch all user roles
+  const { data: roles, error: rolesError } = await supabase
+    .from("user_roles")
+    .select("user_id, role");
+
+  if (rolesError) {
+    console.error("Error fetching user roles:", rolesError);
+    // Continue without roles
+  }
+
+  // Create a map of user_id to role
+  const roleMap = new Map<string, string>();
+  (roles || []).forEach((r) => {
+    roleMap.set(r.user_id, r.role);
+  });
+
+  return (profiles || []).map((user) => ({
     ...user,
-    role: (user.user_roles as any)?.[0]?.role || "user",
+    role: roleMap.get(user.id) || "user",
   }));
 }
 
@@ -605,20 +652,28 @@ export async function fetchRecentActivity(limit = 10) {
   const [salesResult, visitsResult, trainingsResult] = await Promise.all([
     supabase
       .from("sales")
-      .select("id, sale_date, total_amount, farmers(name), profiles!sales_tot_id_fkey(name)")
+      .select("id, sale_date, total_amount, tot_id, farmers(name)")
       .order("sale_date", { ascending: false })
       .limit(limit),
     supabase
       .from("visits")
-      .select("id, visit_date, purpose, farmers(name), profiles!visits_tot_id_fkey(name)")
+      .select("id, visit_date, purpose, tot_id, farmers(name)")
       .order("visit_date", { ascending: false })
       .limit(limit),
     supabase
       .from("trainings")
-      .select("id, scheduled_date, title, profiles!trainings_trainer_id_fkey(name)")
+      .select("id, scheduled_date, title, trainer_id")
       .order("scheduled_date", { ascending: false })
       .limit(limit),
   ]);
+
+  // Collect all user IDs for profile lookup
+  const userIds: string[] = [];
+  (salesResult.data || []).forEach((s) => s.tot_id && userIds.push(s.tot_id));
+  (visitsResult.data || []).forEach((v) => v.tot_id && userIds.push(v.tot_id));
+  (trainingsResult.data || []).forEach((t) => t.trainer_id && userIds.push(t.trainer_id));
+
+  const profileNames = await fetchProfileNames(userIds);
 
   const activities: Array<{
     id: string;
@@ -636,7 +691,7 @@ export async function fetchRecentActivity(limit = 10) {
       title: "Sale Recorded",
       description: `KES ${Number(sale.total_amount).toLocaleString()} to ${(sale.farmers as any)?.name || "Unknown"}`,
       timestamp: sale.sale_date,
-      actor: (sale.profiles as any)?.name || "Unknown TOT",
+      actor: profileNames.get(sale.tot_id) || "Unknown TOT",
     });
   });
 
@@ -647,7 +702,7 @@ export async function fetchRecentActivity(limit = 10) {
       title: "Farm Visit",
       description: `${visit.purpose} - ${(visit.farmers as any)?.name || "Unknown"}`,
       timestamp: visit.visit_date,
-      actor: (visit.profiles as any)?.name || "Unknown TOT",
+      actor: profileNames.get(visit.tot_id) || "Unknown TOT",
     });
   });
 
@@ -658,7 +713,7 @@ export async function fetchRecentActivity(limit = 10) {
       title: "Training Session",
       description: training.title,
       timestamp: training.scheduled_date,
-      actor: (training.profiles as any)?.name || "Unknown Trainer",
+      actor: profileNames.get(training.trainer_id) || "Unknown Trainer",
     });
   });
 

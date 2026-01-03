@@ -15,6 +15,7 @@ import {
   useSupabaseLocalMRs,
   AdminStats 
 } from '@/hooks/api/useSupabaseDashboard';
+import { useDashboardRealtime, useFarmersRealtime } from '@/hooks/api/useDashboardRealtime';
 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,6 +24,10 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { AlertCircle } from 'lucide-react';
 
 export function AdminDashboard() {
+  // Enable realtime updates
+  useDashboardRealtime();
+  useFarmersRealtime();
+
   const { data: stats, isLoading: statsLoading, error: statsError } = useSupabaseAdminStats();
   const { data: localMRs = [] } = useSupabaseLocalMRs();
 

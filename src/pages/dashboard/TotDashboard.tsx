@@ -17,8 +17,13 @@ import { ProductChart } from '@/components/dashboard/ProductChart';
 
 import { useSupabaseTotStats, TotStats } from '@/hooks/api/useSupabaseDashboard';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDashboardRealtime, useFarmersRealtime } from '@/hooks/api/useDashboardRealtime';
 
 export function TotDashboard() {
+  // Enable realtime updates
+  useDashboardRealtime();
+  useFarmersRealtime();
+
   const { user } = useAuth();
   const totId = user?.id || '';
 

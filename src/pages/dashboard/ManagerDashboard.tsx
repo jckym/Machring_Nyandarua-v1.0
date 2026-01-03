@@ -21,11 +21,17 @@ import {
   useSupabaseTrainings,
   useSupabaseUsers,
 } from '@/hooks/api/useSupabaseDashboard';
+import { useDashboardRealtime, useFarmersRealtime, useMechanisationRealtime } from '@/hooks/api/useDashboardRealtime';
 
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
 export function ManagerDashboard() {
+  // Enable realtime updates
+  useDashboardRealtime();
+  useFarmersRealtime();
+  useMechanisationRealtime();
+
   // Fetch organization-wide data using Supabase hooks
   const { data: stats, isLoading: statsLoading } = useSupabaseAdminStats();
   const { data: localMRs = [], isLoading: localMRsLoading } = useSupabaseLocalMRs();

@@ -6,9 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Search, Plus, Package, Filter, AlertTriangle, TrendingUp, Edit, RefreshCw } from 'lucide-react';
+import { Search, Plus, Package, Filter, AlertTriangle, TrendingUp, Edit, RefreshCw, Upload } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProducts, useCreateProduct, useUpdateProductStock, useUpdateProduct, useProductsRealtime } from '@/hooks/api';
+import { BulkUploadDialog } from '@/components/bulk-upload/BulkUploadDialog';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Dialog,
   DialogContent,
@@ -34,6 +36,7 @@ export function Products() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isStockDialogOpen, setIsStockDialogOpen] = useState(false);
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [stockUpdate, setStockUpdate] = useState({ quantity: 0, type: 'add' as 'add' | 'subtract' });
   const { user } = useAuth();
@@ -181,10 +184,16 @@ export function Products() {
           </p>
         </div>
         {user?.role === 'admin' && (
-          <Button variant="forest" size="sm" onClick={() => setIsAddDialogOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Product
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
+              <Upload className="w-4 h-4 mr-2" />
+              Bulk Upload
+            </Button>
+            <Button variant="forest" size="sm" onClick={() => setIsAddDialogOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Product
+            </Button>
+          </div>
         )}
       </div>
       {/* Stats Cards */}
@@ -525,6 +534,26 @@ export function Products() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Upload Dialog */}
+      <BulkUploadDialog
+        open={isBulkUploadOpen}
+        onOpenChange={setIsBulkUploadOpen}
+        entityType="products"
+        onUpload={async (data) => {
+          const productsToInsert = data.map(row => ({
+            name: String(row.name),
+            category: String(row.category || 'Others'),
+            description: row.description ? String(row.description) : null,
+            unit_price: Number(row.unit_price) || 0,
+            commission_per_unit: Number(row.commission_per_unit) || 0,
+            stock_quantity: Number(row.stock_quantity) || 0,
+          }));
+          
+          const { error } = await supabase.from('products').insert(productsToInsert);
+          if (error) throw error;
+        }}
+      />
     </div>
   );
 }

@@ -7,6 +7,13 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Table,
   TableBody,
   TableCell,
@@ -63,13 +70,24 @@ export function LocalMRs() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedMR, setSelectedMR] = useState<any>(null);
 
+  // Sub-county/Ward data for Nyandarua County
+  const subCountyWards: Record<string, string[]> = {
+    'Olkalou': ['Karau', 'Kanjuiri', 'Kaimbaga', 'Mirangine'],
+    'Ol Joro Orok': ['Gathanji', 'Gatimu', 'Weru', 'Charagita'],
+    'Ndaragwa': ['Leshau', 'Kiriita', 'Central', 'Shamata'],
+    'Kinangop': ['Engineer', 'Gathara', 'North Kinangop', 'Murungaru', 'Njabini', 'Nyakio', 'Magumu', 'Githambi'],
+    'Kipipiri': ['Wanjohi', 'Kipipiri', 'Geta', 'Githioro'],
+  };
+
   const [formData, setFormData] = useState({
     name: '',
     region: '',
-    county: '',
     subcounty: '',
     ward: '',
   });
+
+  // Get available wards based on selected subcounty
+  const availableWards = formData.subcounty ? subCountyWards[formData.subcounty] || [] : [];
 
   /** ================= API ================= */
   const { data: localMRs = [], isLoading } = useLocalMRs();
@@ -100,16 +118,19 @@ export function LocalMRs() {
     setFormData({
       name: '',
       region: '',
-      county: '',
       subcounty: '',
       ward: '',
     });
   };
 
+  const handleSubcountyChange = (value: string) => {
+    setFormData({ ...formData, subcounty: value, ward: '' });
+  };
+
   /** ================= ACTIONS ================= */
   const handleAddMR = () => {
-    if (!formData.name || !formData.region || !formData.county) {
-      toast.error('Please fill all required fields (Name, Region, County)');
+    if (!formData.name || !formData.region || !formData.subcounty) {
+      toast.error('Please fill all required fields (Name, Region, Sub-County)');
       return;
     }
 
@@ -117,8 +138,8 @@ export function LocalMRs() {
       {
         name: formData.name,
         region: formData.region,
-        county: formData.county,
-        sub_county: formData.subcounty || undefined,
+        county: 'Nyandarua', // Fixed to Nyandarua
+        sub_county: formData.subcounty,
         ward: formData.ward || undefined,
       },
       {
@@ -139,7 +160,7 @@ export function LocalMRs() {
         data: {
           name: formData.name,
           region: formData.region,
-          county: formData.county,
+          county: 'Nyandarua', // Fixed to Nyandarua
           sub_county: formData.subcounty,
           ward: formData.ward,
         },
@@ -163,8 +184,7 @@ export function LocalMRs() {
     setFormData({
       name: mr.name,
       region: mr.region || '',
-      county: mr.county || '',
-      subcounty: mr.subcounty || '',
+      subcounty: mr.subcounty || mr.sub_county || '',
       ward: mr.ward || '',
     });
     setIsEditDialogOpen(true);
@@ -434,31 +454,34 @@ export function LocalMRs() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="county">County *</Label>
-              <Input
-                id="county"
-                placeholder="Enter county"
-                value={formData.county}
-                onChange={(e) => setFormData({ ...formData, county: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="subcounty">Subcounty</Label>
-              <Input
-                id="subcounty"
-                placeholder="Enter subcounty (optional)"
-                value={formData.subcounty}
-                onChange={(e) => setFormData({ ...formData, subcounty: e.target.value })}
-              />
+              <Label htmlFor="subcounty">Sub-County *</Label>
+              <Select value={formData.subcounty} onValueChange={handleSubcountyChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Sub-County" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.keys(subCountyWards).map((sc) => (
+                    <SelectItem key={sc} value={sc}>{sc}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="ward">Ward</Label>
-              <Input
-                id="ward"
-                placeholder="Enter ward (optional)"
-                value={formData.ward}
-                onChange={(e) => setFormData({ ...formData, ward: e.target.value })}
-              />
+              <Select 
+                value={formData.ward} 
+                onValueChange={(value) => setFormData({ ...formData, ward: value })}
+                disabled={!formData.subcounty}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={formData.subcounty ? "Select Ward" : "Select Sub-County first"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableWards.map((ward) => (
+                    <SelectItem key={ward} value={ward}>{ward}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
@@ -508,31 +531,34 @@ export function LocalMRs() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-county">County *</Label>
-              <Input
-                id="edit-county"
-                placeholder="Enter county"
-                value={formData.county}
-                onChange={(e) => setFormData({ ...formData, county: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-subcounty">Subcounty</Label>
-              <Input
-                id="edit-subcounty"
-                placeholder="Enter subcounty (optional)"
-                value={formData.subcounty}
-                onChange={(e) => setFormData({ ...formData, subcounty: e.target.value })}
-              />
+              <Label htmlFor="edit-subcounty">Sub-County *</Label>
+              <Select value={formData.subcounty} onValueChange={handleSubcountyChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Sub-County" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.keys(subCountyWards).map((sc) => (
+                    <SelectItem key={sc} value={sc}>{sc}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-ward">Ward</Label>
-              <Input
-                id="edit-ward"
-                placeholder="Enter ward (optional)"
-                value={formData.ward}
-                onChange={(e) => setFormData({ ...formData, ward: e.target.value })}
-              />
+              <Select 
+                value={formData.ward} 
+                onValueChange={(value) => setFormData({ ...formData, ward: value })}
+                disabled={!formData.subcounty}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={formData.subcounty ? "Select Ward" : "Select Sub-County first"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableWards.map((ward) => (
+                    <SelectItem key={ward} value={ward}>{ward}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>

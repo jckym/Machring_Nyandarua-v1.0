@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useFarmers } from '@/hooks/api/useFarmers';
 import { useLocalMRs } from '@/hooks/api/useLocalMRs';
@@ -35,7 +36,7 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
   const [formData, setFormData] = useState({
     farmerId: '',
     localMrId: '',
-    purpose: '',
+    purposes: [] as string[],
     notes: '',
   });
   const [gpsLocation, setGpsLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -72,7 +73,7 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
       setFormData({
         farmerId: '',
         localMrId: localMRs[0]?.id || '',
-        purpose: '',
+        purposes: [],
         notes: '',
       });
       setGpsLocation(null);
@@ -89,19 +90,28 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
     }
   }, [selectedFarmer]);
 
+  const handlePurposeToggle = (purpose: string) => {
+    setFormData(prev => ({
+      ...prev,
+      purposes: prev.purposes.includes(purpose)
+        ? prev.purposes.filter(p => p !== purpose)
+        : [...prev.purposes, purpose]
+    }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.farmerId || !formData.purpose || !formData.notes.trim()) {
-      toast({ title: 'Validation Error', description: 'Please fill all required fields', variant: 'destructive' });
+    if (!formData.farmerId || formData.purposes.length === 0 || !formData.notes.trim()) {
+      toast({ title: 'Validation Error', description: 'Please fill all required fields (Farmer, at least one Purpose, and Notes)', variant: 'destructive' });
       return;
     }
 
-    // Create visit DTO for Supabase
+    // Create visit DTO for Supabase - combine purposes into comma-separated string
     const visitData: CreateVisitDto = {
       farmer_id: formData.farmerId,
       tot_id: user?.id || '',
       local_mr_id: formData.localMrId || undefined,
-      purpose: formData.purpose,
+      purpose: formData.purposes.join(', '),
       notes: formData.notes.trim(),
       visit_date: new Date().toISOString(),
     };
@@ -198,17 +208,27 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
               </div>
 
               <div className="space-y-2">
-                <Label>Purpose *</Label>
-                <Select value={formData.purpose} onValueChange={(value) => setFormData({ ...formData, purpose: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select purpose" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {visitPurposes.map((p) => (
-                      <SelectItem key={p} value={p}>{p}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>Purpose * (select one or more)</Label>
+                <div className="grid grid-cols-2 gap-2 p-3 border rounded-lg bg-muted/30">
+                  {visitPurposes.map((purpose) => (
+                    <div 
+                      key={purpose}
+                      className="flex items-center space-x-2 cursor-pointer"
+                      onClick={() => handlePurposeToggle(purpose)}
+                    >
+                      <Checkbox
+                        checked={formData.purposes.includes(purpose)}
+                        onCheckedChange={() => handlePurposeToggle(purpose)}
+                      />
+                      <span className="text-sm">{purpose}</span>
+                    </div>
+                  ))}
+                </div>
+                {formData.purposes.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Selected: {formData.purposes.join(', ')}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">

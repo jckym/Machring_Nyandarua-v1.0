@@ -1,6 +1,7 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from 'next-themes';
+import { useNotificationSettings, useUpdateNotificationSettings } from '@/hooks/api/useNotificationSettings';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import {
   User,
@@ -24,6 +26,7 @@ import {
   Save,
   RefreshCw,
   Upload,
+  Loader2,
 } from 'lucide-react';
 
 export function Settings() {
@@ -33,6 +36,10 @@ export function Settings() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   
+  // Notification settings from database
+  const { data: notificationSettings, isLoading: isLoadingSettings } = useNotificationSettings();
+  const updateSettings = useUpdateNotificationSettings();
+
   // Profile state
   const [profileData, setProfileData] = useState({
     name: user?.name || '',
@@ -40,7 +47,7 @@ export function Settings() {
     phone: user?.phone || '',
   });
 
-  // Preferences state
+  // Local preferences state (synced with DB settings)
   const [preferences, setPreferences] = useState({
     emailNotifications: true,
     pushNotifications: true,
@@ -51,6 +58,20 @@ export function Settings() {
     timezone: 'Africa/Nairobi',
     compactMode: false,
   });
+
+  // Sync preferences with database settings
+  useEffect(() => {
+    if (notificationSettings) {
+      setPreferences(prev => ({
+        ...prev,
+        emailNotifications: notificationSettings.email_notifications,
+        pushNotifications: notificationSettings.push_notifications,
+        smsNotifications: notificationSettings.sms_notifications,
+        weeklyReports: notificationSettings.weekly_reports,
+        dailyDigest: notificationSettings.daily_digest,
+      }));
+    }
+  }, [notificationSettings]);
 
   // Security state
   const [securityData, setSecurityData] = useState({
@@ -64,7 +85,29 @@ export function Settings() {
   };
 
   const handleSavePreferences = () => {
-    toast.success('Preferences saved successfully');
+    updateSettings.mutate({
+      email_notifications: preferences.emailNotifications,
+      push_notifications: preferences.pushNotifications,
+      sms_notifications: preferences.smsNotifications,
+      weekly_reports: preferences.weeklyReports,
+      daily_digest: preferences.dailyDigest,
+    });
+  };
+
+  const handleTogglePreference = (key: keyof typeof preferences, value: boolean) => {
+    setPreferences(prev => ({ ...prev, [key]: value }));
+    // Auto-save to database
+    const dbKey = {
+      emailNotifications: 'email_notifications',
+      pushNotifications: 'push_notifications',
+      smsNotifications: 'sms_notifications',
+      weeklyReports: 'weekly_reports',
+      dailyDigest: 'daily_digest',
+    }[key as string];
+    
+    if (dbKey) {
+      updateSettings.mutate({ [dbKey]: value });
+    }
   };
 
   const handleChangePassword = () => {
@@ -236,7 +279,8 @@ export function Settings() {
                     </div>
                     <Switch
                       checked={preferences.emailNotifications}
-                      onCheckedChange={(checked) => setPreferences({ ...preferences, emailNotifications: checked })}
+                      onCheckedChange={(checked) => handleTogglePreference('emailNotifications', checked)}
+                      disabled={updateSettings.isPending}
                     />
                   </div>
                   <div className="flex items-center justify-between">
@@ -246,7 +290,8 @@ export function Settings() {
                     </div>
                     <Switch
                       checked={preferences.weeklyReports}
-                      onCheckedChange={(checked) => setPreferences({ ...preferences, weeklyReports: checked })}
+                      onCheckedChange={(checked) => handleTogglePreference('weeklyReports', checked)}
+                      disabled={updateSettings.isPending}
                     />
                   </div>
                   <div className="flex items-center justify-between">
@@ -256,7 +301,8 @@ export function Settings() {
                     </div>
                     <Switch
                       checked={preferences.dailyDigest}
-                      onCheckedChange={(checked) => setPreferences({ ...preferences, dailyDigest: checked })}
+                      onCheckedChange={(checked) => handleTogglePreference('dailyDigest', checked)}
+                      disabled={updateSettings.isPending}
                     />
                   </div>
                 </div>
@@ -278,7 +324,8 @@ export function Settings() {
                     </div>
                     <Switch
                       checked={preferences.pushNotifications}
-                      onCheckedChange={(checked) => setPreferences({ ...preferences, pushNotifications: checked })}
+                      onCheckedChange={(checked) => handleTogglePreference('pushNotifications', checked)}
+                      disabled={updateSettings.isPending}
                     />
                   </div>
                   <div className="flex items-center justify-between">
@@ -288,7 +335,8 @@ export function Settings() {
                     </div>
                     <Switch
                       checked={preferences.smsNotifications}
-                      onCheckedChange={(checked) => setPreferences({ ...preferences, smsNotifications: checked })}
+                      onCheckedChange={(checked) => handleTogglePreference('smsNotifications', checked)}
+                      disabled={updateSettings.isPending}
                     />
                   </div>
                 </div>

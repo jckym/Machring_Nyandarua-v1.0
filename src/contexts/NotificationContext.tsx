@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Notification } from '@/types';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNotificationAlerts } from '@/hooks/useNotificationAlerts';
 
 interface NotificationContextType {
   notifications: Notification[];
@@ -22,6 +23,9 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  
+  // Enable real-time notification alerts with sound/toast
+  useNotificationAlerts();
 
   // Fetch notifications from Supabase
   const {

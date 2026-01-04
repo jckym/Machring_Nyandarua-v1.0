@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 
 import { StatCard } from '@/components/dashboard/StatCard';
-import { RecentActivity } from '@/components/dashboard/RecentActivity';
+import { GlobalRecentActivity } from '@/components/dashboard/GlobalRecentActivity';
 import { SalesChart } from '@/components/dashboard/SalesChart';
 import { ProductChart } from '@/components/dashboard/ProductChart';
 import { TopPerformers } from '@/components/dashboard/TopPerformers';
@@ -252,7 +252,7 @@ export function AdminDashboard() {
 
       {/* Bottom Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <RecentActivity />
+        <GlobalRecentActivity />
       </div>
     </div>
   );

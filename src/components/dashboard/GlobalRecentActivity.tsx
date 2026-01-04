@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useGlobalActivity, ActivityItem } from '@/hooks/api/useGlobalActivity';
+import { useGlobalActivityRealtime } from '@/hooks/api/useGlobalActivityRealtime';
 import { 
   ShoppingCart, 
   GraduationCap, 
@@ -34,6 +35,9 @@ interface GlobalRecentActivityProps {
 
 export function GlobalRecentActivity({ limit = 15, className }: GlobalRecentActivityProps) {
   const { data: activities, isLoading } = useGlobalActivity(limit);
+  
+  // Enable real-time updates
+  useGlobalActivityRealtime();
 
   if (isLoading) {
     return (

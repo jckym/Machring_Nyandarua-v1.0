@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,6 +40,7 @@ const VISIT_PURPOSES = [
 ];
 
 export function Visits() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [purposeFilter, setPurposeFilter] = useState<string>('all');
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -245,7 +247,7 @@ export function Visits() {
                         <Badge variant="sage" className="text-xs">{visit.purpose}</Badge>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        <Button variant="outline" size="sm" className="text-xs h-8">
+                        <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => navigate(`/visits/${visit.id}`)}>
                           <Eye className="w-3 h-3 mr-1" />
                           Details
                         </Button>

@@ -24,8 +24,9 @@ import { Sales } from "@/pages/Sales";
 // Mechanisation removed - using Machinery as single source of truth
 import { Machinery } from "@/pages/Machinery";
 import { Visits } from "@/pages/Visits";
+import { VisitDetails } from "@/pages/VisitDetails";
 import { Trainings } from "@/pages/Trainings";
-import { Products } from "@/pages/Products";
+import { TrainingDetails } from "@/pages/TrainingDetails";
 import { Reports } from "@/pages/Reports";
 import { Settings } from "@/pages/Settings";
 import { Support } from "@/pages/Support";
@@ -95,8 +96,9 @@ const App = () => (
                   {/* Mechanisation routes removed - machinery is the single source */}
                   <Route path="/machinery" element={<Machinery />} />
                   <Route path="/visits" element={<Visits />} />
+                  <Route path="/visits/:id" element={<VisitDetails />} />
                   <Route path="/trainings" element={<Trainings />} />
-                  <Route path="/products" element={<Products />} />
+                  <Route path="/trainings/:id" element={<TrainingDetails />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/support" element={<Support />} />
                   <Route path="/commission" element={<Commission />} />

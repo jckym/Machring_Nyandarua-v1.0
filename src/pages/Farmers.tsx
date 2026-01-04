@@ -82,14 +82,6 @@ export function Farmers() {
     return matchesSearch && matchesLocalMr && matchesValueChain && matchesRating;
   });
 
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case 'Pioneer': return 'wheat';
-      case 'Existing': return 'forest';
-      default: return 'sage';
-    }
-  };
-
   const getRatingColor = (rating: string) => {
     switch (rating) {
       case 'High-Value': return 'success';
@@ -238,7 +230,7 @@ export function Farmers() {
       </Card>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         <Card className="p-3 sm:p-4" variant="forest">
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-white/20 flex items-center justify-center">
@@ -260,19 +252,6 @@ export function Farmers() {
                 {filteredFarmers.filter(f => f.farmerRating === 'High-Value').length}
               </p>
               <p className="text-xs sm:text-sm text-muted-foreground">High-Value</p>
-            </div>
-          </div>
-        </Card>
-        <Card className="p-3 sm:p-4">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-secondary/20 flex items-center justify-center">
-              <Users className="w-4 h-4 sm:w-5 sm:h-5 text-secondary" />
-            </div>
-            <div>
-              <p className="text-lg sm:text-2xl font-bold font-heading text-secondary">
-                {filteredFarmers.filter(f => f.farmerCategory === 'Pioneer').length}
-              </p>
-              <p className="text-xs sm:text-sm text-muted-foreground">Pioneers</p>
             </div>
           </div>
         </Card>
@@ -303,7 +282,6 @@ export function Farmers() {
                 <tr className="border-b border-border">
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Farmer</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Location</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Category</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Rating</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Value Chain</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Actions</th>
@@ -337,9 +315,6 @@ export function Farmers() {
                       </div>
                     </td>
                     <td className="py-3 px-4">
-                      <Badge variant={getCategoryColor(farmer.farmerCategory) as any}>{farmer.farmerCategory}</Badge>
-                    </td>
-                    <td className="py-3 px-4">
                       <Badge variant={getRatingColor(farmer.farmerRating) as any} className="flex items-center gap-1 w-fit">
                         <Star className="w-3 h-3" />
                         {farmer.farmerRating}
@@ -351,7 +326,7 @@ export function Farmers() {
                         <Button variant="ghost" size="sm" onClick={() => navigate(`/farmers/${farmer.id}`)}>
                           <Eye className="w-4 h-4 mr-1" /> View
                         </Button>
-                        {isAdmin && (
+                        {canEdit && (
                           <Button variant="outline" size="sm" onClick={() => {
                             setEditingFarmer(farmer as any);
                             setIsFormOpen(true);
@@ -369,8 +344,8 @@ export function Farmers() {
         </CardContent>
       </Card>
 
-      {/* Farmer Form Dialog - Admin only */}
-      {isAdmin && (
+      {/* Farmer Form Dialog - Any user with edit permission */}
+      {canEdit && (
         <FarmerFormDialog
           open={isFormOpen}
           onOpenChange={(open) => {

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +32,7 @@ import { useTrainings, useCreateTraining, useCompleteTraining } from '@/hooks/ap
 const TRAINING_TYPES = ['Field Day', 'Demonstration', 'Workshop'];
 
 export function Trainings() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -266,7 +268,7 @@ export function Trainings() {
                         <Badge variant={getTypeColor(training.type ?? '') as any} className="text-xs">{training.type ?? ''}</Badge>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        <Button variant="outline" size="sm" className="text-xs h-8">
+                        <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => navigate(`/trainings/${training.id}`)}>
                           <Eye className="w-3 h-3 mr-1" />
                           Details
                         </Button>

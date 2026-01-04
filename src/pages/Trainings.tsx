@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Search, Plus, GraduationCap, Calendar, MapPin, Users, Clock, Download, FileSpreadsheet, FileText, CheckCircle, Eye } from 'lucide-react';
+import { Search, Plus, GraduationCap, Calendar, MapPin, Users, Clock, Download, FileSpreadsheet, FileText, CheckCircle, Eye, UserPlus } from 'lucide-react';
 import { exportTrainingsToExcel, exportTrainingsToPDF } from '@/lib/exportUtils';
 import {
   DropdownMenu,
@@ -20,19 +20,22 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { TrainingFormDialog } from '@/components/forms/TrainingFormDialog';
+import { AttendanceModal } from '@/components/trainings/AttendanceModal';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Training } from '@/types';
 import { useTrainings, useCreateTraining, useCompleteTraining } from '@/hooks/api/useTrainings';
 
-// Training types per request
-const TRAINING_TYPES = ['Field Day', 'Demonstration', 'Online Training'];
+// Training types per request - removed Seminars, Online Training
+const TRAINING_TYPES = ['Field Day', 'Demonstration', 'Workshop'];
 
 export function Trainings() {
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
+  const [selectedTraining, setSelectedTraining] = useState<any>(null);
   const { addNotification } = useNotifications();
   const { user, isAdmin, canEdit } = useAuth();
 
@@ -77,6 +80,11 @@ export function Trainings() {
         });
       },
     });
+  };
+
+  const handleOpenAttendance = (training: any) => {
+    setSelectedTraining(training);
+    setIsAttendanceOpen(true);
   };
 
   const formatDate = (date: Date | string) => {
@@ -262,6 +270,17 @@ export function Trainings() {
                           <Eye className="w-3 h-3 mr-1" />
                           Details
                         </Button>
+                        {isAdmin && training.status === 'Completed' && (
+                          <Button 
+                            variant="secondary" 
+                            size="sm" 
+                            className="text-xs h-8"
+                            onClick={() => handleOpenAttendance(training)}
+                          >
+                            <UserPlus className="w-3 h-3 mr-1" />
+                            Add Attendance
+                          </Button>
+                        )}
                         {isAdmin && training.status === 'Upcoming' && (
                           <Button 
                             variant="success" 
@@ -323,6 +342,17 @@ export function Trainings() {
           open={isFormOpen}
           onOpenChange={setIsFormOpen}
           onSubmit={handleAddTraining}
+        />
+      )}
+
+      {/* Attendance Modal - Admin only for completed trainings */}
+      {isAdmin && selectedTraining && (
+        <AttendanceModal
+          open={isAttendanceOpen}
+          onOpenChange={setIsAttendanceOpen}
+          trainingId={selectedTraining.id}
+          trainingTitle={selectedTraining.title}
+          localMrId={selectedTraining.local_mr_id}
         />
       )}
     </div>

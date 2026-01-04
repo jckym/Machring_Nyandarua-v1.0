@@ -10,8 +10,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { exportFarmersToExcel, exportFarmersToPDF } from '@/lib/exportUtils';
 import { FarmerFormDialog } from '@/components/forms/FarmerFormDialog';
+import { BulkUploadDialog } from '@/components/bulk-upload/BulkUploadDialog';
 import { Farmer } from '@/types';
 import { useFarmers, useCreateFarmer, useUpdateFarmer, useLocalMRs } from '@/hooks/api';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Search,
   Plus,
@@ -23,6 +25,7 @@ import {
   FileText,
   Star,
   Eye,
+  Upload,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -49,6 +52,7 @@ export function Farmers() {
   const [valueChainFilter, setValueChainFilter] = useState('all');
   const [ratingFilter, setRatingFilter] = useState('all');
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
   const [editingFarmer, setEditingFarmer] = useState<Farmer | null>(null);
 
   // API hooks
@@ -182,9 +186,14 @@ export function Farmers() {
           )}
           {/* Admin only: Add Farmer button */}
           {isAdmin && (
-            <Button variant="forest" size="sm" onClick={() => setIsFormOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" /> Add Farmer
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
+                <Upload className="w-4 h-4 mr-2" /> Bulk Upload
+              </Button>
+              <Button variant="forest" size="sm" onClick={() => setIsFormOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" /> Add Farmer
+              </Button>
+            </div>
           )}
         </div>
       </div>
@@ -338,9 +347,19 @@ export function Farmers() {
                     </td>
                     <td className="py-3 px-4 text-sm">{farmer.valueChain}</td>
                     <td className="py-3 px-4">
-                      <Button variant="ghost" size="sm" onClick={() => navigate(`/farmers/${farmer.id}`)}>
-                        <Eye className="w-4 h-4 mr-1" /> View
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => navigate(`/farmers/${farmer.id}`)}>
+                          <Eye className="w-4 h-4 mr-1" /> View
+                        </Button>
+                        {isAdmin && (
+                          <Button variant="outline" size="sm" onClick={() => {
+                            setEditingFarmer(farmer as any);
+                            setIsFormOpen(true);
+                          }}>
+                            Edit
+                          </Button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -354,11 +373,37 @@ export function Farmers() {
       {isAdmin && (
         <FarmerFormDialog
           open={isFormOpen}
-          onOpenChange={setIsFormOpen}
+          onOpenChange={(open) => {
+            setIsFormOpen(open);
+            if (!open) setEditingFarmer(null);
+          }}
           onSubmit={handleSubmitFarmer}
           farmer={editingFarmer}
         />
       )}
+
+      {/* Bulk Upload Dialog */}
+      <BulkUploadDialog
+        open={isBulkUploadOpen}
+        onOpenChange={setIsBulkUploadOpen}
+        entityType="farmers"
+        onUpload={async (data) => {
+          const farmersToInsert = data.map(row => ({
+            name: String(row.name),
+            county: 'Nyandarua',
+            sub_county: row.sub_county ? String(row.sub_county) : null,
+            ward: row.ward ? String(row.ward) : null,
+            village: row.village ? String(row.village) : null,
+            phone: row.phone ? String(row.phone) : null,
+            email: row.email ? String(row.email) : null,
+            farming_type: row.farming_type ? String(row.farming_type) : null,
+            farm_size: row.farm_size ? Number(row.farm_size) : null,
+          }));
+          
+          const { error } = await supabase.from('farmers').insert(farmersToInsert);
+          if (error) throw error;
+        }}
+      />
     </div>
   );
 }

@@ -18,8 +18,10 @@ interface TrainingFormDialogProps {
   onSubmit: (training: CreateTrainingDto) => void;
 }
 
-const trainingTypes = ['Workshop', 'Field Day', 'Seminar', 'Demonstration', 'Online Training'];
+// Updated training types per request - removed Seminars, Online Training; kept Field Day, Demonstration, Workshop
+const trainingTypes = ['Field Day', 'Demonstration', 'Workshop'];
 const trainingStatuses = ['upcoming', 'completed'];
+const targetGroups = ['Women', 'Youth', 'Other'];
 
 export function TrainingFormDialog({ open, onOpenChange, training, onSubmit }: TrainingFormDialogProps) {
   const { toast } = useToast();
@@ -38,6 +40,8 @@ export function TrainingFormDialog({ open, onOpenChange, training, onSubmit }: T
     maxAttendees: 50,
     status: 'upcoming',
     description: '',
+    targetGroup: '',
+    targetGroupOther: '',
   });
 
   useEffect(() => {
@@ -53,6 +57,8 @@ export function TrainingFormDialog({ open, onOpenChange, training, onSubmit }: T
         maxAttendees: training.max_attendees || 50,
         status: training.status || 'upcoming',
         description: training.description || '',
+        targetGroup: training.target_group || '',
+        targetGroupOther: training.target_group_other || '',
       });
     } else if (!training && open) {
       setFormData({
@@ -66,6 +72,8 @@ export function TrainingFormDialog({ open, onOpenChange, training, onSubmit }: T
         maxAttendees: 50,
         status: 'upcoming',
         description: '',
+        targetGroup: '',
+        targetGroupOther: '',
       });
     }
   }, [training, open, localMRs]);
@@ -207,6 +215,32 @@ export function TrainingFormDialog({ open, onOpenChange, training, onSubmit }: T
               </SelectContent>
             </Select>
           </div>
+
+          <div className="space-y-2">
+            <Label>Target Group</Label>
+            <Select value={formData.targetGroup} onValueChange={(value) => setFormData({ ...formData, targetGroup: value, targetGroupOther: value !== 'Other' ? '' : formData.targetGroupOther })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select target group" />
+              </SelectTrigger>
+              <SelectContent>
+                {targetGroups.map((group) => (
+                  <SelectItem key={group} value={group}>{group}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {formData.targetGroup === 'Other' && (
+            <div className="space-y-2">
+              <Label>Specify Target Group</Label>
+              <Textarea
+                value={formData.targetGroupOther}
+                onChange={(e) => setFormData({ ...formData, targetGroupOther: e.target.value })}
+                placeholder="Describe the target group..."
+                rows={2}
+              />
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Description/Topics (comma-separated)</Label>

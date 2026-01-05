@@ -63,7 +63,6 @@ export function ManagerDashboard() {
   const allTots = users.filter((u: any) => u.role === 'tot');
   const totalTots = allTots.length;
   const activeTots = allTots.filter((u: any) => u.status === 'active').length;
-  const inactiveTots = allTots.filter((u: any) => u.status === 'inactive').length;
 
   // Derive performance levels based on sales
   const totSalesMap: Record<string, number> = {};
@@ -73,10 +72,6 @@ export function ManagerDashboard() {
   });
 
   const highPerformers = allTots.filter((t: any) => (totSalesMap[t.id] || 0) > 100000).length;
-  const needsAttention = allTots.filter((t: any) => {
-    const revenue = totSalesMap[t.id] || 0;
-    return t.status === 'active' && revenue < 20000 && revenue > 0;
-  }).length;
 
   // Derived stats
   const totalRevenue = sales.reduce((acc: number, s: any) => acc + (Number(s.total_amount) || 0), 0);
@@ -183,7 +178,7 @@ export function ManagerDashboard() {
       </div>
 
       {/* Stats Grid - Organization-wide KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 stagger-children">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 stagger-children">
         <StatCard
           title="Total Farmers"
           value={farmers.length}
@@ -203,19 +198,6 @@ export function ManagerDashboard() {
           subtitle="Above 100K revenue"
           icon={TrendingUp}
           variant="wheat"
-        />
-        <StatCard
-          title="Needs Attention"
-          value={needsAttention}
-          subtitle="Low activity"
-          icon={UserCheck}
-          variant="earth"
-        />
-        <StatCard
-          title="Inactive TOTs"
-          value={inactiveTots}
-          subtitle="No activity"
-          icon={UserCheck}
         />
         <StatCard
           title="Total Revenue"

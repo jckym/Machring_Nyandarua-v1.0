@@ -311,7 +311,7 @@ export function Farmers() {
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-1 text-sm text-muted-foreground">
                         <MapPin className="w-3 h-3" />
-                        {farmer.location.village}, {farmer.location.county}
+                        {farmer.location.village}{farmer.location.ward ? `, ${farmer.location.ward}` : ''}
                       </div>
                     </td>
                     <td className="py-3 px-4">
@@ -326,7 +326,8 @@ export function Farmers() {
                         <Button variant="ghost" size="sm" onClick={() => navigate(`/farmers/${farmer.id}`)}>
                           <Eye className="w-4 h-4 mr-1" /> View
                         </Button>
-                        {canEdit && (
+                        {/* Only Admin can edit farmers */}
+                        {isAdmin && (
                           <Button variant="outline" size="sm" onClick={() => {
                             setEditingFarmer(farmer as any);
                             setIsFormOpen(true);
@@ -344,8 +345,8 @@ export function Farmers() {
         </CardContent>
       </Card>
 
-      {/* Farmer Form Dialog - Any user with edit permission */}
-      {canEdit && (
+      {/* Farmer Form Dialog - Admin only */}
+      {isAdmin && (
         <FarmerFormDialog
           open={isFormOpen}
           onOpenChange={(open) => {

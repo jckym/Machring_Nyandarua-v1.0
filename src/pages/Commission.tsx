@@ -20,6 +20,7 @@ import {
   FileText,
   FileSpreadsheet,
   Calculator,
+  Users,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -45,36 +46,92 @@ interface TOTSummary {
   totalSales: number;
   totalCommission: number;
 }
+interface SaleBreakdown {
+  id: string;
+  date: string;
+  productName: string;
+  quantity: number;
+  total: number;
+  commission: number;
+}
+
 /* ---------------- COMPONENT ---------------- */
 export function Commission() {
   const { user } = useAuth();
   const [viewMode, setViewMode] = useState<ViewMode>('local-mrs');
   const [selectedMrId, setSelectedMrId] = useState<string | null>(null);
   const [selectedMrName, setSelectedMrName] = useState<string | null>(null);
+  
   const { data: localMRs = [] } = useLocalMRs();
   const { data: users = [] } = useUsers();
   const { data: sales = [] } = useSales({ status: 'completed' });
+
+  const isTot = user?.role === 'tot';
+  const isCoordinator = user?.role === 'local_mr_coordinator';
+  const canViewFullReport = user?.role === 'admin' || user?.role === 'manager' || isCoordinator;
+
   /* ---------------- HELPERS ---------------- */
   const formatCurrency = (v: number) =>
     new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(v);
+  
   const approvedSales = useMemo(
     () => sales.filter((s: any) => s.status === 'completed'),
     [sales]
   );
-  /* ---------------- GROUPED SALES ---------------- */
+
+  /* ---------------- TOT VIEW: Personal Commission Breakdown ---------------- */
+  const totPersonalStats = useMemo(() => {
+    if (!isTot || !user?.id) return null;
+
+    const mySales = approvedSales.filter((s: any) => s.totId === user.id);
+    const totalSales = mySales.reduce((acc: number, s: any) => acc + (s.total || 0), 0);
+    const totalCommission = mySales.reduce((acc: number, s: any) => acc + (s.commissionAmount || 0), 0);
+
+    // Get local MR TOTs count (just for display, not their commissions)
+    const myLocalMrId = user.localMrId;
+    const mrTots = users.filter((u: any) => u.role === 'tot' && u.localMrId === myLocalMrId);
+
+    const salesBreakdown: SaleBreakdown[] = mySales.map((s: any) => ({
+      id: s.id,
+      date: s.date,
+      productName: s.productName || 'Unknown Product',
+      quantity: s.quantity,
+      total: s.total || 0,
+      commission: s.commissionAmount || 0,
+    }));
+
+    return {
+      totalSales,
+      totalCommission,
+      salesCount: mySales.length,
+      activeTots: mrTots.filter((t: any) => t.status === 'active').length,
+      salesBreakdown,
+    };
+  }, [isTot, user, approvedSales, users]);
+
+  /* ---------------- GROUPED SALES (for Admin/Manager/Coordinator) ---------------- */
   const salesByMr = useMemo(() => approvedSales.reduce((acc: any, s: any) => {
     if (!acc[s.localMrId]) acc[s.localMrId] = [];
     acc[s.localMrId].push(s);
     return acc;
   }, {}), [approvedSales]);
+
   const salesByTot = useMemo(() => approvedSales.reduce((acc: any, s: any) => {
     if (!acc[s.totId]) acc[s.totId] = [];
     acc[s.totId].push(s);
     return acc;
   }, {}), [approvedSales]);
+
   /* ---------------- LOCAL MR AGGREGATION ---------------- */
   const localMRSummaries: LocalMRSummary[] = useMemo(() => {
-    return localMRs.map((mr: any) => {
+    if (!canViewFullReport) return [];
+    
+    // For coordinator, filter to only their MR
+    const visibleMRs = isCoordinator 
+      ? localMRs.filter((mr: any) => mr.coordinator_id === user?.id)
+      : localMRs;
+
+    return visibleMRs.map((mr: any) => {
       const tots = users.filter(
         (u: any) => u.role === 'tot' && u.localMrId === mr.id
       );
@@ -82,7 +139,7 @@ export function Commission() {
       return {
         id: mr.id,
         name: mr.name,
-        manager: mr.managerName || 'Manager',
+        manager: mr.managerName || 'Coordinator',
         totalTots: tots.length,
         activeTots: tots.filter((t: any) => t.status === 'active').length,
         totalSales: mrSales.reduce(
@@ -95,7 +152,8 @@ export function Commission() {
         ),
       };
     });
-  }, [localMRs, users, salesByMr]);
+  }, [localMRs, users, salesByMr, canViewFullReport, isCoordinator, user?.id]);
+
   /* ---------------- TOT AGGREGATION ---------------- */
   const selectedMRTots: TOTSummary[] = useMemo(() => {
     if (!selectedMrId) return [];
@@ -120,12 +178,14 @@ export function Commission() {
         };
       });
   }, [selectedMrId, users, salesByTot]);
+
   /* ---------------- TOTALS ---------------- */
   const totals = useMemo(() => ({
     sales: localMRSummaries.reduce((a, b) => a + b.totalSales, 0),
     commission: localMRSummaries.reduce((a, b) => a + b.totalCommission, 0),
     activeTots: localMRSummaries.reduce((a, b) => a + b.activeTots, 0),
   }), [localMRSummaries]);
+
   /* ---------------- EXPORTS ---------------- */
   const exportExcel = () => {
     const ws = XLSX.utils.json_to_sheet(localMRSummaries);
@@ -145,7 +205,95 @@ export function Commission() {
     doc.save('commission_report.pdf');
     toast.success('PDF report downloaded');
   };
-  /* ---------------- UI ---------------- */
+
+  /* ---------------- TOT VIEW UI ---------------- */
+  if (isTot && totPersonalStats) {
+    return (
+      <div className="space-y-6">
+        {/* HEADER */}
+        <div className="flex justify-between flex-wrap gap-4">
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Calculator className="w-6 h-6" />
+            My Commission
+          </h1>
+        </div>
+
+        {/* PERSONAL STATS */}
+        <div className="grid sm:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-sm text-muted-foreground">My Sales</p>
+              <p className="text-2xl font-bold">{totPersonalStats.salesCount}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-sm text-muted-foreground">Total Revenue</p>
+              <p className="text-2xl font-bold">{formatCurrency(totPersonalStats.totalSales)}</p>
+            </CardContent>
+          </Card>
+          <Card variant="forest">
+            <CardContent className="p-4">
+              <p className="text-sm opacity-80">My Commission</p>
+              <p className="text-2xl font-bold">
+                {formatCurrency(totPersonalStats.totalCommission)}
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <Users className="w-4 h-4" /> TOTs in MR
+              </p>
+              <p className="text-2xl font-bold">{totPersonalStats.activeTots}</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* PERSONAL SALES BREAKDOWN */}
+        <Card>
+          <CardHeader>
+            <CardTitle>My Sales Breakdown</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Product</TableHead>
+                  <TableHead className="text-center">Quantity</TableHead>
+                  <TableHead className="text-right">Sale Amount</TableHead>
+                  <TableHead className="text-right">Commission</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {totPersonalStats.salesBreakdown.map(sale => (
+                  <TableRow key={sale.id}>
+                    <TableCell>{new Date(sale.date).toLocaleDateString('en-KE')}</TableCell>
+                    <TableCell>{sale.productName}</TableCell>
+                    <TableCell className="text-center">{sale.quantity}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(sale.total)}</TableCell>
+                    <TableCell className="text-right font-bold text-primary">
+                      {formatCurrency(sale.commission)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {totPersonalStats.salesBreakdown.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                      No sales recorded yet
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  /* ---------------- ADMIN/MANAGER/COORDINATOR VIEW UI ---------------- */
   return (
     <div className="space-y-6">
       {/* HEADER */}
@@ -164,20 +312,23 @@ export function Commission() {
           )}
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Calculator className="w-6 h-6" />
-            Commission Overview
+            {isCoordinator ? 'MR Commission Overview' : 'Commission Overview'}
           </h1>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={exportPDF}>
-            <FileText className="w-4 h-4 mr-2" />
-            Export PDF
-          </Button>
-          <Button variant="outline" onClick={exportExcel}>
-            <FileSpreadsheet className="w-4 h-4 mr-2" />
-            Export Excel
-          </Button>
-        </div>
+        {canViewFullReport && (
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={exportPDF}>
+              <FileText className="w-4 h-4 mr-2" />
+              Export PDF
+            </Button>
+            <Button variant="outline" onClick={exportExcel}>
+              <FileSpreadsheet className="w-4 h-4 mr-2" />
+              Export Excel
+            </Button>
+          </div>
+        )}
       </div>
+
       {/* STATS */}
       <div className="grid sm:grid-cols-4 gap-4">
         <Card>
@@ -207,6 +358,7 @@ export function Commission() {
           </CardContent>
         </Card>
       </div>
+
       {/* TABLE */}
       {viewMode === 'local-mrs' && (
         <Card>

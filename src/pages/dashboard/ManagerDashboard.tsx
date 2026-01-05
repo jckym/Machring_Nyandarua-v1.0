@@ -23,7 +23,6 @@ import {
 } from '@/hooks/api/useSupabaseDashboard';
 import { useDashboardRealtime, useFarmersRealtime, useMechanisationRealtime } from '@/hooks/api/useDashboardRealtime';
 
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
 export function ManagerDashboard() {
@@ -42,13 +41,27 @@ export function ManagerDashboard() {
   const { data: users = [], isLoading: usersLoading } = useSupabaseUsers();
 
   // Count TOTs from users
-  const totalTots = users.filter((u: any) => u.role === 'tot').length;
-  const activeTots = users.filter((u: any) => u.role === 'tot' && u.status === 'active').length;
+  const allTots = users.filter((u: any) => u.role === 'tot');
+  const totalTots = allTots.length;
+  const activeTots = allTots.filter((u: any) => u.status === 'active').length;
+  const inactiveTots = allTots.filter((u: any) => u.status === 'inactive').length;
+
+  // Derive performance levels based on sales
+  const totSalesMap: Record<string, number> = {};
+  sales.forEach((s: any) => {
+    if (!totSalesMap[s.tot_id]) totSalesMap[s.tot_id] = 0;
+    totSalesMap[s.tot_id] += Number(s.total_amount) || 0;
+  });
+
+  const highPerformers = allTots.filter((t: any) => (totSalesMap[t.id] || 0) > 100000).length;
+  const needsAttention = allTots.filter((t: any) => {
+    const revenue = totSalesMap[t.id] || 0;
+    return t.status === 'active' && revenue < 20000 && revenue > 0;
+  }).length;
 
   // Derived stats
   const totalRevenue = sales.reduce((acc: number, s: any) => acc + (Number(s.total_amount) || 0), 0);
   const completedJobs = jobs.filter((j: any) => j.status === 'completed').length;
-  const pendingApprovals = jobs.filter((j: any) => j.status === 'pending').length;
 
   const formatCurrency = (value: number) => {
     if (value >= 1000000) return `KES ${(value / 1000000).toFixed(1)}M`;
@@ -94,6 +107,14 @@ export function ManagerDashboard() {
     total: Number(s.total_amount) || 0,
     status: s.payment_status,
     date: s.sale_date,
+    totId: s.tot_id,
+    commissionAmount: Number(s.commission_amount) || 0,
+    // Add required fields for Sale type
+    farmerId: s.farmer_id || '',
+    productId: s.product_id || '',
+    productName: s.products?.name || 'Unknown',
+    quantity: s.quantity || 0,
+    unitPrice: Number(s.unit_price) || 0,
   }));
 
   const jobsForTable = jobs.map((j: any) => ({
@@ -110,17 +131,17 @@ export function ManagerDashboard() {
     status: f.status,
   }));
 
-  const totsForOverview = users
-    .filter((u: any) => u.role === 'tot')
-    .map((u: any) => ({
-      id: u.id,
-      name: u.name,
-      email: u.email,
-      phone: u.phone || '',
-      role: u.role,
-      status: u.status,
-      createdAt: u.created_at || new Date().toISOString(),
-    }));
+  const totsForOverview = allTots.map((u: any) => ({
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    phone: u.phone || '',
+    role: u.role,
+    status: u.status,
+    createdAt: u.created_at || new Date().toISOString(),
+    localMrId: u.localMrId,
+    localMrName: u.localMrName,
+  }));
 
   return (
     <div className="space-y-6">
@@ -139,11 +160,6 @@ export function ManagerDashboard() {
             <Building2 className="w-4 h-4 mr-1" />
             {localMRs.length} Local MRs
           </Badge>
-          {pendingApprovals > 0 && (
-            <Badge variant="warning" className="text-sm py-1 px-3">
-              {pendingApprovals} Pending
-            </Badge>
-          )}
         </div>
       </div>
 
@@ -154,7 +170,6 @@ export function ManagerDashboard() {
           value={farmers.length}
           subtitle="Across all Local MRs"
           icon={Users}
-          trend={{ value: 18, isPositive: true }}
           variant="forest"
         />
         <StatCard
@@ -162,34 +177,33 @@ export function ManagerDashboard() {
           value={totalTots}
           subtitle={`${activeTots} active`}
           icon={UserCheck}
-          trend={{ value: 5, isPositive: true }}
         />
         <StatCard
-          title="Total Sales"
-          value={sales.length}
-          subtitle="Organization-wide"
-          icon={ShoppingCart}
+          title="High Performers"
+          value={highPerformers}
+          subtitle="Above 100K revenue"
+          icon={TrendingUp}
+          variant="wheat"
+        />
+        <StatCard
+          title="Needs Attention"
+          value={needsAttention}
+          subtitle="Low activity"
+          icon={UserCheck}
+          variant="earth"
+        />
+        <StatCard
+          title="Inactive TOTs"
+          value={inactiveTots}
+          subtitle="No activity"
+          icon={UserCheck}
         />
         <StatCard
           title="Total Revenue"
           value={formatCurrency(totalRevenue)}
           subtitle="All Local MRs"
-          icon={TrendingUp}
-          variant="wheat"
-        />
-        <StatCard
-          title="Mechanisation"
-          value={completedJobs}
-          subtitle="Jobs completed"
-          icon={Tractor}
-          trend={{ value: 22, isPositive: true }}
-        />
-        <StatCard
-          title="Trainings"
-          value={trainings.length}
-          subtitle="Sessions held"
-          icon={GraduationCap}
-          variant="earth"
+          icon={ShoppingCart}
+          variant="forest"
         />
       </div>
 
@@ -206,7 +220,7 @@ export function ManagerDashboard() {
         <div className="lg:col-span-2 space-y-6">
           <SalesChart />
           <TOTPerformanceOverview 
-            tots={totsForOverview}
+            tots={totsForOverview as any}
             localMRs={localMRsForTable as any}
             sales={salesForTable as any}
           />

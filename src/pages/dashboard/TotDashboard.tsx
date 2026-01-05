@@ -10,7 +10,6 @@ import {
 } from 'lucide-react';
 
 import { StatCard } from '@/components/dashboard/StatCard';
-import { QuickActions } from '@/components/dashboard/QuickActions';
 import { GlobalRecentActivity } from '@/components/dashboard/GlobalRecentActivity';
 import { SalesChart } from '@/components/dashboard/SalesChart';
 import { ProductChart } from '@/components/dashboard/ProductChart';
@@ -132,9 +131,8 @@ export function TotDashboard() {
           <SalesChart />
         </div>
 
-        {/* Sidebar */}
+        {/* Sidebar - No QuickActions for TOT (Admin only) */}
         <div className="flex flex-col gap-6">
-          <QuickActions />
           <ProductChart />
         </div>
       </div>

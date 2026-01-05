@@ -47,8 +47,8 @@ export function Visits() {
   const { addNotification } = useNotifications();
   const { user, isAdmin } = useAuth();
 
-  // TOTs and Admins can log visits
-  const canLogVisit = isAdmin || user?.role === 'tot';
+  // Only Admin can log visits (removed TOT)
+  const canLogVisit = isAdmin;
 
   // API hooks
   const { data: visits = [], isLoading } = useVisits();

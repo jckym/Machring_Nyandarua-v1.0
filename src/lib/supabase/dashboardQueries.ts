@@ -633,16 +633,40 @@ export async function fetchUsers() {
     // Continue without roles
   }
 
+  // Fetch TOT assignments with Local MR details
+  const { data: assignments, error: assignmentsError } = await supabase
+    .from("tot_assignments")
+    .select("tot_id, local_mr_id, local_mrs(id, name)")
+    .eq("status", "active");
+
+  if (assignmentsError) {
+    console.error("Error fetching TOT assignments:", assignmentsError);
+  }
+
   // Create a map of user_id to role
   const roleMap = new Map<string, string>();
   (roles || []).forEach((r) => {
     roleMap.set(r.user_id, r.role);
   });
 
-  return (profiles || []).map((user) => ({
-    ...user,
-    role: roleMap.get(user.id) || "user",
-  }));
+  // Create a map of tot_id to local MR info
+  const totAssignmentMap = new Map<string, { localMrId: string; localMrName: string }>();
+  (assignments || []).forEach((a: any) => {
+    totAssignmentMap.set(a.tot_id, {
+      localMrId: a.local_mr_id,
+      localMrName: a.local_mrs?.name || "Unknown",
+    });
+  });
+
+  return (profiles || []).map((user) => {
+    const assignment = totAssignmentMap.get(user.id);
+    return {
+      ...user,
+      role: roleMap.get(user.id) || "user",
+      localMrId: assignment?.localMrId || null,
+      localMrName: assignment?.localMrName || null,
+    };
+  });
 }
 
 /**

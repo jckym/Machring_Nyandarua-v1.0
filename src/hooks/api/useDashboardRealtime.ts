@@ -59,6 +59,59 @@ export function useDashboardRealtime() {
           queryClient.invalidateQueries({ queryKey: ["supabase", "activity"] });
         }
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "machinery_bookings",
+        },
+        () => {
+          // Bookings impact performance tables and dashboards
+          queryClient.invalidateQueries({ queryKey: ["supabase", "dashboard"] });
+          queryClient.invalidateQueries({ queryKey: ["supabase", "localMRs"] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "tot_assignments",
+        },
+        () => {
+          // Impacts TOT listings + MR scoping
+          queryClient.invalidateQueries({ queryKey: ["supabase", "users"] });
+          queryClient.invalidateQueries({ queryKey: ["supabase", "localMRs"] });
+          queryClient.invalidateQueries({ queryKey: ["supabase", "dashboard"] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "user_roles",
+        },
+        () => {
+          // Impacts role-based counts (e.g., Total TOTs)
+          queryClient.invalidateQueries({ queryKey: ["supabase", "users"] });
+          queryClient.invalidateQueries({ queryKey: ["supabase", "dashboard"] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "profiles",
+        },
+        () => {
+          // User status/name changes
+          queryClient.invalidateQueries({ queryKey: ["supabase", "users"] });
+          queryClient.invalidateQueries({ queryKey: ["supabase", "dashboard"] });
+        }
+      )
       .subscribe();
 
     return () => {

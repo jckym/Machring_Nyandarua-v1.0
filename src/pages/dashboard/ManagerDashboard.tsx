@@ -1,18 +1,26 @@
 // src/pages/dashboard/ManagerDashboard.tsx
-import { 
-  Users, ShoppingCart, Tractor, Building2, 
-  GraduationCap, TrendingUp, UserCheck, Eye 
-} from 'lucide-react';
+import { useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  Users,
+  ShoppingCart,
+  Tractor,
+  Building2,
+  GraduationCap,
+  TrendingUp,
+  UserCheck,
+  Eye,
+} from "lucide-react";
 
-import { StatCard } from '@/components/dashboard/StatCard';
-import { GlobalRecentActivity } from '@/components/dashboard/GlobalRecentActivity';
-import { SalesChart } from '@/components/dashboard/SalesChart';
-import { ProductChart } from '@/components/dashboard/ProductChart';
-import { TopPerformers } from '@/components/dashboard/TopPerformers';
-import { LocalMRPerformanceTable } from '@/components/dashboard/LocalMRPerformanceTable';
-import { TOTPerformanceOverview } from '@/components/dashboard/TOTPerformanceOverview';
+import { StatCard } from "@/components/dashboard/StatCard";
+import { GlobalRecentActivity } from "@/components/dashboard/GlobalRecentActivity";
+import { SalesChart } from "@/components/dashboard/SalesChart";
+import { ProductChart } from "@/components/dashboard/ProductChart";
+import { TopPerformers } from "@/components/dashboard/TopPerformers";
+import { LocalMRPerformanceTable } from "@/components/dashboard/LocalMRPerformanceTable";
+import { TOTPerformanceOverview } from "@/components/dashboard/TOTPerformanceOverview";
 
-import { 
+import {
   useSupabaseAdminStats,
   useSupabaseLocalMRs,
   useSupabaseFarmers,
@@ -20,16 +28,27 @@ import {
   useSupabaseMechanisation,
   useSupabaseTrainings,
   useSupabaseUsers,
-} from '@/hooks/api/useSupabaseDashboard';
-import { useDashboardRealtime, useFarmersRealtime, useMechanisationRealtime } from '@/hooks/api/useDashboardRealtime';
+} from "@/hooks/api/useSupabaseDashboard";
+import {
+  useDashboardRealtime,
+  useFarmersRealtime,
+  useMechanisationRealtime,
+} from "@/hooks/api/useDashboardRealtime";
 
-import { Badge } from '@/components/ui/badge';
+import { Badge } from "@/components/ui/badge";
 
 export function ManagerDashboard() {
+  const queryClient = useQueryClient();
+
   // Enable realtime updates
   useDashboardRealtime();
   useFarmersRealtime();
   useMechanisationRealtime();
+
+  // Force-refresh user/role data once on mount (prevents stale cached role filters)
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ["supabase", "users"] });
+  }, [queryClient]);
 
   // Fetch organization-wide data using Supabase hooks
   const { data: stats, isLoading: statsLoading } = useSupabaseAdminStats();

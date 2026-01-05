@@ -152,7 +152,6 @@ export function LocalMRPerformanceTable({
                   <TableHead className="text-center">Farmers</TableHead>
                   <TableHead className="text-right">Sales</TableHead>
                   <TableHead className="text-center">Mech. Jobs</TableHead>
-                  <TableHead>Status</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
@@ -169,7 +168,6 @@ export function LocalMRPerformanceTable({
                     <TableCell className="text-center">
                       {mr.completedJobs}/{mr.mechanisationDemand}
                     </TableCell>
-                    <TableCell>{getStatusBadge(mr.performanceStatus)}</TableCell>
                     <TableCell>
                       <Button 
                         variant="ghost" 

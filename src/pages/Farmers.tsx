@@ -203,17 +203,20 @@ export function Farmers() {
                 className="pl-10"
               />
             </div>
-            <Select value={localMrFilter} onValueChange={setLocalMrFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="Local MR" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Local MRs</SelectItem>
-                {localMRs.map(mr => (
-                  <SelectItem key={mr.id} value={mr.id}>{mr.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Hide Local MR filter for TOTs - they only see their MR farmers via RLS */}
+            {user?.role !== 'tot' && (
+              <Select value={localMrFilter} onValueChange={setLocalMrFilter}>
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Local MR" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Local MRs</SelectItem>
+                  {localMRs.map(mr => (
+                    <SelectItem key={mr.id} value={mr.id}>{mr.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <Select value={ratingFilter} onValueChange={setRatingFilter}>
               <SelectTrigger className="w-full sm:w-[150px]">
                 <SelectValue placeholder="Rating" />

@@ -83,20 +83,31 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // Set default local MR when data loads
+  // Set default local MR when data loads - use ref to track if default has been set
+  const defaultLocalMrSet = React.useRef(false);
+  
   useEffect(() => {
-    if (open && localMRs.length > 0 && !formData.localMrId) {
+    if (open && localMRs.length > 0 && !defaultLocalMrSet.current) {
+      defaultLocalMrSet.current = true;
       setFormData(prev => ({ ...prev, localMrId: localMRs[0]?.id || '' }));
     }
-  }, [open, localMRs.length, formData.localMrId]);
+    if (!open) {
+      defaultLocalMrSet.current = false;
+    }
+  }, [open, localMRs.length]);
 
   const selectedFarmer = farmers.find((f) => f.id === formData.farmerId);
-  const selectedFarmerLocalMrId = selectedFarmer?.localMrId;
+  const selectedFarmerLocalMrId = selectedFarmer?.local_mr_id;
 
-  // Auto-select local MR from farmer
+  // Auto-select local MR from farmer - use stable primitive dependency
   useEffect(() => {
     if (selectedFarmerLocalMrId) {
-      setFormData(prev => ({ ...prev, localMrId: selectedFarmerLocalMrId }));
+      setFormData(prev => {
+        if (prev.localMrId !== selectedFarmerLocalMrId) {
+          return { ...prev, localMrId: selectedFarmerLocalMrId };
+        }
+        return prev;
+      });
     }
   }, [selectedFarmerLocalMrId]);
 

@@ -9,9 +9,7 @@ import { GlobalRecentActivity } from '@/components/dashboard/GlobalRecentActivit
 import { SalesChart } from '@/components/dashboard/SalesChart';
 import { ProductChart } from '@/components/dashboard/ProductChart';
 import { TopPerformers } from '@/components/dashboard/TopPerformers';
-import { QuickActions } from '@/components/dashboard/QuickActions';
-
-import { 
+import {
   useSupabaseAdminStats, 
   useSupabaseLocalMRs,
   AdminStats 
@@ -252,10 +250,7 @@ export function AdminDashboard() {
       </div>
 
       {/* Bottom Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <QuickActions />
-        <GlobalRecentActivity />
-      </div>
+      <GlobalRecentActivity />
     </div>
   );
 }

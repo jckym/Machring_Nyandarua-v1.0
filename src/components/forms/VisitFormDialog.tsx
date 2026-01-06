@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
+
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { useFarmers } from '@/hooks/api/useFarmers';
@@ -255,14 +255,15 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
                       {visitPurposes.map((purpose) => (
                         <div
                           key={purpose}
-                          className="flex items-center space-x-2 p-2 rounded-md hover:bg-muted cursor-pointer"
+                          className={cn(
+                            "p-2 rounded-md cursor-pointer text-sm transition-colors",
+                            formData.purposes.includes(purpose)
+                              ? "bg-primary text-primary-foreground"
+                              : "hover:bg-muted"
+                          )}
                           onClick={() => handlePurposeToggle(purpose)}
                         >
-                          <Checkbox
-                            checked={formData.purposes.includes(purpose)}
-                            onCheckedChange={() => handlePurposeToggle(purpose)}
-                          />
-                          <span className="text-sm">{purpose}</span>
+                          {purpose}
                         </div>
                       ))}
                     </div>

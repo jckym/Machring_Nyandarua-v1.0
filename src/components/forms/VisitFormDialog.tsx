@@ -6,12 +6,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { useFarmers } from '@/hooks/api/useFarmers';
 import { useLocalMRs } from '@/hooks/api/useLocalMRs';
-import { MapPin, Loader2, AlertCircle } from 'lucide-react';
+import { MapPin, Loader2, AlertCircle, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { CreateVisitDto } from '@/hooks/api/useVisits';
+import { cn } from '@/lib/utils';
 
 interface VisitFormDialogProps {
   open: boolean;
@@ -230,21 +232,42 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
 
               <div className="space-y-2">
                 <Label>Purpose * (select one or more)</Label>
-                <div className="grid grid-cols-2 gap-2 p-3 border rounded-lg bg-muted/30">
-                  {visitPurposes.map((purpose) => (
-                    <div 
-                      key={purpose}
-                      className="flex items-center space-x-2 cursor-pointer"
-                      onClick={() => handlePurposeToggle(purpose)}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className={cn(
+                        "w-full justify-between font-normal",
+                        formData.purposes.length === 0 && "text-muted-foreground"
+                      )}
                     >
-                      <Checkbox
-                        checked={formData.purposes.includes(purpose)}
-                        onCheckedChange={() => handlePurposeToggle(purpose)}
-                      />
-                      <span className="text-sm">{purpose}</span>
+                      {formData.purposes.length > 0
+                        ? formData.purposes.length === 1
+                          ? formData.purposes[0]
+                          : `${formData.purposes.length} purposes selected`
+                        : "Select purposes"}
+                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0 bg-popover z-50" align="start">
+                    <div className="p-2 space-y-1 max-h-[200px] overflow-y-auto">
+                      {visitPurposes.map((purpose) => (
+                        <div
+                          key={purpose}
+                          className="flex items-center space-x-2 p-2 rounded-md hover:bg-muted cursor-pointer"
+                          onClick={() => handlePurposeToggle(purpose)}
+                        >
+                          <Checkbox
+                            checked={formData.purposes.includes(purpose)}
+                            onCheckedChange={() => handlePurposeToggle(purpose)}
+                          />
+                          <span className="text-sm">{purpose}</span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </PopoverContent>
+                </Popover>
                 {formData.purposes.length > 0 && (
                   <p className="text-xs text-muted-foreground">
                     Selected: {formData.purposes.join(', ')}

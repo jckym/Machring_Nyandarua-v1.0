@@ -67,28 +67,38 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
     );
   };
 
+  // Reset form when dialog opens - only depend on open state
   useEffect(() => {
     if (open) {
       captureLocation();
       setFormData({
         farmerId: '',
-        localMrId: localMRs[0]?.id || '',
+        localMrId: '',
         purposes: [],
         notes: '',
       });
       setGpsLocation(null);
       setGpsError(null);
     }
-  }, [open, localMRs]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // Set default local MR when data loads
+  useEffect(() => {
+    if (open && localMRs.length > 0 && !formData.localMrId) {
+      setFormData(prev => ({ ...prev, localMrId: localMRs[0]?.id || '' }));
+    }
+  }, [open, localMRs.length, formData.localMrId]);
 
   const selectedFarmer = farmers.find((f) => f.id === formData.farmerId);
+  const selectedFarmerLocalMrId = selectedFarmer?.localMrId;
 
   // Auto-select local MR from farmer
   useEffect(() => {
-    if (selectedFarmer?.localMrId) {
-      setFormData(prev => ({ ...prev, localMrId: selectedFarmer.localMrId || prev.localMrId }));
+    if (selectedFarmerLocalMrId) {
+      setFormData(prev => ({ ...prev, localMrId: selectedFarmerLocalMrId }));
     }
-  }, [selectedFarmer]);
+  }, [selectedFarmerLocalMrId]);
 
   const handlePurposeToggle = (purpose: string) => {
     setFormData(prev => ({

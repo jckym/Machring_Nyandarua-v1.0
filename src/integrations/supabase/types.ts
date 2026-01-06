@@ -848,6 +848,7 @@ export type Database = {
           scheduled_time: string | null
           status: string
           title: string
+          trainer: string | null
           trainer_id: string
           training_type: string
           updated_at: string
@@ -865,6 +866,7 @@ export type Database = {
           scheduled_time?: string | null
           status?: string
           title: string
+          trainer?: string | null
           trainer_id: string
           training_type: string
           updated_at?: string
@@ -882,6 +884,7 @@ export type Database = {
           scheduled_time?: string | null
           status?: string
           title?: string
+          trainer?: string | null
           trainer_id?: string
           training_type?: string
           updated_at?: string

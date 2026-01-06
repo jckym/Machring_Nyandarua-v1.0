@@ -116,7 +116,9 @@ export function useTrainings(filters: TrainingFilters = {}) {
         ...t,
         local_mr_name: t.local_mr_id ? (localMrsMap[t.local_mr_id] || '') : '',
         attendees_count: attendeeCounts[t.id] || 0,
-        trainerName: trainersMap[t.trainer_id] || 'Trainer',
+        // Use trainer text field if available, fallback to trainer_id lookup
+        trainer: t.trainer || null,
+        trainerName: t.trainer || trainersMap[t.trainer_id] || 'Trainer',
         type: t.training_type,
         location: t.venue || '',
         date: t.scheduled_date,
@@ -172,7 +174,9 @@ export function useTraining(id: string) {
       return {
         ...data,
         local_mr_name: localMrName,
-        trainerName,
+        // Use trainer text field if available, fallback to trainer_id lookup
+        trainer: data.trainer || null,
+        trainerName: data.trainer || trainerName,
         type: data.training_type,
         location: data.venue || '',
         date: data.scheduled_date,
@@ -190,12 +194,14 @@ export interface CreateTrainingDto {
   description?: string;
   training_type: string;
   trainer_id: string;
+  trainer?: string; // Text field for trainer name
   local_mr_id?: string;
   scheduled_date: string;
   scheduled_time?: string;
   duration_hours?: number;
   venue?: string;
   max_attendees?: number;
+  status?: string;
 }
 
 export function useCreateTraining() {

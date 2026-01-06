@@ -3,20 +3,58 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, GraduationCap, Calendar, MapPin, Clock, Users, User, Building2, CheckCircle, UserPlus } from 'lucide-react';
-import { useTraining, useCompleteTraining } from '@/hooks/api/useTrainings';
+import { ArrowLeft, GraduationCap, Calendar, MapPin, Clock, Users, User, Building2, UserPlus, Phone, Home } from 'lucide-react';
+import { useTraining } from '@/hooks/api/useTrainings';
 import { useAuth } from '@/contexts/AuthContext';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AttendanceModal } from '@/components/trainings/AttendanceModal';
-import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+
+interface AttendeeDetail {
+  id: string;
+  name: string;
+  phone: string | null;
+  village: string | null;
+  ward: string | null;
+}
 
 export function TrainingDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
   const { data: training, isLoading, error } = useTraining(id || '');
-  const completeTraining = useCompleteTraining();
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
+  const [attendeeDetails, setAttendeeDetails] = useState<AttendeeDetail[]>([]);
+  const [loadingAttendees, setLoadingAttendees] = useState(false);
+
+  // Fetch attendee details when training is loaded
+  useEffect(() => {
+    async function fetchAttendeeDetails() {
+      if (!training?.attendees || training.attendees.length === 0) {
+        setAttendeeDetails([]);
+        return;
+      }
+
+      setLoadingAttendees(true);
+      try {
+        const farmerIds = training.attendees.map((a: any) => a.farmer_id);
+        const { data: farmers, error } = await supabase
+          .from('farmers')
+          .select('id, name, phone, village, ward')
+          .in('id', farmerIds);
+
+        if (error) throw error;
+        setAttendeeDetails(farmers || []);
+      } catch (err) {
+        console.error('Error fetching attendee details:', err);
+        setAttendeeDetails([]);
+      } finally {
+        setLoadingAttendees(false);
+      }
+    }
+
+    fetchAttendeeDetails();
+  }, [training?.attendees]);
 
   const formatDate = (date: Date | string) => {
     return new Intl.DateTimeFormat('en-KE', {
@@ -24,15 +62,6 @@ export function TrainingDetails() {
       month: 'long',
       year: 'numeric',
     }).format(new Date(date));
-  };
-
-  const handleMarkComplete = () => {
-    if (!id) return;
-    completeTraining.mutate(id, {
-      onSuccess: () => {
-        toast.success('Training marked as completed');
-      },
-    });
   };
 
   if (isLoading) {
@@ -61,6 +90,7 @@ export function TrainingDetails() {
     switch (type?.toLowerCase()) {
       case 'field day': return 'wheat';
       case 'demonstration': return 'forest';
+      case 'workshop': return 'info';
       default: return 'sage';
     }
   };
@@ -78,21 +108,10 @@ export function TrainingDetails() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {isAdmin && training.status === 'Completed' && (
+          {isAdmin && (
             <Button variant="secondary" size="sm" onClick={() => setIsAttendanceOpen(true)}>
               <UserPlus className="w-4 h-4 mr-2" />
               Add Attendance
-            </Button>
-          )}
-          {isAdmin && training.status === 'Upcoming' && (
-            <Button 
-              variant="success" 
-              size="sm" 
-              onClick={handleMarkComplete}
-              disabled={completeTraining.isPending}
-            >
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Mark Complete
             </Button>
           )}
         </div>
@@ -107,9 +126,7 @@ export function TrainingDetails() {
             </CardTitle>
             <div className="flex items-center gap-2">
               <Badge variant={getTypeColor(training.type || '') as any}>{training.type}</Badge>
-              <Badge variant={training.status === 'Completed' ? 'success' : 'sage'}>
-                {training.status}
-              </Badge>
+              <Badge variant="success">Completed</Badge>
             </div>
           </div>
         </CardHeader>
@@ -122,7 +139,7 @@ export function TrainingDetails() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Trainer</p>
-                  <p className="font-medium">{training.trainerName || 'Unknown'}</p>
+                  <p className="font-medium">{training.trainer || training.trainerName || 'Unknown'}</p>
                 </div>
               </div>
 
@@ -141,7 +158,7 @@ export function TrainingDetails() {
                   <Calendar className="w-5 h-5 text-accent-foreground" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Scheduled Date</p>
+                  <p className="text-sm text-muted-foreground">Date</p>
                   <p className="font-medium">{formatDate(training.date)}</p>
                 </div>
               </div>
@@ -190,6 +207,69 @@ export function TrainingDetails() {
               </div>
             </div>
           )}
+
+          {/* Attendance List */}
+          <div className="border-t pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-heading font-semibold text-base flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                Attendance List
+              </h3>
+              <Badge variant="secondary">{attendeeDetails.length} farmers</Badge>
+            </div>
+            
+            {loadingAttendees ? (
+              <div className="space-y-2">
+                {[1, 2, 3].map(i => <Skeleton key={i} className="h-12" />)}
+              </div>
+            ) : attendeeDetails.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                <p>No attendance recorded yet</p>
+                {isAdmin && (
+                  <Button variant="outline" size="sm" className="mt-3" onClick={() => setIsAttendanceOpen(true)}>
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Add Attendance
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                {attendeeDetails.map((farmer, index) => (
+                  <div 
+                    key={farmer.id} 
+                    className="flex items-center gap-4 p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium text-sm">
+                      {index + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm">{farmer.name}</p>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        {farmer.phone && (
+                          <span className="flex items-center gap-1">
+                            <Phone className="w-3 h-3" />
+                            {farmer.phone}
+                          </span>
+                        )}
+                        {farmer.village && (
+                          <span className="flex items-center gap-1">
+                            <Home className="w-3 h-3" />
+                            {farmer.village}
+                          </span>
+                        )}
+                        {farmer.ward && (
+                          <span className="text-muted-foreground/70">
+                            • {farmer.ward}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 

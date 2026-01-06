@@ -18,9 +18,8 @@ interface TrainingFormDialogProps {
   onSubmit: (training: CreateTrainingDto) => void;
 }
 
-// Updated training types per request - removed Seminars, Online Training; kept Field Day, Demonstration, Workshop
+// Training types per request - removed Seminars, Online Training
 const trainingTypes = ['Field Day', 'Demonstration', 'Workshop'];
-const trainingStatuses = ['upcoming', 'completed'];
 const targetGroups = ['Women', 'Youth', 'Other'];
 
 export function TrainingFormDialog({ open, onOpenChange, training, onSubmit }: TrainingFormDialogProps) {
@@ -37,8 +36,7 @@ export function TrainingFormDialog({ open, onOpenChange, training, onSubmit }: T
     localMrId: '',
     location: '',
     duration: 2,
-    maxAttendees: 50,
-    status: 'upcoming',
+    trainer: '', // Text field for trainer name
     description: '',
     targetGroup: '',
     targetGroupOther: '',
@@ -54,8 +52,7 @@ export function TrainingFormDialog({ open, onOpenChange, training, onSubmit }: T
         localMrId: training.local_mr_id || '',
         location: training.venue || training.location || '',
         duration: training.duration_hours || training.duration || 2,
-        maxAttendees: training.max_attendees || 50,
-        status: training.status || 'upcoming',
+        trainer: training.trainer || '',
         description: training.description || '',
         targetGroup: training.target_group || '',
         targetGroupOther: training.target_group_other || '',
@@ -69,8 +66,7 @@ export function TrainingFormDialog({ open, onOpenChange, training, onSubmit }: T
         localMrId: localMRs[0]?.id || '',
         location: '',
         duration: 2,
-        maxAttendees: 50,
-        status: 'upcoming',
+        trainer: '',
         description: '',
         targetGroup: '',
         targetGroupOther: '',
@@ -80,27 +76,28 @@ export function TrainingFormDialog({ open, onOpenChange, training, onSubmit }: T
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title || !formData.type || !formData.date || !formData.location) {
-      toast({ title: 'Validation Error', description: 'Please fill required fields', variant: 'destructive' });
+    if (!formData.title || !formData.type || !formData.date || !formData.location || !formData.trainer) {
+      toast({ title: 'Validation Error', description: 'Please fill required fields (Title, Type, Date, Location, Trainer)', variant: 'destructive' });
       return;
     }
 
-    // Create training DTO for Supabase
+    // Create training DTO for Supabase - all trainings are completed by default
     const trainingData: CreateTrainingDto = {
       title: formData.title,
       description: formData.description || undefined,
       training_type: formData.type,
       trainer_id: user?.id || '',
+      trainer: formData.trainer, // Store trainer name
       local_mr_id: formData.localMrId || undefined,
       scheduled_date: formData.date,
       scheduled_time: formData.time || undefined,
       duration_hours: formData.duration,
       venue: formData.location,
-      max_attendees: formData.maxAttendees,
+      status: 'completed', // All trainings are historical/completed
     };
 
     onSubmit(trainingData);
-    toast({ title: isEditing ? 'Training Updated' : 'Training Scheduled' });
+    toast({ title: isEditing ? 'Training Updated' : 'Training Recorded' });
     onOpenChange(false);
   };
 
@@ -108,7 +105,7 @@ export function TrainingFormDialog({ open, onOpenChange, training, onSubmit }: T
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg flex flex-col max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'Edit Training' : 'Schedule New Training'}</DialogTitle>
+          <DialogTitle>{isEditing ? 'Edit Training' : 'Add Training'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto space-y-5 px-1">
           <div className="space-y-2">
@@ -136,6 +133,16 @@ export function TrainingFormDialog({ open, onOpenChange, training, onSubmit }: T
           </div>
 
           <div className="space-y-2">
+            <Label>Trainer *</Label>
+            <Input
+              value={formData.trainer}
+              onChange={(e) => setFormData({ ...formData, trainer: e.target.value })}
+              placeholder="Name of trainer/facilitator"
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
             <Label>Local MR</Label>
             <Select value={formData.localMrId} onValueChange={(value) => setFormData({ ...formData, localMrId: value })}>
               <SelectTrigger>
@@ -156,7 +163,6 @@ export function TrainingFormDialog({ open, onOpenChange, training, onSubmit }: T
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                min={new Date().toISOString().split('T')[0]}
                 required
               />
             </div>
@@ -170,26 +176,15 @@ export function TrainingFormDialog({ open, onOpenChange, training, onSubmit }: T
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Duration (hrs) *</Label>
-              <Input
-                type="number"
-                min="1"
-                max="12"
-                value={formData.duration}
-                onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) || 1 })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Max Attendees</Label>
-              <Input
-                type="number"
-                min="1"
-                value={formData.maxAttendees}
-                onChange={(e) => setFormData({ ...formData, maxAttendees: parseInt(e.target.value) || 50 })}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label>Duration (hrs) *</Label>
+            <Input
+              type="number"
+              min="1"
+              max="12"
+              value={formData.duration}
+              onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) || 1 })}
+            />
           </div>
 
           <div className="space-y-2">
@@ -200,20 +195,6 @@ export function TrainingFormDialog({ open, onOpenChange, training, onSubmit }: T
               placeholder="Training venue"
               required
             />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Status</Label>
-            <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {trainingStatuses.map((s) => (
-                  <SelectItem key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           <div className="space-y-2">
@@ -247,7 +228,7 @@ export function TrainingFormDialog({ open, onOpenChange, training, onSubmit }: T
             <Textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Topics to be covered..."
+              placeholder="Topics covered..."
               rows={3}
             />
           </div>
@@ -257,7 +238,7 @@ export function TrainingFormDialog({ open, onOpenChange, training, onSubmit }: T
               Cancel
             </Button>
             <Button type="submit" variant="forest" className="flex-1">
-              {isEditing ? 'Update' : 'Schedule'}
+              {isEditing ? 'Update' : 'Record Training'}
             </Button>
           </div>
         </form>

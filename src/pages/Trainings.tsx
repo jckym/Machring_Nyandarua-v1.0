@@ -26,7 +26,7 @@ import { useNotifications } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Training } from '@/types';
-import { useTrainings, useCreateTraining, useCompleteTraining } from '@/hooks/api/useTrainings';
+import { useTrainings, useCreateTraining } from '@/hooks/api/useTrainings';
 
 // Training types per request - removed Seminars, Online Training
 const TRAINING_TYPES = ['Field Day', 'Demonstration', 'Workshop'];
@@ -44,43 +44,31 @@ export function Trainings() {
   // API hooks
   const { data: trainings = [], isLoading } = useTrainings();
   const createTraining = useCreateTraining();
-  const completeTraining = useCompleteTraining();
 
   const filteredTrainings = trainings.filter(training => {
     const trainingType = training.type ?? '';
     const matchesSearch = training.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      trainingType.toLowerCase().includes(searchQuery.toLowerCase());
+      trainingType.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (training.trainer || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = typeFilter === 'all' || trainingType.toLowerCase() === typeFilter.toLowerCase();
     return matchesSearch && matchesType;
   });
 
-  // Updated stats per request - removed Attendees and Hours, added Completed Trainings
-  const completedCount = trainings.filter(t => t.status === 'Completed').length;
-  const upcomingCount = trainings.filter(t => t.status === 'Upcoming').length;
+  // Stats - Total Trainings, Completed Trainings, Total Attendees
+  const totalTrainings = trainings.length;
+  const completedCount = trainings.filter(t => t.status === 'Completed' || t.status === 'completed').length;
+  const totalAttendees = trainings.reduce((acc, t) => acc + (t.attendees_count || t.attendees?.length || 0), 0);
 
   const handleAddTraining = (data: any) => {
     if (!canEdit) {
-      toast.error('You do not have permission to schedule trainings');
+      toast.error('You do not have permission to add trainings');
       return;
     }
     createTraining.mutate(data);
     addNotification({
-      title: 'New Training Scheduled',
-      message: `Training scheduled successfully`,
+      title: 'Training Recorded',
+      message: `Training recorded successfully`,
       type: 'training',
-    });
-  };
-
-  const handleMarkComplete = (trainingId: string) => {
-    completeTraining.mutate(trainingId, {
-      onSuccess: () => {
-        toast.success('Training marked as completed');
-        addNotification({
-          title: 'Training Completed',
-          message: 'Training has been marked as completed. You can now add attendance.',
-          type: 'training',
-        });
-      },
     });
   };
 
@@ -101,7 +89,7 @@ export function Trainings() {
     switch (type.toLowerCase()) {
       case 'field day': return 'wheat';
       case 'demonstration': return 'forest';
-      case 'online training': return 'info';
+      case 'workshop': return 'info';
       default: return 'sage';
     }
   };
@@ -116,8 +104,8 @@ export function Trainings() {
           <Skeleton className="h-8 w-48" />
           <Skeleton className="h-10 w-32" />
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24" />)}
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-24" />)}
         </div>
         <div className="space-y-4">
           {[1, 2, 3].map(i => <Skeleton key={i} className="h-40" />)}
@@ -157,26 +145,26 @@ export function Trainings() {
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-          {/* Admin only: Schedule Training button */}
+          {/* Admin only: Add Training button */}
           {isAdmin && (
             <Button variant="forest" size="sm" onClick={() => setIsFormOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
-              Schedule Training
+              Add Training
             </Button>
           )}
         </div>
       </div>
 
-      {/* Stats Cards - Updated per request */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      {/* Stats Cards - Updated: Total Trainings, Completed, Total Attendees */}
+      <div className="grid grid-cols-3 gap-3 sm:gap-4">
         <Card className="p-3 sm:p-4" variant="forest">
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-primary-foreground/20 flex items-center justify-center">
               <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
-              <p className="text-lg sm:text-2xl font-bold font-heading">{trainings.length}</p>
-              <p className="text-xs sm:text-sm opacity-80">Total Sessions</p>
+              <p className="text-lg sm:text-2xl font-bold font-heading">{totalTrainings}</p>
+              <p className="text-xs sm:text-sm opacity-80">Total Trainings</p>
             </div>
           </div>
         </Card>
@@ -193,24 +181,11 @@ export function Trainings() {
         </Card>
         <Card className="p-3 sm:p-4">
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-accent/20 flex items-center justify-center">
-              <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-accent-foreground" />
-            </div>
-            <div>
-              <p className="text-lg sm:text-2xl font-bold font-heading text-accent-foreground">{upcomingCount}</p>
-              <p className="text-xs sm:text-sm text-muted-foreground">Upcoming</p>
-            </div>
-          </div>
-        </Card>
-        <Card className="p-3 sm:p-4">
-          <div className="flex items-center gap-2 sm:gap-3">
             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-secondary/20 flex items-center justify-center">
               <Users className="w-4 h-4 sm:w-5 sm:h-5 text-secondary" />
             </div>
             <div>
-              <p className="text-lg sm:text-2xl font-bold font-heading text-secondary">
-                {trainings.reduce((acc, t) => acc + t.attendees.length, 0)}
-              </p>
+              <p className="text-lg sm:text-2xl font-bold font-heading text-secondary">{totalAttendees}</p>
               <p className="text-xs sm:text-sm text-muted-foreground">Total Attendees</p>
             </div>
           </div>
@@ -272,7 +247,7 @@ export function Trainings() {
                           <Eye className="w-3 h-3 mr-1" />
                           Details
                         </Button>
-                        {isAdmin && training.status === 'Completed' && (
+                        {isAdmin && (
                           <Button 
                             variant="secondary" 
                             size="sm" 
@@ -283,22 +258,10 @@ export function Trainings() {
                             Add Attendance
                           </Button>
                         )}
-                        {isAdmin && training.status === 'Upcoming' && (
-                          <Button 
-                            variant="success" 
-                            size="sm" 
-                            className="text-xs h-8"
-                            onClick={() => handleMarkComplete(training.id)}
-                            disabled={completeTraining.isPending}
-                          >
-                            <CheckCircle className="w-3 h-3 mr-1" />
-                            Mark Complete
-                          </Button>
-                        )}
                       </div>
                     </div>
                     <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                      Facilitated by {training.trainerName}
+                      Facilitated by {training.trainer || training.trainerName || 'Unknown'}
                     </p>
                   </div>
                 </div>
@@ -319,19 +282,21 @@ export function Trainings() {
                   </span>
                   <span className="flex items-center gap-1">
                     <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    {training.attendees.length} attendees
+                    {training.attendees_count || training.attendees?.length || 0} attendees
                   </span>
                 </div>
                 
                 {/* Topics */}
-                <div className="pt-3 sm:pt-4 border-t border-border">
-                  <p className="text-xs sm:text-sm text-muted-foreground mb-2">Topics covered:</p>
-                  <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                    {training.topics.map((topic, i) => (
-                      <Badge key={i} variant="outline" className="text-xs">{topic}</Badge>
-                    ))}
+                {training.topics && training.topics.length > 0 && (
+                  <div className="pt-3 sm:pt-4 border-t border-border">
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-2">Topics covered:</p>
+                    <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                      {training.topics.map((topic: string, i: number) => (
+                        <Badge key={i} variant="outline" className="text-xs">{topic}</Badge>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -347,7 +312,7 @@ export function Trainings() {
         />
       )}
 
-      {/* Attendance Modal - Admin only for completed trainings */}
+      {/* Attendance Modal - Admin only */}
       {isAdmin && selectedTraining && (
         <AttendanceModal
           open={isAttendanceOpen}

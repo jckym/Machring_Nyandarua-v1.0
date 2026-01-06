@@ -10,6 +10,8 @@ import {
   TrendingUp,
   UserCheck,
   Eye,
+  Package,
+  MapPin,
 } from "lucide-react";
 
 import { StatCard } from "@/components/dashboard/StatCard";
@@ -28,26 +30,35 @@ import {
   useSupabaseMechanisation,
   useSupabaseTrainings,
   useSupabaseUsers,
+  useSupabaseVisits,
 } from "@/hooks/api/useSupabaseDashboard";
+import { useProducts } from "@/hooks/api/useProducts";
 import {
   useDashboardRealtime,
   useFarmersRealtime,
   useMechanisationRealtime,
 } from "@/hooks/api/useDashboardRealtime";
+import { useProductsRealtime } from "@/hooks/api/useProductsRealtime";
+import { useNotificationAlerts } from "@/hooks/useNotificationAlerts";
 
 import { Badge } from "@/components/ui/badge";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 export function ManagerDashboard() {
   const queryClient = useQueryClient();
 
-  // Enable realtime updates
+  // Enable realtime updates for all data sources
   useDashboardRealtime();
   useFarmersRealtime();
   useMechanisationRealtime();
+  useProductsRealtime();
+  useNotificationAlerts();
 
   // Force-refresh user/role data once on mount (prevents stale cached role filters)
   useEffect(() => {
     queryClient.invalidateQueries({ queryKey: ["supabase", "users"] });
+    queryClient.invalidateQueries({ queryKey: ["supabase", "products"] });
+    queryClient.invalidateQueries({ queryKey: ["supabase", "visits"] });
   }, [queryClient]);
 
   // Fetch organization-wide data using Supabase hooks
@@ -58,6 +69,8 @@ export function ManagerDashboard() {
   const { data: jobs = [], isLoading: jobsLoading } = useSupabaseMechanisation();
   const { data: trainings = [], isLoading: trainingsLoading } = useSupabaseTrainings();
   const { data: users = [], isLoading: usersLoading } = useSupabaseUsers();
+  const { data: products = [], isLoading: productsLoading } = useProducts();
+  const { data: visits = [], isLoading: visitsLoading } = useSupabaseVisits();
 
   // Count TOTs from users
   const allTots = users.filter((u: any) => u.role === 'tot');
@@ -76,13 +89,16 @@ export function ManagerDashboard() {
   // Derived stats
   const totalRevenue = sales.reduce((acc: number, s: any) => acc + (Number(s.total_amount) || 0), 0);
   const completedJobs = jobs.filter((j: any) => j.status === 'completed').length;
+  const completedTrainings = trainings.filter((t: any) => t.status === 'completed').length;
+  const totalVisits = visits.length;
+  const activeProducts = products.filter((p: any) => p.status === 'active').length;
 
   const formatCurrency = (value: number) => {
     if (value >= 1000000) return `KES ${(value / 1000000).toFixed(1)}M`;
     return `KES ${(value / 1000).toFixed(0)}K`;
   };
 
-  const isLoading = statsLoading || localMRsLoading || farmersLoading || salesLoading || jobsLoading || trainingsLoading || usersLoading;
+  const isLoading = statsLoading || localMRsLoading || farmersLoading || salesLoading || jobsLoading || trainingsLoading || usersLoading || productsLoading || visitsLoading;
 
   if (isLoading) {
     return (
@@ -206,6 +222,64 @@ export function ManagerDashboard() {
           icon={ShoppingCart}
           variant="forest"
         />
+      </div>
+
+      {/* Secondary Stats - Additional Organization Data */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
+        <Card className="p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Building2 className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <p className="text-xl font-bold font-heading">{localMRs.length}</p>
+            <p className="text-xs text-muted-foreground">Local MRs</p>
+          </div>
+        </Card>
+        <Card className="p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center">
+            <ShoppingCart className="w-5 h-5 text-accent-foreground" />
+          </div>
+          <div>
+            <p className="text-xl font-bold font-heading">{sales.length}</p>
+            <p className="text-xs text-muted-foreground">Total Sales</p>
+          </div>
+        </Card>
+        <Card className="p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-secondary/20 flex items-center justify-center">
+            <GraduationCap className="w-5 h-5 text-secondary" />
+          </div>
+          <div>
+            <p className="text-xl font-bold font-heading">{completedTrainings}</p>
+            <p className="text-xs text-muted-foreground">Trainings</p>
+          </div>
+        </Card>
+        <Card className="p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-sage flex items-center justify-center">
+            <MapPin className="w-5 h-5 text-foreground" />
+          </div>
+          <div>
+            <p className="text-xl font-bold font-heading">{totalVisits}</p>
+            <p className="text-xs text-muted-foreground">Farm Visits</p>
+          </div>
+        </Card>
+        <Card className="p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-terracotta/20 flex items-center justify-center">
+            <Tractor className="w-5 h-5 text-terracotta" />
+          </div>
+          <div>
+            <p className="text-xl font-bold font-heading">{completedJobs}</p>
+            <p className="text-xs text-muted-foreground">Mech Jobs</p>
+          </div>
+        </Card>
+        <Card className="p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-wheat/30 flex items-center justify-center">
+            <Package className="w-5 h-5 text-foreground" />
+          </div>
+          <div>
+            <p className="text-xl font-bold font-heading">{activeProducts}</p>
+            <p className="text-xs text-muted-foreground">Products</p>
+          </div>
+        </Card>
       </div>
 
       {/* Local MR Performance Table - Key for Manager oversight */}

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
+import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { useFarmers } from '@/hooks/api/useFarmers';
@@ -146,11 +146,11 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg flex flex-col max-h-[85vh] overflow-hidden">
-        <DialogHeader className="flex-shrink-0">
+      <DialogContent className="max-w-lg flex flex-col max-h-[90vh]">
+        <DialogHeader>
           <DialogTitle>Log Field Visit</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto space-y-5 px-1 pb-2">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto space-y-5 px-1">
           <div className="p-4 rounded-lg bg-muted/50 border">
             <div className="flex items-center gap-3">
               {isLoadingGps ? (
@@ -255,15 +255,14 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
                       {visitPurposes.map((purpose) => (
                         <div
                           key={purpose}
-                          className={cn(
-                            "p-2 rounded-md cursor-pointer text-sm transition-colors",
-                            formData.purposes.includes(purpose)
-                              ? "bg-primary text-primary-foreground"
-                              : "hover:bg-muted"
-                          )}
+                          className="flex items-center space-x-2 p-2 rounded-md hover:bg-muted cursor-pointer"
                           onClick={() => handlePurposeToggle(purpose)}
                         >
-                          {purpose}
+                          <Checkbox
+                            checked={formData.purposes.includes(purpose)}
+                            onCheckedChange={() => handlePurposeToggle(purpose)}
+                          />
+                          <span className="text-sm">{purpose}</span>
                         </div>
                       ))}
                     </div>
@@ -289,7 +288,7 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
             </>
           )}
 
-          <div className="sticky bottom-0 bg-background pt-4 pb-2 flex gap-3 border-t mt-4">
+          <div className="flex gap-3 pt-4">
             <Button type="button" variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>

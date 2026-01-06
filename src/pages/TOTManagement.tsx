@@ -41,6 +41,7 @@ interface TOTPerformance {
   phone: string;
   email: string;
   status: 'active' | 'inactive';
+  localMrName: string;
   totalSales: number;
   totalCommission: number;
   mechanisationJobsCompleted: number;
@@ -51,41 +52,51 @@ interface TOTPerformance {
 
 export function TOTManagement() {
   const { user } = useAuth();
-  const localMrId = user?.localMrId || 'mr-1';
+  const isAdmin = user?.role === 'admin';
+  const isManager = user?.role === 'manager';
+  const isCoordinator = user?.role === 'local_mr_coordinator';
 
   // API hooks - data is already normalized by select transforms
   const { data: localMRs = [] } = useLocalMRs();
   const { data: users = [] } = useUsers();
   const { data: farmers = [] } = useFarmers();
 
-  const localMr = (localMRs as any[]).find(mr => mr.id === localMrId);
-  
-  // Get TOTs for this Local MR
-  const tots = (users as any[]).filter(u => u.role === 'tot' && u.localMrId === localMrId);
+  // Get TOTs based on user role
+  // Admin and Manager see all TOTs; Coordinator sees only their Local MR's TOTs
+  const tots = (users as any[]).filter(u => {
+    if (u.role !== 'tot') return false;
+    if (isAdmin || isManager) return true;
+    if (isCoordinator) return u.localMrId === user?.localMrId;
+    return false;
+  });
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedTOT, setSelectedTOT] = useState<string | null>(null);
 
-  // Build TOT performance data
-  const totsPerformance: TOTPerformance[] = tots.map(tot => ({
-    totId: tot.id,
-    totName: tot.name,
-    phone: tot.phone || '',
-    email: tot.email || '',
-    status: tot.status === 'active' ? 'active' : 'inactive',
-    totalSales: 0,
-    totalCommission: 0,
-    mechanisationJobsCompleted: 0,
-    trainingsConducted: 0,
-    visitsLogged: 0,
-    lastActivityDate: undefined,
-  }));
+  // Build TOT performance data with Local MR info
+  const totsPerformance: TOTPerformance[] = tots.map(tot => {
+    const localMr = (localMRs as any[]).find(mr => mr.id === tot.localMrId);
+    return {
+      totId: tot.id,
+      totName: tot.name,
+      phone: tot.phone || '',
+      email: tot.email || '',
+      status: tot.status === 'active' ? 'active' : 'inactive',
+      localMrName: localMr?.name || 'Unassigned',
+      totalSales: 0,
+      totalCommission: 0,
+      mechanisationJobsCompleted: 0,
+      trainingsConducted: 0,
+      visitsLogged: 0,
+      lastActivityDate: undefined,
+    };
+  });
   
   const filteredTOTs = totsPerformance.filter(tot =>
     tot.totName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     tot.phone.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    tot.email.toLowerCase().includes(searchQuery.toLowerCase())
+    tot.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    tot.localMrName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const activeTOTs = totsPerformance.filter(t => t.status === 'active').length;
@@ -100,11 +111,6 @@ export function TOTManagement() {
     return format(new Date(date), 'dd MMM yyyy');
   };
 
-  const handleAddTOT = () => {
-    toast.info('Add TOT functionality - connect to backend to implement');
-    setIsAddDialogOpen(false);
-  };
-
   const handleToggleStatus = (totId: string, currentStatus: string) => {
     const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
     toast.success(`TOT status changed to ${newStatus}`);
@@ -117,8 +123,6 @@ export function TOTManagement() {
   const exportToPDF = () => {
     toast.success('PDF export started');
     let reportContent = `TOT MANAGEMENT REPORT\n${'='.repeat(50)}\n`;
-    reportContent += `Local MR: ${localMr?.name}\n`;
-    reportContent += `Manager: ${localMr?.managerName}\n`;
     reportContent += `Generated: ${new Date().toLocaleString()}\n\n`;
     
     reportContent += `SUMMARY\n${'-'.repeat(30)}\n`;
@@ -130,7 +134,7 @@ export function TOTManagement() {
     
     reportContent += `TOT DETAILS\n${'-'.repeat(30)}\n`;
     totsPerformance.forEach(tot => {
-      reportContent += `\n${tot.totName}\n`;
+      reportContent += `\n${tot.totName} (${tot.localMrName})\n`;
       reportContent += `  Status: ${tot.status}\n`;
       reportContent += `  Phone: ${tot.phone}\n`;
       reportContent += `  Sales: ${formatCurrency(tot.totalSales)}\n`;
@@ -143,22 +147,22 @@ export function TOTManagement() {
     const blob = new Blob([reportContent], { type: 'text/plain' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `tot_report_${localMr?.code || 'MR'}_${new Date().toISOString().split('T')[0]}.txt`;
+    link.download = `tot_report_${new Date().toISOString().split('T')[0]}.txt`;
     link.click();
   };
 
   const exportToExcel = () => {
     toast.success('Excel export started');
-    let csvContent = 'TOT Name,Status,Phone,Email,Total Sales (KES),Commission (KES),Jobs Completed,Trainings,Visits,Last Activity\n';
+    let csvContent = 'TOT Name,Local MR,Status,Phone,Email,Total Sales (KES),Commission (KES),Jobs Completed,Trainings,Visits,Last Activity\n';
     
     totsPerformance.forEach(tot => {
-      csvContent += `"${tot.totName}","${tot.status}","${tot.phone}","${tot.email}",${tot.totalSales},${tot.totalCommission},${tot.mechanisationJobsCompleted},${tot.trainingsConducted},${tot.visitsLogged},"${formatDate(tot.lastActivityDate)}"\n`;
+      csvContent += `"${tot.totName}","${tot.localMrName}","${tot.status}","${tot.phone}","${tot.email}",${tot.totalSales},${tot.totalCommission},${tot.mechanisationJobsCompleted},${tot.trainingsConducted},${tot.visitsLogged},"${formatDate(tot.lastActivityDate)}"\n`;
     });
     
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `tot_data_${localMr?.code || 'MR'}_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `tot_data_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
   };
 
@@ -174,7 +178,7 @@ export function TOTManagement() {
         <div>
           <h1 className="font-heading text-2xl font-bold text-foreground">TOT Management</h1>
           <p className="text-muted-foreground">
-            Manage TOTs in {localMr?.name || 'your Local MR'}
+            {isAdmin || isManager ? 'View all TOTs across the organization' : 'View TOTs in your Local MR'}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -185,10 +189,6 @@ export function TOTManagement() {
           <Button variant="outline" onClick={exportToExcel}>
             <FileSpreadsheet className="w-4 h-4 mr-2" />
             Excel
-          </Button>
-          <Button onClick={() => setIsAddDialogOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add TOT
           </Button>
         </div>
       </div>
@@ -266,6 +266,7 @@ export function TOTManagement() {
             <TableHeader>
               <TableRow>
                 <TableHead>TOT</TableHead>
+                <TableHead>Local MR</TableHead>
                 <TableHead>Contact</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Sales</TableHead>
@@ -280,7 +281,7 @@ export function TOTManagement() {
             <TableBody>
               {filteredTOTs.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                     No TOTs found
                   </TableCell>
                 </TableRow>
@@ -296,14 +297,19 @@ export function TOTManagement() {
                       </div>
                     </TableCell>
                     <TableCell>
+                      <Badge variant="outline" className="font-normal">
+                        {tot.localMrName}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
                       <div className="text-sm">
                         <div className="flex items-center gap-1 text-muted-foreground">
                           <Phone className="w-3 h-3" />
-                          {tot.phone}
+                          {tot.phone || 'N/A'}
                         </div>
                         <div className="flex items-center gap-1 text-muted-foreground">
                           <Mail className="w-3 h-3" />
-                          {tot.email}
+                          {tot.email || 'N/A'}
                         </div>
                       </div>
                     </TableCell>
@@ -350,34 +356,6 @@ export function TOTManagement() {
         </CardContent>
       </Card>
 
-      {/* Add TOT Dialog */}
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add New TOT</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Full Name</Label>
-              <Input placeholder="Enter TOT name" />
-            </div>
-            <div className="space-y-2">
-              <Label>Phone Number</Label>
-              <Input placeholder="+254..." />
-            </div>
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <Input type="email" placeholder="email@example.com" />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleAddTOT}>Add TOT</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* TOT Details Dialog */}
       <Dialog open={!!selectedTOT} onOpenChange={() => setSelectedTOT(null)}>

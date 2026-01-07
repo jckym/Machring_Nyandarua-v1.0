@@ -241,26 +241,24 @@ export function useUpdateUser() {
         if (roleError) throw roleError;
       }
 
-      // Update local MR assignment if needed
-      if (data.localMrId !== undefined) {
-        // Delete all existing assignments for this user
-        await supabase
+      // Always update local MR assignment when editing a user
+      // First delete all existing assignments for this user
+      await supabase
+        .from('tot_assignments')
+        .delete()
+        .eq('tot_id', id);
+
+      // Add new assignment if localMrId is provided and role requires it
+      if (data.localMrId && data.role !== 'admin' && data.role !== 'manager') {
+        const { error: assignmentError } = await supabase
           .from('tot_assignments')
-          .delete()
-          .eq('tot_id', id);
+          .insert({
+            tot_id: id,
+            local_mr_id: data.localMrId,
+            status: 'active',
+          });
 
-        // Add new assignment if localMrId is provided
-        if (data.localMrId) {
-          const { error: assignmentError } = await supabase
-            .from('tot_assignments')
-            .insert({
-              tot_id: id,
-              local_mr_id: data.localMrId,
-              status: 'active',
-            });
-
-          if (assignmentError) throw assignmentError;
-        }
+        if (assignmentError) throw assignmentError;
       }
 
       return { id };

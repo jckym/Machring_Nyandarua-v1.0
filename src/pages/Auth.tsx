@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
-import { Eye, EyeOff, Loader2, Sprout } from 'lucide-react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const loginSchema = z.object({
@@ -71,8 +71,8 @@ export function Auth() {
       <div className="w-full max-w-md">
         {/* Logo and Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary mb-4">
-            <Sprout className="h-8 w-8 text-primary-foreground" />
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white shadow-md mb-4 overflow-hidden">
+            <img src="/mrlogo.png" alt="Machinery Ring Logo" className="w-16 h-16 object-contain" />
           </div>
           <h1 className="text-2xl font-heading font-bold text-foreground">
             Machinery Ring Nyandarua

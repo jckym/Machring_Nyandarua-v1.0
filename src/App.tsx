@@ -13,6 +13,8 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 // Pages
 import { Auth } from "@/pages/Auth";
+import { ForgotPassword } from "@/pages/ForgotPassword";
+import { ResetPassword } from "@/pages/ResetPassword";
 import { Dashboard } from "@/pages/Dashboard";
 import { AdminDashboard } from "@/pages/dashboard/AdminDashboard";
 import { ManagerDashboard } from "@/pages/dashboard/ManagerDashboard";
@@ -62,6 +64,8 @@ const App = () => (
                 {/* Public routes */}
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/login" element={<Navigate to="/auth" replace />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 
                 {/* Protected routes */}

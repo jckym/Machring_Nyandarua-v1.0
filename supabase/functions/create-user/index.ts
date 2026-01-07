@@ -38,25 +38,25 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create a client with the user's token to verify their role
-    const supabaseUser = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } },
-      auth: { autoRefreshToken: false, persistSession: false }
-    });
-
-    const { data: { user: requestingUser }, error: authError } = await supabaseUser.auth.getUser();
-    if (authError || !requestingUser) {
+    // Validate the JWT token using getClaims
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabaseAdmin.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims) {
+      console.error("Token validation error:", claimsError);
       return new Response(
         JSON.stringify({ success: false, error: "Invalid authentication" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    const requestingUserId = claimsData.claims.sub as string;
+
     // Check if requesting user is admin
     const { data: roleData, error: roleError } = await supabaseAdmin
       .from("user_roles")
       .select("role")
-      .eq("user_id", requestingUser.id)
+      .eq("user_id", requestingUserId)
       .single();
 
     if (roleError || roleData?.role !== "admin") {

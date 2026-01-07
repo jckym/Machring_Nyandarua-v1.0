@@ -225,12 +225,18 @@ export function useUpdateUser() {
 
       // Update role if changed
       if (data.role) {
+        // Delete existing role and insert new one (avoids upsert constraint issues)
+        await supabase
+          .from('user_roles')
+          .delete()
+          .eq('user_id', id);
+
         const { error: roleError } = await supabase
           .from('user_roles')
-          .upsert({
+          .insert({
             user_id: id,
             role: data.role as any,
-          }, { onConflict: 'user_id' });
+          });
 
         if (roleError) throw roleError;
       }

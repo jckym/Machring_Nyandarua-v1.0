@@ -77,7 +77,7 @@ export function useAdminDashboard() {
         supabase.from('farmers').select('*', { count: 'exact', head: true }),
         supabase.from('sales').select('total_amount, commission_amount'),
         supabase.from('local_mrs').select('*', { count: 'exact', head: true }),
-        supabase.from('tot_assignments').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+        supabase.from('user_roles').select('*', { count: 'exact', head: true }).eq('role', 'tot'),
         supabase.from('products').select('*', { count: 'exact', head: true }),
         supabase.from('mechanisation_jobs').select('status'),
         supabase.from('trainings').select('*', { count: 'exact', head: true }),

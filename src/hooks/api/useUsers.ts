@@ -243,12 +243,11 @@ export function useUpdateUser() {
 
       // Update local MR assignment if needed
       if (data.localMrId !== undefined) {
-        // Remove existing active assignments
+        // Delete all existing assignments for this user
         await supabase
           .from('tot_assignments')
-          .update({ status: 'inactive' })
-          .eq('tot_id', id)
-          .eq('status', 'active');
+          .delete()
+          .eq('tot_id', id);
 
         // Add new assignment if localMrId is provided
         if (data.localMrId) {

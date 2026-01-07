@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { useFarmers } from '@/hooks/api/useFarmers';
 import { useLocalMRs } from '@/hooks/api/useLocalMRs';
@@ -251,21 +252,23 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-full p-0 bg-popover z-50" align="start">
-                    <div className="p-2 space-y-1 max-h-[200px] overflow-y-auto">
-                      {visitPurposes.map((purpose) => (
-                        <div
-                          key={purpose}
-                          className="flex items-center space-x-2 p-2 rounded-md hover:bg-muted cursor-pointer"
-                          onClick={() => handlePurposeToggle(purpose)}
-                        >
-                          <Checkbox
-                            checked={formData.purposes.includes(purpose)}
-                            onCheckedChange={() => handlePurposeToggle(purpose)}
-                          />
-                          <span className="text-sm">{purpose}</span>
-                        </div>
-                      ))}
-                    </div>
+                    <ScrollArea className="h-[250px] touch-pan-y">
+                      <div className="p-2 space-y-1">
+                        {visitPurposes.map((purpose) => (
+                          <div
+                            key={purpose}
+                            className="flex items-center space-x-2 p-3 rounded-md hover:bg-muted cursor-pointer active:bg-muted/80"
+                            onClick={() => handlePurposeToggle(purpose)}
+                          >
+                            <Checkbox
+                              checked={formData.purposes.includes(purpose)}
+                              onCheckedChange={() => handlePurposeToggle(purpose)}
+                            />
+                            <span className="text-sm">{purpose}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
                   </PopoverContent>
                 </Popover>
                 {formData.purposes.length > 0 && (

@@ -19,8 +19,12 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
 import {
-  Search, Plus, MoreHorizontal, UserCog, Shield, Users as UsersIcon, Loader2
+  Search, Plus, MoreHorizontal, UserCog, Shield, Users as UsersIcon, Loader2, Trash2
 } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 
 import {
@@ -28,7 +32,8 @@ import {
   useLocalMRs,
   useCreateUser,
   useUpdateUser,
-  useToggleUserStatus
+  useToggleUserStatus,
+  useDeleteUser
 } from '@/hooks/api';
 
 import { User, UserRole, LocalMR } from '@/types';
@@ -42,6 +47,7 @@ export function Users() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   const [formData, setFormData] = useState({
@@ -61,6 +67,7 @@ export function Users() {
   const createUser = useCreateUser();
   const updateUser = useUpdateUser();
   const toggleStatus = useToggleUserStatus();
+  const deleteUser = useDeleteUser();
 
   /** ================= HELPERS ================= */
   const resetForm = () => {
@@ -236,6 +243,21 @@ export function Users() {
     });
   };
 
+  const handleDeleteUser = () => {
+    if (!selectedUser) return;
+    deleteUser.mutate(selectedUser.id, {
+      onSuccess: () => {
+        setIsDeleteDialogOpen(false);
+        setSelectedUser(null);
+      },
+    });
+  };
+
+  const openDeleteDialog = (user: User) => {
+    setSelectedUser(user);
+    setIsDeleteDialogOpen(true);
+  };
+
   const openEditDialog = (user: User) => {
     setSelectedUser(user);
     setFormData({
@@ -352,6 +374,13 @@ export function Users() {
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleToggleStatus(user)}>
                             {user.status === 'active' ? 'Deactivate' : 'Activate'}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => openDeleteDialog(user)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -590,6 +619,35 @@ export function Users() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* DELETE USER CONFIRMATION */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong>{selectedUser?.name}</strong>? This action cannot be undone and will remove all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteUser}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteUser.isPending}
+            >
+              {deleteUser.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -10,7 +10,7 @@ export * from './useMachinery';
 export * from './useMachineryBookings';
 export * from './useMachineryService';
 export * from './useLocalMRs';
-export * from './useUsers';
+export { useUsers, useUser, useCreateUser, useUpdateUser, useDeleteUser, useToggleUserStatus, userKeys } from './useUsers';
 export * from './useNotifications';
 
 // Dashboard hooks (note: useProductPerformance is also in useDashboard)

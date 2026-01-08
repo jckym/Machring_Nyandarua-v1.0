@@ -108,7 +108,7 @@ export async function fetchAdminStats(): Promise<AdminStats> {
     supabase.from("farmers").select("id", { count: "exact", head: true }),
     supabase.from("sales").select("id, total_amount", { count: "exact" }),
     supabase.from("local_mrs").select("id", { count: "exact", head: true }),
-    supabase.from("tot_assignments").select("id", { count: "exact", head: true }).eq("status", "active"),
+    supabase.from("user_roles").select("id", { count: "exact", head: true }).eq("role", "tot"),
     supabase.from("products").select("id", { count: "exact", head: true }).eq("status", "active"),
     supabase.from("mechanisation_jobs").select("id, status", { count: "exact" }),
     supabase.from("trainings").select("id", { count: "exact", head: true }),

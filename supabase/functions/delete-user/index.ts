@@ -85,16 +85,25 @@ Deno.serve(async (req) => {
     // 1) Clean up public tables FIRST to remove foreign key dependencies
     console.info(`Cleaning up related records for user: ${userId}`);
     
-    // Nullify coordinator references
+    // Nullify references in tables that should preserve data but remove user link
     await supabaseAdmin.from('local_mrs').update({ coordinator_id: null }).eq('coordinator_id', userId);
+    await supabaseAdmin.from('farmers').update({ registered_by: null }).eq('registered_by', userId);
     
-    // Delete from tables that may reference auth.users
+    // Delete or nullify records that reference this user as TOT/trainer/booker
+    // For sales/visits/trainings/mechanisation - we delete the records as they belong to this user
+    await supabaseAdmin.from('sales').delete().eq('tot_id', userId);
+    await supabaseAdmin.from('visits').delete().eq('tot_id', userId);
+    await supabaseAdmin.from('trainings').delete().eq('trainer_id', userId);
+    await supabaseAdmin.from('mechanisation_jobs').delete().eq('tot_id', userId);
+    await supabaseAdmin.from('machinery_bookings').delete().eq('booked_by', userId);
+    
+    // Delete from tables that directly reference auth.users
     await supabaseAdmin.from('tot_assignments').delete().eq('tot_id', userId);
     await supabaseAdmin.from('user_roles').delete().eq('user_id', userId);
     await supabaseAdmin.from('notification_settings').delete().eq('user_id', userId);
     await supabaseAdmin.from('notifications').delete().eq('user_id', userId);
     
-    // Delete profile (which may have FK to auth.users)
+    // Delete profile (which has FK to auth.users)
     const { error: profileError } = await supabaseAdmin.from('profiles').delete().eq('id', userId);
     if (profileError) {
       console.warn('Profile delete warning:', profileError);

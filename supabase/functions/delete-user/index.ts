@@ -33,19 +33,19 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify the JWT and get claims
+    // Validate the JWT token using getClaims (more robust than getUser in edge runtime)
     const token = authHeader.replace('Bearer ', '');
-    const { data: claims, error: claimsError } = await supabaseAdmin.auth.getUser(token);
-    
-    if (claimsError || !claims.user) {
-      console.error('Auth error:', claimsError);
+    const { data: claimsData, error: claimsError } = await supabaseAdmin.auth.getClaims(token);
+
+    if (claimsError || !claimsData?.claims) {
+      console.error('Token validation error:', claimsError);
       return new Response(
         JSON.stringify({ success: false, error: 'Invalid or expired token' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const requestingUserId = claims.user.id;
+    const requestingUserId = claimsData.claims.sub as string;
 
     // Check if the requesting user is an admin
     const { data: roleData, error: roleError } = await supabaseAdmin
@@ -82,25 +82,38 @@ Deno.serve(async (req) => {
 
     console.info(`Admin ${requestingUserId} deleting user: ${userId}`);
 
-    // Delete the user from auth.users (this will cascade to profiles due to FK)
-    // The profiles delete trigger will then clean up user_roles, tot_assignments, etc.
-    const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
-
-    if (deleteError) {
-      console.error('Delete user error:', deleteError);
+    // 1) Delete auth user first (this frees the email for re-creation)
+    const { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+    if (deleteAuthError) {
+      console.error('Delete auth user error:', deleteAuthError);
       return new Response(
-        JSON.stringify({ success: false, error: deleteError.message }),
+        JSON.stringify({ success: false, error: deleteAuthError.message }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    // 2) Best-effort cleanup in public tables (covers older partial deletions / missing triggers)
+    const cleanupResults = await Promise.all([
+      supabaseAdmin.from('local_mrs').update({ coordinator_id: null }).eq('coordinator_id', userId),
+      supabaseAdmin.from('tot_assignments').delete().eq('tot_id', userId),
+      supabaseAdmin.from('user_roles').delete().eq('user_id', userId),
+      supabaseAdmin.from('notification_settings').delete().eq('user_id', userId),
+      supabaseAdmin.from('notifications').delete().eq('user_id', userId),
+      supabaseAdmin.from('profiles').delete().eq('id', userId),
+    ]);
+
+    const cleanupError = cleanupResults.find((r: any) => r?.error)?.error;
+    if (cleanupError) {
+      // Non-fatal: auth user is already deleted, but we still want visibility.
+      console.warn('Post-delete cleanup warning:', cleanupError);
+    }
+
     console.info(`User ${userId} deleted successfully`);
 
-    return new Response(
-      JSON.stringify({ success: true }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-
+    return new Response(JSON.stringify({ success: true }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (error) {
     console.error('Unexpected error:', error);
     const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';

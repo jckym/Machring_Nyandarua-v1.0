@@ -14,6 +14,48 @@ interface CreateUserRequest {
   localMrId?: string;
 }
 
+const normalizeEmail = (value: string) => value.toLowerCase().trim();
+
+async function findAuthUserByEmail(supabaseAdmin: any, email: string) {
+  const target = normalizeEmail(email);
+  let page = 1;
+  const perPage = 1000;
+
+  // Safety cap to avoid scanning forever in very large user bases
+  for (let i = 0; i < 10; i++) {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+    if (error) throw error;
+
+    const match = data?.users?.find((u: any) => normalizeEmail(u.email ?? "") === target);
+    if (match) return match;
+
+    if (!data?.users || data.users.length < perPage) return null;
+    page += 1;
+  }
+
+  return null;
+}
+
+async function purgeUserCompletely(supabaseAdmin: any, userId: string) {
+  // Best-effort cleanup in public tables (covers older partial deletions)
+  const cleanupResults = await Promise.all([
+    supabaseAdmin.from("local_mrs").update({ coordinator_id: null }).eq("coordinator_id", userId),
+    supabaseAdmin.from("tot_assignments").delete().eq("tot_id", userId),
+    supabaseAdmin.from("user_roles").delete().eq("user_id", userId),
+    supabaseAdmin.from("notification_settings").delete().eq("user_id", userId),
+    supabaseAdmin.from("notifications").delete().eq("user_id", userId),
+    supabaseAdmin.from("profiles").delete().eq("id", userId),
+  ]);
+
+  const cleanupError = cleanupResults.find((r: any) => r?.error)?.error;
+  if (cleanupError) {
+    console.warn("Cleanup warning while purging user:", cleanupError);
+  }
+
+  const { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+  if (deleteAuthError) throw deleteAuthError;
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -23,10 +65,10 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    
+
     // Create admin client with service role
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false }
+      auth: { autoRefreshToken: false, persistSession: false },
     });
 
     // Verify the requesting user is an admin
@@ -41,7 +83,7 @@ Deno.serve(async (req) => {
     // Validate the JWT token using getClaims
     const token = authHeader.replace("Bearer ", "");
     const { data: claimsData, error: claimsError } = await supabaseAdmin.auth.getClaims(token);
-    
+
     if (claimsError || !claimsData?.claims) {
       console.error("Token validation error:", claimsError);
       return new Response(
@@ -78,8 +120,33 @@ Deno.serve(async (req) => {
       );
     }
 
+    const trimmedName = name.trim();
+    const normalizedEmail = normalizeEmail(email);
+    const trimmedPhone = phone?.trim();
+
+    if (trimmedName.length < 2 || trimmedName.length > 100) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Name must be between 2 and 100 characters" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (normalizedEmail.length > 255) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Email is too long" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (trimmedPhone && trimmedPhone.length > 30) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Phone number is too long" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Validate role
-    const validRoles = ["admin", "manager", "local_mr_coordinator", "tot"];
+    const validRoles = ["admin", "manager", "local_mr_coordinator", "tot"] as const;
     if (!validRoles.includes(role)) {
       return new Response(
         JSON.stringify({ success: false, error: `Invalid role. Must be one of: ${validRoles.join(", ")}` }),
@@ -95,15 +162,57 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Creating user: ${email} with role: ${role}`);
+    console.log(`Creating user: ${normalizedEmail} with role: ${role}`);
+
+    const createAuthUser = () =>
+      supabaseAdmin.auth.admin.createUser({
+        email: normalizedEmail,
+        password,
+        email_confirm: true,
+        user_metadata: { name: trimmedName, phone: trimmedPhone },
+      });
 
     // Create the auth user with admin API
-    const { data: authData, error: createAuthError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true, // Auto-confirm email
-      user_metadata: { name, phone }
-    });
+    let { data: authData, error: createAuthError } = await createAuthUser();
+
+    // If the email exists, it may be an orphaned auth account from an older partial deletion.
+    // We only auto-purge when there is NO corresponding profile record.
+    if (createAuthError && (createAuthError as any)?.code === "email_exists") {
+      console.warn(`Email already registered in auth: ${normalizedEmail}. Checking for orphaned account...`);
+
+      const existingAuthUser = await findAuthUserByEmail(supabaseAdmin, normalizedEmail);
+      if (existingAuthUser?.id) {
+        const { data: existingProfile, error: profileLookupError } = await supabaseAdmin
+          .from("profiles")
+          .select("id")
+          .eq("id", existingAuthUser.id)
+          .maybeSingle();
+
+        if (profileLookupError) {
+          console.warn("Profile lookup warning:", profileLookupError);
+        }
+
+        if (!existingProfile) {
+          console.warn(
+            `Found orphaned auth user ${existingAuthUser.id} for ${normalizedEmail}. Purging then retrying create...`
+          );
+
+          try {
+            await purgeUserCompletely(supabaseAdmin, existingAuthUser.id);
+            // Small delay to avoid rare eventual-consistency issues
+            await new Promise((r) => setTimeout(r, 150));
+            ({ data: authData, error: createAuthError } = await createAuthUser());
+          } catch (purgeError: unknown) {
+            const message = purgeError instanceof Error ? purgeError.message : "Failed to purge existing user";
+            console.error("Failed to purge orphaned user:", purgeError);
+            return new Response(
+              JSON.stringify({ success: false, error: message }),
+              { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+        }
+      }
+    }
 
     if (createAuthError) {
       console.error("Auth creation error:", createAuthError);
@@ -113,32 +222,41 @@ Deno.serve(async (req) => {
       );
     }
 
-    const userId = authData.user.id;
+    const userId = authData?.user?.id;
+    if (!userId) {
+      console.error("Auth createUser returned no user");
+      return new Response(
+        JSON.stringify({ success: false, error: "Failed to create user" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     console.log(`User created with ID: ${userId}`);
 
-    // Ensure profile exists (trigger should handle this, but let's be safe)
+    // Ensure profile exists
     const { error: profileError } = await supabaseAdmin
       .from("profiles")
-      .upsert({
-        id: userId,
-        name,
-        email,
-        phone: phone || null,
-        status: "active"
-      }, { onConflict: "id" });
+      .upsert(
+        {
+          id: userId,
+          name: trimmedName,
+          email: normalizedEmail,
+          phone: trimmedPhone || null,
+          status: "active",
+        },
+        { onConflict: "id" }
+      );
 
     if (profileError) {
       console.error("Profile creation error:", profileError);
-      // Don't fail - the trigger should have created this
+      // Non-fatal
     }
 
     // Assign role
-    const { error: roleInsertError } = await supabaseAdmin
-      .from("user_roles")
-      .insert({
-        user_id: userId,
-        role
-      });
+    const { error: roleInsertError } = await supabaseAdmin.from("user_roles").insert({
+      user_id: userId,
+      role,
+    });
 
     if (roleInsertError) {
       console.error("Role assignment error:", roleInsertError);
@@ -150,13 +268,11 @@ Deno.serve(async (req) => {
 
     // If TOT or coordinator, create local MR assignment
     if (localMrId && (role === "tot" || role === "local_mr_coordinator")) {
-      const { error: assignmentError } = await supabaseAdmin
-        .from("tot_assignments")
-        .insert({
-          tot_id: userId,
-          local_mr_id: localMrId,
-          status: "active"
-        });
+      const { error: assignmentError } = await supabaseAdmin.from("tot_assignments").insert({
+        tot_id: userId,
+        local_mr_id: localMrId,
+        status: "active",
+      });
 
       if (assignmentError) {
         console.error("Assignment error:", assignmentError);
@@ -176,26 +292,25 @@ Deno.serve(async (req) => {
 
       if (coordinatorError) {
         console.error("Coordinator assignment error:", coordinatorError);
-        // Non-fatal - continue
+        // Non-fatal
       }
     }
 
-    console.log(`User ${email} created successfully with role ${role}`);
+    console.log(`User ${normalizedEmail} created successfully with role ${role}`);
 
     return new Response(
       JSON.stringify({
         success: true,
         data: {
           id: userId,
-          email,
-          name,
-          role
+          email: normalizedEmail,
+          name: trimmedName,
+          role,
         },
-        message: `User ${name} created successfully`
+        message: `User ${trimmedName} created successfully`,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-
   } catch (error: unknown) {
     console.error("Error creating user:", error);
     const message = error instanceof Error ? error.message : "Unknown error occurred";

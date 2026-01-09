@@ -10,7 +10,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from '@/components/ui/table';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
 } from '@/components/ui/dialog';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
@@ -19,7 +19,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
 import {
-  Search, Plus, MoreHorizontal, UserCog, Shield, Users as UsersIcon, Loader2, Trash2
+  Search, Plus, MoreHorizontal, UserCog, Shield, Users as UsersIcon, Loader2, Trash2, AlertTriangle, Mail
 } from 'lucide-react';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -36,11 +36,29 @@ import {
   useDeleteUser
 } from '@/hooks/api';
 
+import { supabase } from '@/integrations/supabase/client';
+
 import { User, UserRole, LocalMR } from '@/types';
 import {
   PasswordStrengthIndicator,
   usePasswordValidation
 } from '@/components/ui/password-strength';
+
+interface PurgeImpact {
+  userId: string | null;
+  email: string;
+  hasProfile: boolean;
+  profileName?: string;
+  counts: {
+    sales: number;
+    visits: number;
+    trainings: number;
+    mechanisationJobs: number;
+    machineryBookings: number;
+    farmersRegistered: number;
+    coordinatedLocalMrs: number;
+  };
+}
 
 export function Users() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -49,6 +67,13 @@ export function Users() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+
+  // Purge dialog state
+  const [isPurgeDialogOpen, setIsPurgeDialogOpen] = useState(false);
+  const [purgeEmail, setPurgeEmail] = useState('');
+  const [purgeImpact, setPurgeImpact] = useState<PurgeImpact | null>(null);
+  const [isPurgeLoading, setIsPurgeLoading] = useState(false);
+  const [isPurging, setIsPurging] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -272,6 +297,81 @@ export function Users() {
     setIsEditDialogOpen(true);
   };
 
+  /** ================= PURGE ACTIONS ================= */
+  const handlePurgePreview = async () => {
+    if (!purgeEmail.trim()) {
+      toast.error('Please enter an email address');
+      return;
+    }
+
+    setIsPurgeLoading(true);
+    setPurgeImpact(null);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Not authenticated');
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('purge-user-by-email', {
+        body: { email: purgeEmail.trim(), preview: true },
+      });
+
+      if (error) throw error;
+
+      if (!data.success) {
+        toast.error(data.error || 'Failed to lookup user');
+        return;
+      }
+
+      if (!data.found) {
+        toast.info('No user found with this email');
+        return;
+      }
+
+      setPurgeImpact(data.impact);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to check user');
+    } finally {
+      setIsPurgeLoading(false);
+    }
+  };
+
+  const handlePurgeExecute = async () => {
+    if (!purgeImpact?.userId) return;
+
+    setIsPurging(true);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Not authenticated');
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('purge-user-by-email', {
+        body: { email: purgeEmail.trim(), preview: false },
+      });
+
+      if (error) throw error;
+
+      if (!data.success) {
+        toast.error(data.error || 'Failed to purge user');
+        return;
+      }
+
+      toast.success(`User ${purgeEmail} has been purged`);
+      setIsPurgeDialogOpen(false);
+      setPurgeEmail('');
+      setPurgeImpact(null);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to purge user');
+    } finally {
+      setIsPurging(false);
+    }
+  };
+
   /** ================= STATS ================= */
   const totalUsers = users.length;
   const activeUsers = users.filter(u => u.status === 'active').length;
@@ -294,9 +394,14 @@ export function Users() {
           <h1 className="text-2xl font-bold">User Management</h1>
           <p className="text-muted-foreground">Create and manage TOT, Manager, and Admin accounts</p>
         </div>
-        <Button onClick={() => { resetForm(); setIsAddDialogOpen(true); }}>
-          <Plus className="mr-2 h-4 w-4" /> Add User
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => { setPurgeEmail(''); setPurgeImpact(null); setIsPurgeDialogOpen(true); }}>
+            <Mail className="mr-2 h-4 w-4" /> Purge by Email
+          </Button>
+          <Button onClick={() => { resetForm(); setIsAddDialogOpen(true); }}>
+            <Plus className="mr-2 h-4 w-4" /> Add User
+          </Button>
+        </div>
       </div>
 
       {/* STATS */}
@@ -648,6 +753,114 @@ export function Users() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* PURGE BY EMAIL DIALOG */}
+      <Dialog open={isPurgeDialogOpen} onOpenChange={setIsPurgeDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Purge User by Email
+            </DialogTitle>
+            <DialogDescription>
+              Completely remove a user and all their data from the system. Use this to clean up orphaned accounts that can't be re-created.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="purge-email">Email Address</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="purge-email"
+                  type="email"
+                  value={purgeEmail}
+                  onChange={(e) => { setPurgeEmail(e.target.value); setPurgeImpact(null); }}
+                  placeholder="user@example.com"
+                  className="flex-1"
+                />
+                <Button
+                  onClick={handlePurgePreview}
+                  disabled={isPurgeLoading || !purgeEmail.trim()}
+                  variant="secondary"
+                >
+                  {isPurgeLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Check'}
+                </Button>
+              </div>
+            </div>
+
+            {purgeImpact && (
+              <div className="rounded-lg border p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">
+                    {purgeImpact.hasProfile ? purgeImpact.profileName : 'Orphaned Auth Account'}
+                  </span>
+                  <Badge variant={purgeImpact.hasProfile ? 'default' : 'destructive'}>
+                    {purgeImpact.hasProfile ? 'Has Profile' : 'Orphaned'}
+                  </Badge>
+                </div>
+
+                <div className="text-sm text-muted-foreground">
+                  The following data will be <span className="text-destructive font-medium">permanently deleted</span>:
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="flex justify-between p-2 bg-muted rounded">
+                    <span>Sales</span>
+                    <span className="font-medium">{purgeImpact.counts.sales}</span>
+                  </div>
+                  <div className="flex justify-between p-2 bg-muted rounded">
+                    <span>Visits</span>
+                    <span className="font-medium">{purgeImpact.counts.visits}</span>
+                  </div>
+                  <div className="flex justify-between p-2 bg-muted rounded">
+                    <span>Trainings</span>
+                    <span className="font-medium">{purgeImpact.counts.trainings}</span>
+                  </div>
+                  <div className="flex justify-between p-2 bg-muted rounded">
+                    <span>Mech Jobs</span>
+                    <span className="font-medium">{purgeImpact.counts.mechanisationJobs}</span>
+                  </div>
+                  <div className="flex justify-between p-2 bg-muted rounded">
+                    <span>Bookings</span>
+                    <span className="font-medium">{purgeImpact.counts.machineryBookings}</span>
+                  </div>
+                  <div className="flex justify-between p-2 bg-muted rounded">
+                    <span>Coordinated MRs</span>
+                    <span className="font-medium">{purgeImpact.counts.coordinatedLocalMrs}</span>
+                  </div>
+                </div>
+
+                {purgeImpact.counts.farmersRegistered > 0 && (
+                  <div className="text-sm text-muted-foreground">
+                    <span className="font-medium">{purgeImpact.counts.farmersRegistered}</span> farmers registered by this user will be unlinked (not deleted).
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPurgeDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handlePurgeExecute}
+              disabled={!purgeImpact || isPurging}
+            >
+              {isPurging ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Purging...
+                </>
+              ) : (
+                'Purge User'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

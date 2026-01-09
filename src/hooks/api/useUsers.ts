@@ -278,13 +278,23 @@ export function useDeleteUser() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      // Delete profile (will cascade to role and assignments if FK set up)
-      const { error } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', id);
+      // Get current session for auth header
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
 
-      if (error) throw error;
+      // Call edge function to delete user from auth (cascades to profiles and related tables)
+      const response = await supabase.functions.invoke('delete-user', {
+        body: { userId: id },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to delete user');
+      }
+
+      const result = response.data;
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to delete user');
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: userKeys.all });

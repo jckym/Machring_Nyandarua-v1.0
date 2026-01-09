@@ -171,6 +171,16 @@ export function ManagerDashboard() {
     createdAt: u.created_at || new Date().toISOString(),
     localMrId: u.localMrId,
     localMrName: u.localMrName,
+    // Include pre-computed performance metrics
+    salesCount: u.salesCount || 0,
+    totalRevenue: u.totalRevenue || 0,
+    totalCommission: u.totalCommission || 0,
+    jobsCount: u.jobsCount || 0,
+    completedJobsCount: u.completedJobsCount || 0,
+    trainingsCount: u.trainingsCount || 0,
+    completedTrainingsCount: u.completedTrainingsCount || 0,
+    visitsCount: u.visitsCount || 0,
+    lastActivityDate: u.lastActivityDate || null,
   }));
 
   return (

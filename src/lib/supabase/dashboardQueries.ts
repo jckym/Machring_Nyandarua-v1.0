@@ -609,7 +609,7 @@ export async function fetchTrainings(filters?: {
 }
 
 /**
- * Fetch users with their roles - separate queries
+ * Fetch users with their roles and performance metrics - separate queries
  */
 export async function fetchUsers() {
   // Fetch profiles
@@ -643,6 +643,26 @@ export async function fetchUsers() {
     console.error("Error fetching TOT assignments:", assignmentsError);
   }
 
+  // Fetch sales data for TOT metrics
+  const { data: sales } = await supabase
+    .from("sales")
+    .select("tot_id, total_amount, commission_amount, sale_date");
+
+  // Fetch mechanisation jobs for TOT metrics
+  const { data: jobs } = await supabase
+    .from("mechanisation_jobs")
+    .select("tot_id, status, scheduled_date");
+
+  // Fetch trainings for TOT metrics
+  const { data: trainings } = await supabase
+    .from("trainings")
+    .select("trainer_id, status, scheduled_date");
+
+  // Fetch visits for TOT metrics
+  const { data: visits } = await supabase
+    .from("visits")
+    .select("tot_id, visit_date");
+
   // Create a map of user_id to role
   const roleMap = new Map<string, string>();
   (roles || []).forEach((r) => {
@@ -658,13 +678,88 @@ export async function fetchUsers() {
     });
   });
 
+  // Aggregate sales metrics per TOT
+  const totSalesMap = new Map<string, { count: number; revenue: number; commission: number; lastSaleDate: string | null }>();
+  (sales || []).forEach((s) => {
+    const existing = totSalesMap.get(s.tot_id) || { count: 0, revenue: 0, commission: 0, lastSaleDate: null };
+    existing.count += 1;
+    existing.revenue += Number(s.total_amount) || 0;
+    existing.commission += Number(s.commission_amount) || 0;
+    if (!existing.lastSaleDate || s.sale_date > existing.lastSaleDate) {
+      existing.lastSaleDate = s.sale_date;
+    }
+    totSalesMap.set(s.tot_id, existing);
+  });
+
+  // Aggregate jobs per TOT
+  const totJobsMap = new Map<string, { count: number; completedCount: number; lastJobDate: string | null }>();
+  (jobs || []).forEach((j) => {
+    const existing = totJobsMap.get(j.tot_id) || { count: 0, completedCount: 0, lastJobDate: null };
+    existing.count += 1;
+    if (j.status === "completed") existing.completedCount += 1;
+    if (!existing.lastJobDate || j.scheduled_date > existing.lastJobDate) {
+      existing.lastJobDate = j.scheduled_date;
+    }
+    totJobsMap.set(j.tot_id, existing);
+  });
+
+  // Aggregate trainings per TOT (trainer_id)
+  const totTrainingsMap = new Map<string, { count: number; completedCount: number; lastTrainingDate: string | null }>();
+  (trainings || []).forEach((t) => {
+    const existing = totTrainingsMap.get(t.trainer_id) || { count: 0, completedCount: 0, lastTrainingDate: null };
+    existing.count += 1;
+    if (t.status === "completed") existing.completedCount += 1;
+    if (!existing.lastTrainingDate || t.scheduled_date > existing.lastTrainingDate) {
+      existing.lastTrainingDate = t.scheduled_date;
+    }
+    totTrainingsMap.set(t.trainer_id, existing);
+  });
+
+  // Aggregate visits per TOT
+  const totVisitsMap = new Map<string, { count: number; lastVisitDate: string | null }>();
+  (visits || []).forEach((v) => {
+    const existing = totVisitsMap.get(v.tot_id) || { count: 0, lastVisitDate: null };
+    existing.count += 1;
+    if (!existing.lastVisitDate || v.visit_date > existing.lastVisitDate) {
+      existing.lastVisitDate = v.visit_date;
+    }
+    totVisitsMap.set(v.tot_id, existing);
+  });
+
   return (profiles || []).map((user) => {
     const assignment = totAssignmentMap.get(user.id);
+    const salesData = totSalesMap.get(user.id);
+    const jobsData = totJobsMap.get(user.id);
+    const trainingsData = totTrainingsMap.get(user.id);
+    const visitsData = totVisitsMap.get(user.id);
+
+    // Calculate last activity date from all activity types
+    const activityDates = [
+      salesData?.lastSaleDate,
+      jobsData?.lastJobDate,
+      trainingsData?.lastTrainingDate,
+      visitsData?.lastVisitDate,
+    ].filter(Boolean) as string[];
+    
+    const lastActivityDate = activityDates.length > 0 
+      ? activityDates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0]
+      : null;
+
     return {
       ...user,
       role: roleMap.get(user.id) || "user",
       localMrId: assignment?.localMrId || null,
       localMrName: assignment?.localMrName || null,
+      // Performance metrics
+      salesCount: salesData?.count || 0,
+      totalRevenue: salesData?.revenue || 0,
+      totalCommission: salesData?.commission || 0,
+      jobsCount: jobsData?.count || 0,
+      completedJobsCount: jobsData?.completedCount || 0,
+      trainingsCount: trainingsData?.count || 0,
+      completedTrainingsCount: trainingsData?.completedCount || 0,
+      visitsCount: visitsData?.count || 0,
+      lastActivityDate,
     };
   });
 }

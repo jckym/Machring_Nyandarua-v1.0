@@ -26,10 +26,32 @@ import {
   TrendingUp,
   TrendingDown
 } from 'lucide-react';
-import { User, LocalMR, Sale } from '@/types';
+import { LocalMR, Sale } from '@/types';
+import { formatDistanceToNow } from 'date-fns';
+
+interface TOTWithMetrics {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  role: string;
+  status: string;
+  createdAt: string;
+  localMrId?: string | null;
+  localMrName?: string | null;
+  salesCount?: number;
+  totalRevenue?: number;
+  totalCommission?: number;
+  jobsCount?: number;
+  completedJobsCount?: number;
+  trainingsCount?: number;
+  completedTrainingsCount?: number;
+  visitsCount?: number;
+  lastActivityDate?: string | null;
+}
 
 interface TOTPerformanceOverviewProps {
-  tots: User[];
+  tots: TOTWithMetrics[];
   localMRs: LocalMR[];
   sales: Sale[];
 }
@@ -42,12 +64,12 @@ export function TOTPerformanceOverview({
   const [searchTerm, setSearchTerm] = useState('');
   const [filterMR, setFilterMR] = useState<string>('all');
 
-  // Calculate metrics for each TOT
+  // Use pre-computed metrics from fetchUsers, or fallback to calculating from sales
   const totMetrics = tots.map(tot => {
-    const totSales = sales.filter(s => s.totId === tot.id);
-    const completedSales = totSales.filter(s => s.status === 'completed');
-    const totalRevenue = completedSales.reduce((acc, s) => acc + (s.total || 0), 0);
-    const totalCommission = completedSales.reduce((acc, s) => acc + (s.commissionAmount || 0), 0);
+    // Use pre-computed data if available
+    const totalRevenue = tot.totalRevenue ?? 0;
+    const totalCommission = tot.totalCommission ?? 0;
+    const salesCount = tot.salesCount ?? 0;
     
     // Determine performance level
     let performanceLevel: 'high' | 'medium' | 'low' | 'inactive' = 'medium';
@@ -57,9 +79,12 @@ export function TOTPerformanceOverview({
 
     return {
       ...tot,
-      salesCount: totSales.length,
+      salesCount,
       totalRevenue,
       totalCommission,
+      jobsCount: tot.jobsCount ?? 0,
+      trainingsCount: tot.trainingsCount ?? 0,
+      lastActivityDate: tot.lastActivityDate ?? null,
       performanceLevel,
     };
   });
@@ -171,9 +196,10 @@ export function TOTPerformanceOverview({
                   <TableHead>TOT Name</TableHead>
                   <TableHead>Local MR</TableHead>
                   <TableHead className="text-center">Sales</TableHead>
-                  <TableHead className="text-right">Revenue</TableHead>
                   <TableHead className="text-right">Commission</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead className="text-center">Jobs</TableHead>
+                  <TableHead className="text-center">Trainings</TableHead>
+                  <TableHead>Last Active</TableHead>
                   <TableHead>Performance</TableHead>
                 </TableRow>
               </TableHeader>
@@ -188,17 +214,25 @@ export function TOTPerformanceOverview({
                       </div>
                     </TableCell>
                     <TableCell>{tot.localMrName || 'N/A'}</TableCell>
-                    <TableCell className="text-center">{tot.salesCount}</TableCell>
-                    <TableCell className="text-right font-semibold text-primary">
-                      {formatCurrency(tot.totalRevenue)}
+                    <TableCell className="text-center">
+                      <div>
+                        <p className="font-semibold">{tot.salesCount}</p>
+                        <p className="text-xs text-muted-foreground">{formatCurrency(tot.totalRevenue)}</p>
+                      </div>
                     </TableCell>
                     <TableCell className="text-right font-semibold text-secondary">
                       {formatCurrency(tot.totalCommission)}
                     </TableCell>
+                    <TableCell className="text-center">{tot.jobsCount}</TableCell>
+                    <TableCell className="text-center">{tot.trainingsCount}</TableCell>
                     <TableCell>
-                      <Badge variant={tot.status === 'active' ? 'success' : 'secondary'}>
-                        {tot.status}
-                      </Badge>
+                      {tot.lastActivityDate ? (
+                        <span className="text-sm text-muted-foreground">
+                          {formatDistanceToNow(new Date(tot.lastActivityDate), { addSuffix: true })}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">No activity</span>
+                      )}
                     </TableCell>
                     <TableCell>{getPerformanceBadge(tot.performanceLevel)}</TableCell>
                   </TableRow>

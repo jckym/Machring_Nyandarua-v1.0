@@ -82,7 +82,27 @@ Deno.serve(async (req) => {
 
     console.info(`Admin ${requestingUserId} deleting user: ${userId}`);
 
-    // 1) Delete auth user first (this frees the email for re-creation)
+    // 1) Clean up public tables FIRST to remove foreign key dependencies
+    console.info(`Cleaning up related records for user: ${userId}`);
+    
+    // Nullify coordinator references
+    await supabaseAdmin.from('local_mrs').update({ coordinator_id: null }).eq('coordinator_id', userId);
+    
+    // Delete from tables that may reference auth.users
+    await supabaseAdmin.from('tot_assignments').delete().eq('tot_id', userId);
+    await supabaseAdmin.from('user_roles').delete().eq('user_id', userId);
+    await supabaseAdmin.from('notification_settings').delete().eq('user_id', userId);
+    await supabaseAdmin.from('notifications').delete().eq('user_id', userId);
+    
+    // Delete profile (which may have FK to auth.users)
+    const { error: profileError } = await supabaseAdmin.from('profiles').delete().eq('id', userId);
+    if (profileError) {
+      console.warn('Profile delete warning:', profileError);
+    }
+
+    console.info(`Related records cleaned up, now deleting auth user: ${userId}`);
+
+    // 2) Now delete auth user (email is freed for re-creation)
     const { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(userId);
     if (deleteAuthError) {
       console.error('Delete auth user error:', deleteAuthError);
@@ -90,22 +110,6 @@ Deno.serve(async (req) => {
         JSON.stringify({ success: false, error: deleteAuthError.message }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
-    }
-
-    // 2) Best-effort cleanup in public tables (covers older partial deletions / missing triggers)
-    const cleanupResults = await Promise.all([
-      supabaseAdmin.from('local_mrs').update({ coordinator_id: null }).eq('coordinator_id', userId),
-      supabaseAdmin.from('tot_assignments').delete().eq('tot_id', userId),
-      supabaseAdmin.from('user_roles').delete().eq('user_id', userId),
-      supabaseAdmin.from('notification_settings').delete().eq('user_id', userId),
-      supabaseAdmin.from('notifications').delete().eq('user_id', userId),
-      supabaseAdmin.from('profiles').delete().eq('id', userId),
-    ]);
-
-    const cleanupError = cleanupResults.find((r: any) => r?.error)?.error;
-    if (cleanupError) {
-      // Non-fatal: auth user is already deleted, but we still want visibility.
-      console.warn('Post-delete cleanup warning:', cleanupError);
     }
 
     console.info(`User ${userId} deleted successfully`);

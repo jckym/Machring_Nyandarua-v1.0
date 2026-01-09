@@ -38,8 +38,20 @@ async function findAuthUserByEmail(supabaseAdmin: any, email: string) {
 
 async function purgeUserCompletely(supabaseAdmin: any, userId: string) {
   // Best-effort cleanup in public tables (covers older partial deletions)
+  // IMPORTANT: remove all FK dependencies BEFORE deleting the auth user.
   const cleanupResults = await Promise.all([
+    // Nullify references where we want to preserve the record but remove the user link
     supabaseAdmin.from("local_mrs").update({ coordinator_id: null }).eq("coordinator_id", userId),
+    supabaseAdmin.from("farmers").update({ registered_by: null }).eq("registered_by", userId),
+
+    // Delete records owned by / linked to this user
+    supabaseAdmin.from("sales").delete().eq("tot_id", userId),
+    supabaseAdmin.from("visits").delete().eq("tot_id", userId),
+    supabaseAdmin.from("trainings").delete().eq("trainer_id", userId),
+    supabaseAdmin.from("mechanisation_jobs").delete().eq("tot_id", userId),
+    supabaseAdmin.from("machinery_bookings").delete().eq("booked_by", userId),
+
+    // Core user-related tables
     supabaseAdmin.from("tot_assignments").delete().eq("tot_id", userId),
     supabaseAdmin.from("user_roles").delete().eq("user_id", userId),
     supabaseAdmin.from("notification_settings").delete().eq("user_id", userId),

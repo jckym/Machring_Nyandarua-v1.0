@@ -644,24 +644,40 @@ export async function fetchUsers() {
   }
 
   // Fetch sales data for TOT metrics
-  const { data: sales } = await supabase
+  const { data: sales, error: salesError } = await supabase
     .from("sales")
     .select("tot_id, total_amount, commission_amount, sale_date");
 
+  if (salesError) {
+    console.error("Error fetching sales for user metrics:", salesError);
+  }
+
   // Fetch mechanisation jobs for TOT metrics
-  const { data: jobs } = await supabase
+  const { data: jobs, error: jobsError } = await supabase
     .from("mechanisation_jobs")
     .select("tot_id, status, scheduled_date");
 
+  if (jobsError) {
+    console.error("Error fetching jobs for user metrics:", jobsError);
+  }
+
   // Fetch trainings for TOT metrics
-  const { data: trainings } = await supabase
+  const { data: trainings, error: trainingsError } = await supabase
     .from("trainings")
     .select("trainer_id, status, scheduled_date");
 
+  if (trainingsError) {
+    console.error("Error fetching trainings for user metrics:", trainingsError);
+  }
+
   // Fetch visits for TOT metrics
-  const { data: visits } = await supabase
+  const { data: visits, error: visitsError } = await supabase
     .from("visits")
     .select("tot_id, visit_date");
+
+  if (visitsError) {
+    console.error("Error fetching visits for user metrics:", visitsError);
+  }
 
   // Create a map of user_id to role
   const roleMap = new Map<string, string>();

@@ -91,7 +91,7 @@ function useCoordinatorStats(userId: string) {
   });
 }
 
-// Hook to fetch TOTs for this coordinator's MR
+// Hook to fetch TOTs for this coordinator's MR with full performance metrics
 function useCoordinatorTots(userId: string) {
   return useQuery({
     queryKey: ['coordinator-tots', userId],
@@ -99,17 +99,19 @@ function useCoordinatorTots(userId: string) {
       // Get the Local MR assigned to this coordinator
       const { data: localMr } = await supabase
         .from('local_mrs')
-        .select('id')
+        .select('id, name')
         .eq('coordinator_id', userId)
         .single();
 
       if (!localMr) return [];
 
+      const localMrId = localMr.id;
+
       // Get TOT assignments for this MR
       const { data: assignments } = await supabase
         .from('tot_assignments')
         .select('tot_id, status')
-        .eq('local_mr_id', localMr.id);
+        .eq('local_mr_id', localMrId);
 
       if (!assignments || assignments.length === 0) return [];
 
@@ -120,8 +122,101 @@ function useCoordinatorTots(userId: string) {
         .select('id, name, email, phone, status')
         .in('id', totIds);
 
+      // Fetch sales for this MR's TOTs
+      const { data: sales } = await supabase
+        .from('sales')
+        .select('tot_id, total_amount, commission_amount, sale_date')
+        .eq('local_mr_id', localMrId);
+
+      // Fetch jobs for this MR's TOTs
+      const { data: jobs } = await supabase
+        .from('mechanisation_jobs')
+        .select('tot_id, status, scheduled_date')
+        .eq('local_mr_id', localMrId);
+
+      // Fetch trainings for this MR
+      const { data: trainings } = await supabase
+        .from('trainings')
+        .select('trainer_id, status, scheduled_date')
+        .eq('local_mr_id', localMrId);
+
+      // Fetch visits for this MR's TOTs
+      const { data: visits } = await supabase
+        .from('visits')
+        .select('tot_id, visit_date')
+        .eq('local_mr_id', localMrId);
+
+      // Aggregate sales metrics per TOT
+      const totSalesMap = new Map<string, { count: number; revenue: number; commission: number; lastSaleDate: string | null }>();
+      (sales || []).forEach((s) => {
+        if (!totIds.includes(s.tot_id)) return;
+        const existing = totSalesMap.get(s.tot_id) || { count: 0, revenue: 0, commission: 0, lastSaleDate: null };
+        existing.count += 1;
+        existing.revenue += Number(s.total_amount) || 0;
+        existing.commission += Number(s.commission_amount) || 0;
+        if (!existing.lastSaleDate || s.sale_date > existing.lastSaleDate) {
+          existing.lastSaleDate = s.sale_date;
+        }
+        totSalesMap.set(s.tot_id, existing);
+      });
+
+      // Aggregate jobs per TOT
+      const totJobsMap = new Map<string, { count: number; completedCount: number; lastJobDate: string | null }>();
+      (jobs || []).forEach((j) => {
+        if (!totIds.includes(j.tot_id)) return;
+        const existing = totJobsMap.get(j.tot_id) || { count: 0, completedCount: 0, lastJobDate: null };
+        existing.count += 1;
+        if (j.status === 'completed') existing.completedCount += 1;
+        if (!existing.lastJobDate || j.scheduled_date > existing.lastJobDate) {
+          existing.lastJobDate = j.scheduled_date;
+        }
+        totJobsMap.set(j.tot_id, existing);
+      });
+
+      // Aggregate trainings per TOT (trainer_id)
+      const totTrainingsMap = new Map<string, { count: number; completedCount: number; lastTrainingDate: string | null }>();
+      (trainings || []).forEach((t) => {
+        if (!totIds.includes(t.trainer_id)) return;
+        const existing = totTrainingsMap.get(t.trainer_id) || { count: 0, completedCount: 0, lastTrainingDate: null };
+        existing.count += 1;
+        if (t.status === 'completed') existing.completedCount += 1;
+        if (!existing.lastTrainingDate || t.scheduled_date > existing.lastTrainingDate) {
+          existing.lastTrainingDate = t.scheduled_date;
+        }
+        totTrainingsMap.set(t.trainer_id, existing);
+      });
+
+      // Aggregate visits per TOT
+      const totVisitsMap = new Map<string, { count: number; lastVisitDate: string | null }>();
+      (visits || []).forEach((v) => {
+        if (!totIds.includes(v.tot_id)) return;
+        const existing = totVisitsMap.get(v.tot_id) || { count: 0, lastVisitDate: null };
+        existing.count += 1;
+        if (!existing.lastVisitDate || v.visit_date > existing.lastVisitDate) {
+          existing.lastVisitDate = v.visit_date;
+        }
+        totVisitsMap.set(v.tot_id, existing);
+      });
+
       return (profiles || []).map(p => {
         const assignment = assignments.find(a => a.tot_id === p.id);
+        const salesData = totSalesMap.get(p.id);
+        const jobsData = totJobsMap.get(p.id);
+        const trainingsData = totTrainingsMap.get(p.id);
+        const visitsData = totVisitsMap.get(p.id);
+
+        // Calculate last activity date
+        const activityDates = [
+          salesData?.lastSaleDate,
+          jobsData?.lastJobDate,
+          trainingsData?.lastTrainingDate,
+          visitsData?.lastVisitDate,
+        ].filter(Boolean) as string[];
+        
+        const lastActivityDate = activityDates.length > 0 
+          ? activityDates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0]
+          : null;
+
         return {
           id: p.id,
           name: p.name,
@@ -130,6 +225,17 @@ function useCoordinatorTots(userId: string) {
           role: 'tot' as const,
           status: assignment?.status || p.status,
           createdAt: new Date().toISOString(),
+          localMrId: localMrId,
+          localMrName: localMr.name,
+          salesCount: salesData?.count || 0,
+          totalRevenue: salesData?.revenue || 0,
+          totalCommission: salesData?.commission || 0,
+          jobsCount: jobsData?.count || 0,
+          completedJobsCount: jobsData?.completedCount || 0,
+          trainingsCount: trainingsData?.count || 0,
+          completedTrainingsCount: trainingsData?.completedCount || 0,
+          visitsCount: visitsData?.count || 0,
+          lastActivityDate,
         };
       });
     },
@@ -215,16 +321,8 @@ export function CoordinatorDashboard() {
     );
   }
 
-  // Transform TOTs for TOTPerformanceOverview
-  const totsForOverview = tots.map(t => ({
-    id: t.id,
-    name: t.name,
-    email: t.email,
-    phone: t.phone,
-    role: t.role,
-    status: t.status,
-    createdAt: t.createdAt,
-  }));
+  // TOTs already have full metrics from the updated hook
+  const totsForOverview = tots;
 
   return (
     <div className="space-y-6">

@@ -73,7 +73,7 @@ export function TOTManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTOT, setSelectedTOT] = useState<string | null>(null);
 
-  // Build TOT performance data with Local MR info
+  // Build TOT performance data with Local MR info - use metrics from fetchUsers
   const totsPerformance: TOTPerformance[] = tots.map(tot => {
     const localMr = (localMRs as any[]).find(mr => mr.id === tot.localMrId);
     return {
@@ -82,13 +82,13 @@ export function TOTManagement() {
       phone: tot.phone || '',
       email: tot.email || '',
       status: tot.status === 'active' ? 'active' : 'inactive',
-      localMrName: localMr?.name || 'Unassigned',
-      totalSales: 0,
-      totalCommission: 0,
-      mechanisationJobsCompleted: 0,
-      trainingsConducted: 0,
-      visitsLogged: 0,
-      lastActivityDate: undefined,
+      localMrName: tot.localMrName || localMr?.name || 'Unassigned',
+      totalSales: tot.totalRevenue || 0,
+      totalCommission: tot.totalCommission || 0,
+      mechanisationJobsCompleted: tot.completedJobsCount || tot.jobsCount || 0,
+      trainingsConducted: tot.completedTrainingsCount || tot.trainingsCount || 0,
+      visitsLogged: tot.visitsCount || 0,
+      lastActivityDate: tot.lastActivityDate ? new Date(tot.lastActivityDate) : undefined,
     };
   });
   

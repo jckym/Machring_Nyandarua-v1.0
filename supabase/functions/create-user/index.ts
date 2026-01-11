@@ -196,7 +196,7 @@ Deno.serve(async (req) => {
       if (existingAuthUser?.id) {
         const { data: existingProfile, error: profileLookupError } = await supabaseAdmin
           .from("profiles")
-          .select("id")
+          .select("id, name, status")
           .eq("id", existingAuthUser.id)
           .maybeSingle();
 
@@ -204,24 +204,35 @@ Deno.serve(async (req) => {
           console.warn("Profile lookup warning:", profileLookupError);
         }
 
-        if (!existingProfile) {
-          console.warn(
-            `Found orphaned auth user ${existingAuthUser.id} for ${normalizedEmail}. Purging then retrying create...`
+        if (existingProfile) {
+          // User exists with a valid profile - cannot create duplicate
+          console.error(`User ${normalizedEmail} already exists with profile ID: ${existingProfile.id}`);
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: `A user with email "${normalizedEmail}" already exists in the system. To re-invite this user, first delete them from User Management, then try again.` 
+            }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
+        }
 
-          try {
-            await purgeUserCompletely(supabaseAdmin, existingAuthUser.id);
-            // Small delay to avoid rare eventual-consistency issues
-            await new Promise((r) => setTimeout(r, 150));
-            ({ data: authData, error: createAuthError } = await createAuthUser());
-          } catch (purgeError: unknown) {
-            const message = purgeError instanceof Error ? purgeError.message : "Failed to purge existing user";
-            console.error("Failed to purge orphaned user:", purgeError);
-            return new Response(
-              JSON.stringify({ success: false, error: message }),
-              { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-          }
+        // Orphaned account - no profile exists
+        console.warn(
+          `Found orphaned auth user ${existingAuthUser.id} for ${normalizedEmail}. Purging then retrying create...`
+        );
+
+        try {
+          await purgeUserCompletely(supabaseAdmin, existingAuthUser.id);
+          // Small delay to avoid rare eventual-consistency issues
+          await new Promise((r) => setTimeout(r, 150));
+          ({ data: authData, error: createAuthError } = await createAuthUser());
+        } catch (purgeError: unknown) {
+          const message = purgeError instanceof Error ? purgeError.message : "Failed to purge existing user";
+          console.error("Failed to purge orphaned user:", purgeError);
+          return new Response(
+            JSON.stringify({ success: false, error: message }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
         }
       }
     }

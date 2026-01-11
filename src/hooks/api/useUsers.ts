@@ -17,6 +17,18 @@ export interface User {
   // From tot_assignments
   local_mr_id?: string;
   local_mr_name?: string;
+  localMrId?: string;
+  localMrName?: string;
+  // Performance metrics
+  salesCount?: number;
+  totalRevenue?: number;
+  totalCommission?: number;
+  jobsCount?: number;
+  completedJobsCount?: number;
+  trainingsCount?: number;
+  completedTrainingsCount?: number;
+  visitsCount?: number;
+  lastActivityDate?: string | null;
 }
 
 export interface UserFilters {
@@ -38,7 +50,7 @@ export function useUsers(filters: UserFilters = {}) {
   return useQuery({
     queryKey: userKeys.list(filters),
     queryFn: async () => {
-      // Fetch profiles with roles
+      // Fetch profiles
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
@@ -65,19 +77,118 @@ export function useUsers(filters: UserFilters = {}) {
 
       if (assignmentsError) throw assignmentsError;
 
-      // Build user list with roles and assignments
+      // Fetch sales data for performance metrics
+      const { data: sales } = await supabase
+        .from('sales')
+        .select('tot_id, total_amount, commission_amount, sale_date');
+
+      // Fetch mechanisation jobs for metrics
+      const { data: jobs } = await supabase
+        .from('mechanisation_jobs')
+        .select('tot_id, status, scheduled_date');
+
+      // Fetch trainings for metrics
+      const { data: trainings } = await supabase
+        .from('trainings')
+        .select('trainer_id, status, scheduled_date');
+
+      // Fetch visits for metrics
+      const { data: visits } = await supabase
+        .from('visits')
+        .select('tot_id, visit_date');
+
+      // Build maps for quick lookup
       const rolesMap = new Map(roles?.map(r => [r.user_id, r.role]) || []);
       const assignmentsMap = new Map(
         assignments?.map(a => [a.tot_id, { local_mr_id: a.local_mr_id, local_mr_name: a.local_mrs?.name }]) || []
       );
 
-      let users = (profiles || []).map(p => ({
-        ...p,
-        role: rolesMap.get(p.id) || 'tot',
-        local_mr_id: assignmentsMap.get(p.id)?.local_mr_id,
-        local_mr_name: assignmentsMap.get(p.id)?.local_mr_name,
-        localMrId: assignmentsMap.get(p.id)?.local_mr_id,
-      }));
+      // Aggregate sales metrics per user
+      const salesMap = new Map<string, { count: number; revenue: number; commission: number; lastDate: string | null }>();
+      (sales || []).forEach((s) => {
+        const existing = salesMap.get(s.tot_id) || { count: 0, revenue: 0, commission: 0, lastDate: null };
+        existing.count += 1;
+        existing.revenue += Number(s.total_amount) || 0;
+        existing.commission += Number(s.commission_amount) || 0;
+        if (!existing.lastDate || s.sale_date > existing.lastDate) {
+          existing.lastDate = s.sale_date;
+        }
+        salesMap.set(s.tot_id, existing);
+      });
+
+      // Aggregate jobs per user
+      const jobsMap = new Map<string, { count: number; completedCount: number; lastDate: string | null }>();
+      (jobs || []).forEach((j) => {
+        const existing = jobsMap.get(j.tot_id) || { count: 0, completedCount: 0, lastDate: null };
+        existing.count += 1;
+        if (j.status === 'completed') existing.completedCount += 1;
+        if (!existing.lastDate || j.scheduled_date > existing.lastDate) {
+          existing.lastDate = j.scheduled_date;
+        }
+        jobsMap.set(j.tot_id, existing);
+      });
+
+      // Aggregate trainings per user (trainer_id)
+      const trainingsMap = new Map<string, { count: number; completedCount: number; lastDate: string | null }>();
+      (trainings || []).forEach((t) => {
+        const existing = trainingsMap.get(t.trainer_id) || { count: 0, completedCount: 0, lastDate: null };
+        existing.count += 1;
+        if (t.status === 'completed') existing.completedCount += 1;
+        if (!existing.lastDate || t.scheduled_date > existing.lastDate) {
+          existing.lastDate = t.scheduled_date;
+        }
+        trainingsMap.set(t.trainer_id, existing);
+      });
+
+      // Aggregate visits per user
+      const visitsMap = new Map<string, { count: number; lastDate: string | null }>();
+      (visits || []).forEach((v) => {
+        const existing = visitsMap.get(v.tot_id) || { count: 0, lastDate: null };
+        existing.count += 1;
+        if (!existing.lastDate || v.visit_date > existing.lastDate) {
+          existing.lastDate = v.visit_date;
+        }
+        visitsMap.set(v.tot_id, existing);
+      });
+
+      // Build user list with roles, assignments, and performance metrics
+      let users = (profiles || []).map(p => {
+        const salesData = salesMap.get(p.id);
+        const jobsData = jobsMap.get(p.id);
+        const trainingsData = trainingsMap.get(p.id);
+        const visitsData = visitsMap.get(p.id);
+
+        // Calculate last activity date
+        const activityDates = [
+          salesData?.lastDate,
+          jobsData?.lastDate,
+          trainingsData?.lastDate,
+          visitsData?.lastDate,
+        ].filter(Boolean) as string[];
+        
+        const lastActivityDate = activityDates.length > 0
+          ? activityDates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0]
+          : null;
+
+        return {
+          ...p,
+          role: rolesMap.get(p.id) || 'tot',
+          local_mr_id: assignmentsMap.get(p.id)?.local_mr_id,
+          local_mr_name: assignmentsMap.get(p.id)?.local_mr_name,
+          localMrId: assignmentsMap.get(p.id)?.local_mr_id,
+          localMrName: assignmentsMap.get(p.id)?.local_mr_name,
+          // Performance metrics
+          salesCount: salesData?.count || 0,
+          totalRevenue: salesData?.revenue || 0,
+          totalCommission: salesData?.commission || 0,
+          jobsCount: jobsData?.count || 0,
+          completedJobsCount: jobsData?.completedCount || 0,
+          trainingsCount: trainingsData?.count || 0,
+          completedTrainingsCount: trainingsData?.completedCount || 0,
+          visitsCount: visitsData?.count || 0,
+          lastActivityDate,
+        };
+      });
 
       // Apply filters
       if (filters.role) {

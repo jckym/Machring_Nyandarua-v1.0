@@ -21,7 +21,16 @@ export interface User {
   createdAt?: Date | string;
   created_at?: string;
   updated_at?: string;
-  lastActivityDate?: Date;
+  // Performance metrics
+  salesCount?: number;
+  totalRevenue?: number;
+  totalCommission?: number;
+  jobsCount?: number;
+  completedJobsCount?: number;
+  trainingsCount?: number;
+  completedTrainingsCount?: number;
+  visitsCount?: number;
+  lastActivityDate?: Date | string | null;
 }
 
 // -----------------------------

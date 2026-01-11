@@ -301,6 +301,14 @@ export function Sales() {
                                 Complete
                               </DropdownMenuItem>
                             )}
+                            {sale.status !== 'cancelled' && (
+                              <DropdownMenuItem 
+                                onClick={() => handleCancelSale(sale.id)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                Cancel Sale
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </td>

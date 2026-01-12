@@ -114,6 +114,7 @@ export function AdminDashboard() {
           subtitle="Jobs completed"
           icon={Tractor}
           variant="earth"
+          href="/machinery"
         />
       </div>
 

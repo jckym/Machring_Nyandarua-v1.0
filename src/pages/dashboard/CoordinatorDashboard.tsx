@@ -376,6 +376,7 @@ export function CoordinatorDashboard() {
           value={stats?.completedJobs || 0}
           subtitle="Jobs completed"
           icon={Tractor}
+          href="/machinery"
         />
         <StatCard
           title="Trainings"

@@ -108,6 +108,7 @@ export function TotDashboard() {
           subtitle="Jobs booked"
           icon={Tractor}
           trend={{ value: 15, isPositive: true }}
+          href="/machinery"
         />
         <StatCard
           title="Farm Visits"

@@ -61,18 +61,18 @@ function useCoordinatorStats(userId: string) {
       const localMrId = localMr.id;
 
       // Fetch stats for this specific MR only
-      const [farmersResult, totsResult, salesResult, jobsResult, trainingsResult, visitsResult] = await Promise.all([
+      const [farmersResult, totsResult, salesResult, bookingsResult, trainingsResult, visitsResult] = await Promise.all([
         supabase.from('farmers').select('id', { count: 'exact', head: true }).eq('local_mr_id', localMrId),
         supabase.from('tot_assignments').select('id, status', { count: 'exact' }).eq('local_mr_id', localMrId),
         supabase.from('sales').select('id, total_amount', { count: 'exact' }).eq('local_mr_id', localMrId),
-        supabase.from('mechanisation_jobs').select('id, status', { count: 'exact' }).eq('local_mr_id', localMrId),
+        supabase.from('machinery_bookings').select('id, status', { count: 'exact' }).eq('local_mr_id', localMrId),
         supabase.from('trainings').select('id', { count: 'exact', head: true }).eq('local_mr_id', localMrId),
         supabase.from('visits').select('id', { count: 'exact', head: true }).eq('local_mr_id', localMrId),
       ]);
 
       const totalRevenue = salesResult.data?.reduce((sum, s) => sum + (Number(s.total_amount) || 0), 0) || 0;
       const activeTots = totsResult.data?.filter(t => t.status === 'active').length || 0;
-      const completedJobs = jobsResult.data?.filter(j => j.status === 'completed').length || 0;
+      const completedBookings = bookingsResult.data?.filter(b => b.status === 'completed').length || 0;
 
       return {
         totalFarmers: farmersResult.count || 0,
@@ -80,7 +80,7 @@ function useCoordinatorStats(userId: string) {
         activeTots,
         totalSales: salesResult.count || 0,
         totalRevenue,
-        completedJobs,
+        completedJobs: completedBookings,
         totalTrainings: trainingsResult.count || 0,
         totalVisits: visitsResult.count || 0,
         localMrName: localMr.name,
@@ -128,10 +128,10 @@ function useCoordinatorTots(userId: string) {
         .select('tot_id, total_amount, commission_amount, sale_date')
         .eq('local_mr_id', localMrId);
 
-      // Fetch jobs for this MR's TOTs
-      const { data: jobs } = await supabase
-        .from('mechanisation_jobs')
-        .select('tot_id, status, scheduled_date')
+      // Fetch bookings for this MR's TOTs
+      const { data: bookings } = await supabase
+        .from('machinery_bookings')
+        .select('booked_by, status, start_date')
         .eq('local_mr_id', localMrId);
 
       // Fetch trainings for this MR
@@ -160,17 +160,17 @@ function useCoordinatorTots(userId: string) {
         totSalesMap.set(s.tot_id, existing);
       });
 
-      // Aggregate jobs per TOT
+      // Aggregate bookings per TOT
       const totJobsMap = new Map<string, { count: number; completedCount: number; lastJobDate: string | null }>();
-      (jobs || []).forEach((j) => {
-        if (!totIds.includes(j.tot_id)) return;
-        const existing = totJobsMap.get(j.tot_id) || { count: 0, completedCount: 0, lastJobDate: null };
+      (bookings || []).forEach((b) => {
+        if (!totIds.includes(b.booked_by)) return;
+        const existing = totJobsMap.get(b.booked_by) || { count: 0, completedCount: 0, lastJobDate: null };
         existing.count += 1;
-        if (j.status === 'completed') existing.completedCount += 1;
-        if (!existing.lastJobDate || j.scheduled_date > existing.lastJobDate) {
-          existing.lastJobDate = j.scheduled_date;
+        if (b.status === 'completed') existing.completedCount += 1;
+        if (!existing.lastJobDate || b.start_date > existing.lastJobDate) {
+          existing.lastJobDate = b.start_date;
         }
-        totJobsMap.set(j.tot_id, existing);
+        totJobsMap.set(b.booked_by, existing);
       });
 
       // Aggregate trainings per TOT (trainer_id)

@@ -102,7 +102,7 @@ export async function fetchAdminStats(): Promise<AdminStats> {
     localMrsResult,
     totsResult,
     productsResult,
-    mechanisationResult,
+    machineryBookingsResult,
     trainingsResult,
   ] = await Promise.all([
     supabase.from("farmers").select("id", { count: "exact", head: true }),
@@ -110,13 +110,13 @@ export async function fetchAdminStats(): Promise<AdminStats> {
     supabase.from("local_mrs").select("id", { count: "exact", head: true }),
     supabase.from("user_roles").select("id", { count: "exact", head: true }).eq("role", "tot"),
     supabase.from("products").select("id", { count: "exact", head: true }).eq("status", "active"),
-    supabase.from("mechanisation_jobs").select("id, status", { count: "exact" }),
+    supabase.from("machinery_bookings").select("id, status", { count: "exact" }),
     supabase.from("trainings").select("id", { count: "exact", head: true }),
   ]);
 
   // Calculate revenue from sales
   const totalRevenue = salesResult.data?.reduce((sum, sale) => sum + (Number(sale.total_amount) || 0), 0) || 0;
-  const completedMech = mechanisationResult.data?.filter(j => j.status === "completed").length || 0;
+  const completedBookings = machineryBookingsResult.data?.filter(j => j.status === "completed").length || 0;
 
   return {
     totalFarmers: farmersResult.count || 0,
@@ -125,10 +125,10 @@ export async function fetchAdminStats(): Promise<AdminStats> {
     totalTots: totsResult.count || 0,
     totalRevenue,
     totalProducts: productsResult.count || 0,
-    pendingApprovals: 0, // Can be extended for approval workflow
+    pendingApprovals: 0,
     activeTots: totsResult.count || 0,
-    completedMechanisation: completedMech,
-    mechanisationJobs: mechanisationResult.count || 0,
+    completedMechanisation: completedBookings,
+    mechanisationJobs: machineryBookingsResult.count || 0,
     trainingsHeld: trainingsResult.count || 0,
   };
 }
@@ -138,10 +138,10 @@ export async function fetchAdminStats(): Promise<AdminStats> {
  */
 export async function fetchTotStats(totId: string): Promise<TotStats> {
   // Fetch TOT-specific data
-  const [salesResult, visitsResult, mechanisationResult, trainingsResult] = await Promise.all([
+  const [salesResult, visitsResult, machineryBookingsResult, trainingsResult] = await Promise.all([
     supabase.from("sales").select("id, total_amount, commission_amount").eq("tot_id", totId),
     supabase.from("visits").select("id", { count: "exact", head: true }).eq("tot_id", totId),
-    supabase.from("mechanisation_jobs").select("id", { count: "exact", head: true }).eq("tot_id", totId),
+    supabase.from("machinery_bookings").select("id", { count: "exact", head: true }).eq("booked_by", totId),
     supabase.from("trainings").select("id", { count: "exact", head: true }).eq("trainer_id", totId),
   ]);
 
@@ -160,7 +160,7 @@ export async function fetchTotStats(totId: string): Promise<TotStats> {
     totalFarmers: uniqueFarmers,
     totalSales: salesResult.data?.length || 0,
     totalRevenue,
-    mechanisationJobs: mechanisationResult.count || 0,
+    mechanisationJobs: machineryBookingsResult.count || 0,
     visitsCompleted: visitsResult.count || 0,
     trainingsHeld: trainingsResult.count || 0,
     totalCommission,

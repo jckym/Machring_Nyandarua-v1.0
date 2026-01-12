@@ -65,6 +65,7 @@ const managerNavItems = [
   { to: '/farmers', icon: Users, label: 'All Farmers' },
   { to: '/sales', icon: ShoppingCart, label: 'Sales Overview' },
   { to: '/machinery', icon: Tractor, label: 'Machinery' },
+  { to: '/visits', icon: MapPin, label: 'All Visits' },
   { to: '/trainings', icon: GraduationCap, label: 'Trainings' },
   { to: '/products', icon: Package, label: 'Products' },
   { to: '/reports', icon: FileText, label: 'Reports' },

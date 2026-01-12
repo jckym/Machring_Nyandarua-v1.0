@@ -1,5 +1,6 @@
 // src/components/StatCard.tsx
 import { LucideIcon } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
@@ -13,6 +14,7 @@ interface StatCardProps {
     isPositive: boolean;
   };
   variant?: 'default' | 'forest' | 'earth' | 'wheat' | 'sage';
+  href?: string;
 }
 
 const variantStyles = {
@@ -38,13 +40,24 @@ export function StatCard({
   icon: Icon,
   trend,
   variant = 'default',
+  href,
 }: StatCardProps) {
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    if (href) {
+      navigate(href);
+    }
+  };
+
   return (
     <Card
       className={cn(
         'p-6 transition-all duration-300 hover:shadow-card animate-fade-in',
-        variantStyles[variant]
+        variantStyles[variant],
+        href && 'cursor-pointer hover:scale-[1.02]'
       )}
+      onClick={handleClick}
     >
       <div className="flex items-start justify-between">
         <div className="space-y-2">

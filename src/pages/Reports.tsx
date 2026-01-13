@@ -24,7 +24,7 @@ import { toast } from 'sonner';
 // Data hooks
 import { useFarmers } from '@/hooks/api/useFarmers';
 import { useSales } from '@/hooks/api/useSales';
-import { useMechanisationJobs } from '@/hooks/api/useMechanisation';
+import { useMachineryBookings } from '@/hooks/api/useMachineryBookings';
 import { useTrainings } from '@/hooks/api/useTrainings';
 import { useVisits } from '@/hooks/api/useVisits';
 
@@ -51,7 +51,7 @@ import {
 const reportTypes = [
   { id: 'sales', title: 'Sales Report', description: 'Sales transactions, revenue, and commissions', icon: ShoppingCart, color: 'forest' },
   { id: 'farmers', title: 'Farmer Profiles', description: 'Farmer registry with contact details', icon: Users, color: 'wheat' },
-  { id: 'mechanisation', title: 'Mechanisation Report', description: 'Machinery service bookings summary', icon: Tractor, color: 'earth' },
+  { id: 'machinery', title: 'Machinery Report', description: 'Machinery bookings and jobs summary', icon: Tractor, color: 'earth' },
   { id: 'trainings', title: 'Training Report', description: 'Capacity building and attendance', icon: GraduationCap, color: 'forest' },
   { id: 'visits', title: 'Visits Report', description: 'Field visits and farmer interactions', icon: MapPin, color: 'wheat' },
   { id: 'commission', title: 'Commission Report', description: 'Commission earnings breakdown', icon: FileText, color: 'earth' },
@@ -72,18 +72,18 @@ export function Reports() {
   // Fetch all data
   const { data: farmers = [], isLoading: farmersLoading } = useFarmers();
   const { data: sales = [], isLoading: salesLoading } = useSales();
-  const { data: mechanisation = [], isLoading: mechLoading } = useMechanisationJobs();
+  const { data: machineryBookings = [], isLoading: machLoading } = useMachineryBookings();
   const { data: trainings = [], isLoading: trainingsLoading } = useTrainings();
   const { data: visits = [], isLoading: visitsLoading } = useVisits();
 
-  const isLoading = farmersLoading || salesLoading || mechLoading || trainingsLoading || visitsLoading;
+  const isLoading = farmersLoading || salesLoading || machLoading || trainingsLoading || visitsLoading;
 
   // Filter data by date range
-  const filterByDateRange = <T extends { created_at?: string; sale_date?: string; scheduled_date?: string; visit_date?: string }>(data: T[]) => {
+  const filterByDateRange = <T extends { created_at?: string; sale_date?: string; scheduled_date?: string; visit_date?: string; start_date?: string }>(data: T[]) => {
     if (!startDate && !endDate) return data;
     
     return data.filter(item => {
-      const itemDate = item.sale_date || item.scheduled_date || item.visit_date || item.created_at;
+      const itemDate = item.sale_date || item.scheduled_date || item.visit_date || item.start_date || item.created_at;
       if (!itemDate) return true;
       
       const date = new Date(itemDate);
@@ -94,7 +94,7 @@ export function Reports() {
   };
 
   const filteredSales = filterByDateRange(sales);
-  const filteredMechanisation = filterByDateRange(mechanisation);
+  const filteredMachineryBookings = filterByDateRange(machineryBookings);
   const filteredTrainings = filterByDateRange(trainings);
   const filteredVisits = filterByDateRange(visits);
 
@@ -113,9 +113,9 @@ export function Reports() {
       totalCommission,
       trainings: filteredTrainings.length,
       visits: filteredVisits.length,
-      mechanisation: filteredMechanisation.length,
+      machinery: filteredMachineryBookings.length,
     };
-  }, [farmers, filteredSales, filteredTrainings, filteredVisits, filteredMechanisation]);
+  }, [farmers, filteredSales, filteredTrainings, filteredVisits, filteredMachineryBookings]);
 
   // Prepare commission data using filtered sales
   const commissionData: CommissionData[] = useMemo(() => {
@@ -171,9 +171,9 @@ export function Reports() {
       totMap.set(totId, existing);
     });
     
-    // Add mechanisation data
-    filteredMechanisation.forEach(job => {
-      const totId = job.tot_id || '';
+    // Add machinery bookings data
+    filteredMachineryBookings.forEach((booking: any) => {
+      const totId = booking.booked_by || '';
       if (totMap.has(totId)) {
         totMap.get(totId)!.mechanisationJobs += 1;
       }
@@ -196,7 +196,7 @@ export function Reports() {
     });
     
     return Array.from(totMap.values());
-  }, [filteredSales, filteredMechanisation, filteredTrainings, filteredVisits]);
+  }, [filteredSales, filteredMachineryBookings, filteredTrainings, filteredVisits]);
 
   const clearDateFilters = () => {
     setStartDate('');
@@ -235,11 +235,12 @@ export function Reports() {
           }
           break;
           
-        case 'mechanisation':
+        case 'machinery':
+          // Use mechanisation export functions for machinery bookings
           if (format === 'pdf') {
-            await exportMechanisationToPDF(filteredMechanisation as any, 'mechanisation_report', userName);
+            await exportMechanisationToPDF(filteredMachineryBookings as any, 'machinery_report', userName);
           } else {
-            exportMechanisationToExcel(filteredMechanisation as any, 'mechanisation_report');
+            exportMechanisationToExcel(filteredMachineryBookings as any, 'machinery_report');
           }
           break;
           
@@ -383,7 +384,7 @@ export function Reports() {
             switch (report.id) {
               case 'farmers': return farmers.length;
               case 'sales': return filteredSales.length;
-              case 'mechanisation': return filteredMechanisation.length;
+              case 'machinery': return filteredMachineryBookings.length;
               case 'trainings': return filteredTrainings.length;
               case 'visits': return filteredVisits.length;
               case 'commission': return commissionData.length;
@@ -484,8 +485,8 @@ export function Reports() {
               </div>
               <div className="text-center p-3 bg-muted/50 rounded-lg">
                 <Tractor className="w-5 h-5 mx-auto mb-1 text-primary" />
-                <p className="text-lg font-semibold">{summary.mechanisation}</p>
-                <p className="text-xs text-muted-foreground">Mech Jobs</p>
+                <p className="text-lg font-semibold">{summary.machinery}</p>
+                <p className="text-xs text-muted-foreground">Mach Jobs</p>
               </div>
               <div className="text-center p-3 bg-muted/50 rounded-lg">
                 <GraduationCap className="w-5 h-5 mx-auto mb-1 text-primary" />

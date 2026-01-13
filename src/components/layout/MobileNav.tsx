@@ -51,6 +51,7 @@ const coordinatorNavItems = [
   { to: '/farmers', icon: Users, label: 'Farmers' },
   { to: '/sales', icon: ShoppingCart, label: 'Sales' },
   { to: '/machinery', icon: Tractor, label: 'Machinery' },
+  { to: '/visits', icon: MapPin, label: 'Visits' },
   { to: '/trainings', icon: GraduationCap, label: 'Trainings' },
   { to: '/products', icon: Package, label: 'Products' },
   { to: '/reports', icon: FileText, label: 'Reports' },
@@ -68,6 +69,7 @@ const managerNavItems = [
   { to: '/visits', icon: MapPin, label: 'All Visits' },
   { to: '/trainings', icon: GraduationCap, label: 'Trainings' },
   { to: '/products', icon: Package, label: 'Products' },
+  { to: '/commission', icon: Calculator, label: 'Commission' },
   { to: '/reports', icon: FileText, label: 'Reports' },
   { to: '/notifications', icon: Bell, label: 'Notifications' },
 ];

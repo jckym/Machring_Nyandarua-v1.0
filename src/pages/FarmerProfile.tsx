@@ -3,13 +3,13 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useFarmers, useSales, useVisits, useTrainings, useLocalMRs } from '@/hooks/api';
+import { useFarmers, useSales, useVisits, useLocalMRs, useFarmerTrainings } from '@/hooks/api';
 import { useMachineryBookings } from '@/hooks/api/useMachineryBookings';
 import { 
   ArrowLeft, Phone, Mail, MapPin, Calendar, ShoppingCart, Tractor, 
   GraduationCap, Users, Star, Edit, TrendingUp 
 } from 'lucide-react';
-import { Farmer, Sale, Visit, Training } from '@/types';
+import { Farmer, Sale, Visit } from '@/types';
 
 export function FarmerProfile() {
   const { id } = useParams();
@@ -20,8 +20,10 @@ export function FarmerProfile() {
   const { data: sales = [] } = useSales();
   const { data: bookings = [] } = useMachineryBookings();
   const { data: visits = [] } = useVisits();
-  const { data: trainings = [] } = useTrainings();
   const { data: localMRs = [] } = useLocalMRs();
+  
+  // Fetch training attendance specifically for this farmer
+  const { data: farmerTrainings = [] } = useFarmerTrainings(id || '');
   
   const farmer = (farmers as Farmer[]).find(f => f.id === id);
   
@@ -41,7 +43,7 @@ export function FarmerProfile() {
   const farmerSales = (sales as Sale[]).filter(s => s.farmerId === farmer.id);
   const farmerBookings = (bookings || []).filter(b => b.farmer_id === farmer.id);
   const farmerVisits = (visits as Visit[]).filter(v => v.farmerId === farmer.id);
-  const farmerTrainings = (trainings as Training[]).filter(t => t.attendees.includes(farmer.id));
+  // farmerTrainings is already filtered by the hook
 
   const totalSpent = farmerSales.reduce((acc, s) => acc + s.total, 0);
   const bookingsSpent = 0; // Bookings don't have direct cost - calculated from machinery rates
@@ -160,7 +162,7 @@ export function FarmerProfile() {
               </div>
               <div className="flex justify-between">
                 <span className="opacity-80">Trainings Attended</span>
-                <span className="font-semibold">{farmer.trainingsAttended}</span>
+                <span className="font-semibold">{farmerTrainings.length || farmer.trainingsAttended}</span>
               </div>
               <div className="flex justify-between">
                 <span className="opacity-80">Field Visits</span>
@@ -282,11 +284,13 @@ export function FarmerProfile() {
                     <div key={training.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                       <div>
                         <p className="font-medium text-sm">{training.title}</p>
-                        <p className="text-xs text-muted-foreground">{formatDate(training.date)} • {training.location}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatDate(training.scheduled_date)} • {training.venue || 'No venue'}
+                        </p>
                       </div>
                       <div className="text-right">
-                        <Badge variant="forest" className="text-xs">{training.type}</Badge>
-                        <p className="text-xs text-muted-foreground mt-1">{training.duration} hrs</p>
+                        <Badge variant="forest" className="text-xs">{training.training_type}</Badge>
+                        <p className="text-xs text-muted-foreground mt-1">{training.duration_hours || 0} hrs</p>
                       </div>
                     </div>
                   ))}

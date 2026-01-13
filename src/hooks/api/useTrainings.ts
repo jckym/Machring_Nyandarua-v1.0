@@ -340,10 +340,29 @@ export function useAddMultipleAttendees() {
         .upsert(attendees, { onConflict: 'training_id,farmer_id' });
 
       if (error) throw error;
+      
+      // Update the trainings_attended count for each farmer
+      for (const farmerId of farmerIds) {
+        // Count total trainings this farmer has attended
+        const { count } = await supabase
+          .from('training_attendees')
+          .select('*', { count: 'exact', head: true })
+          .eq('farmer_id', farmerId)
+          .eq('attended', true);
+        
+        // Update farmer's training count
+        await supabase
+          .from('farmers')
+          .update({ trainings_attended: count || 0 })
+          .eq('id', farmerId);
+      }
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: trainingKeys.detail(variables.trainingId) });
       queryClient.invalidateQueries({ queryKey: trainingKeys.all });
+      // Also invalidate farmers to update their training counts
+      queryClient.invalidateQueries({ queryKey: ['farmers'] });
+      queryClient.invalidateQueries({ queryKey: ['farmer-trainings'] });
       toast.success('Attendance recorded');
     },
     onError: (error: Error) => {

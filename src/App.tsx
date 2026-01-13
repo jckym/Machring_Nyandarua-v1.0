@@ -35,6 +35,7 @@ import { Settings } from "@/pages/Settings";
 import { Support } from "@/pages/Support";
 import { Users } from "@/pages/admin/Users";
 import { LocalMRs } from "@/pages/admin/LocalMRs";
+import { LocalMRDetails } from "@/pages/admin/LocalMRDetails";
 import { AuditLog } from "@/pages/admin/AuditLog";
 import { SystemLogs } from "@/pages/admin/SystemLogs";
 import { Commission } from "@/pages/Commission";
@@ -128,6 +129,11 @@ const App = () => (
                   <Route path="/local-mrs" element={
                     <ProtectedRoute allowedRoles={['manager', 'admin']}>
                       <LocalMRs />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/local-mrs/:id" element={
+                    <ProtectedRoute allowedRoles={['manager', 'admin']}>
+                      <LocalMRDetails />
                     </ProtectedRoute>
                   } />
                   

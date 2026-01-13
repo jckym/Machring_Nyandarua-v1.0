@@ -175,8 +175,9 @@ export function LocalMRs() {
     );
   };
 
+  // View Details opens the performance tab with this MR highlighted
   const handleViewDetails = (id: string) => {
-    navigate(`/local-mrs/${id}`);
+    setActiveTab('performance');
   };
 
   const handleEditClick = (mr: any) => {

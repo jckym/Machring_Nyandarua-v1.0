@@ -7,9 +7,11 @@ import { useFarmers, useSales, useVisits, useLocalMRs, useFarmerTrainings } from
 import { useMachineryBookings } from '@/hooks/api/useMachineryBookings';
 import { 
   ArrowLeft, Phone, Mail, MapPin, Calendar, ShoppingCart, Tractor, 
-  GraduationCap, Users, Star, Edit, TrendingUp 
+  GraduationCap, Users, Star, Edit, TrendingUp, Download 
 } from 'lucide-react';
 import { Farmer, Sale, Visit } from '@/types';
+import { toast } from 'sonner';
+import * as XLSX from 'xlsx';
 
 export function FarmerProfile() {
   const { id } = useParams();
@@ -73,6 +75,29 @@ export function FarmerProfile() {
   };
 
   const formatCurrency = (value: number) => `KES ${value.toLocaleString()}`;
+
+  const exportVisitsToCSV = () => {
+    if (farmerVisits.length === 0) {
+      toast.error('No visits to export');
+      return;
+    }
+
+    const exportData = farmerVisits.map((visit: any, idx) => ({
+      '#': idx + 1,
+      'Date': formatDate(visit.date || visit.visit_date),
+      'Purpose': visit.purpose,
+      'Notes': visit.notes || '',
+      'TOT': visit.totName || visit.tot_name || '',
+      'Follow-up Required': visit.follow_up_required ? 'Yes' : 'No',
+      'Follow-up Date': visit.follow_up_date ? formatDate(visit.follow_up_date) : '',
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Visit History');
+    XLSX.writeFile(wb, `${farmer.name}_visit_history.csv`);
+    toast.success('Visit history exported');
+  };
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -303,6 +328,12 @@ export function FarmerProfile() {
                 <p className="text-muted-foreground text-center py-8">No visits recorded yet.</p>
               ) : (
                 <div className="space-y-3">
+                  <div className="flex justify-end">
+                    <Button variant="outline" size="sm" onClick={exportVisitsToCSV}>
+                      <Download className="w-4 h-4 mr-1" />
+                      Export CSV
+                    </Button>
+                  </div>
                   {farmerVisits.map(visit => (
                     <div key={visit.id} className="p-3 rounded-lg bg-muted/50">
                       <div className="flex items-center justify-between mb-2">

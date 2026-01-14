@@ -1,7 +1,7 @@
 // src/pages/dashboard/AdminDashboard.tsx
 import { 
   Users, ShoppingCart, Tractor, Building2, 
-  GraduationCap, TrendingUp, UserCog, Package 
+  GraduationCap, TrendingUp, UserCog, Package, AlertCircle 
 } from 'lucide-react';
 
 import { StatCard } from '@/components/dashboard/StatCard';
@@ -9,6 +9,7 @@ import { GlobalRecentActivity } from '@/components/dashboard/GlobalRecentActivit
 import { SalesChart } from '@/components/dashboard/SalesChart';
 import { ProductChart } from '@/components/dashboard/ProductChart';
 import { TopPerformers } from '@/components/dashboard/TopPerformers';
+import { OverdueFollowUps } from '@/components/dashboard/OverdueFollowUps';
 import {
   useSupabaseAdminStats, 
   useSupabaseLocalMRs,
@@ -20,7 +21,6 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { AlertCircle } from 'lucide-react';
 
 export function AdminDashboard() {
   // Enable realtime updates
@@ -244,6 +244,7 @@ export function AdminDashboard() {
 
         {/* Side Column */}
         <div className="space-y-6">
+          <OverdueFollowUps limit={5} />
           <TopPerformers type="tots" />
           <ProductChart />
           <TopPerformers type="farmers" />

@@ -66,8 +66,11 @@ export function useDashboardRealtime() {
           table: "visits",
         },
         () => {
-          // Visits affect TOT metrics across all dashboards
+          // Visits affect TOT metrics and farmer visit counts (via DB trigger)
           queryClient.invalidateQueries({ queryKey: ["supabase", "visits"] });
+          queryClient.invalidateQueries({ queryKey: ["visits"] });
+          queryClient.invalidateQueries({ queryKey: ["supabase", "farmers"] });
+          queryClient.invalidateQueries({ queryKey: ["farmers"] });
           invalidateAllDashboardQueries(queryClient);
         }
       )

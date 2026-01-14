@@ -81,6 +81,23 @@ export function useDashboardRealtime() {
         () => {
           // Trainings affect TOT metrics across all dashboards
           queryClient.invalidateQueries({ queryKey: ["supabase", "trainings"] });
+          queryClient.invalidateQueries({ queryKey: ["trainings"] });
+          invalidateAllDashboardQueries(queryClient);
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "training_attendees",
+        },
+        () => {
+          // Training attendees affect farmer counts and training stats
+          queryClient.invalidateQueries({ queryKey: ["trainings"] });
+          queryClient.invalidateQueries({ queryKey: ["supabase", "trainings"] });
+          queryClient.invalidateQueries({ queryKey: ["supabase", "farmers"] });
+          queryClient.invalidateQueries({ queryKey: ["farmer-trainings"] });
           invalidateAllDashboardQueries(queryClient);
         }
       )

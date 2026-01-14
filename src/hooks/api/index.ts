@@ -38,3 +38,6 @@ export {
 // Real-time subscriptions
 export { useProductsRealtime } from './useProductsRealtime';
 export { useDashboardRealtime, useFarmersRealtime } from './useDashboardRealtime';
+
+// Overdue follow-ups
+export { useOverdueFollowUps } from './useOverdueFollowUps';

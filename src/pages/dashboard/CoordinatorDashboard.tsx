@@ -10,6 +10,7 @@ import { SalesChart } from '@/components/dashboard/SalesChart';
 import { ProductChart } from '@/components/dashboard/ProductChart';
 import { TopPerformers } from '@/components/dashboard/TopPerformers';
 import { TOTPerformanceOverview } from '@/components/dashboard/TOTPerformanceOverview';
+import { OverdueFollowUps } from '@/components/dashboard/OverdueFollowUps';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useDashboardRealtime, useFarmersRealtime, useMechanisationRealtime } from '@/hooks/api/useDashboardRealtime';
@@ -29,6 +30,7 @@ interface CoordinatorStats {
   totalTrainings: number;
   totalVisits: number;
   localMrName: string;
+  localMrId: string | null;
 }
 
 // Hook to fetch coordinator-specific stats (only their assigned MR)
@@ -55,6 +57,7 @@ function useCoordinatorStats(userId: string) {
           totalTrainings: 0,
           totalVisits: 0,
           localMrName: 'Not Assigned',
+          localMrId: null,
         };
       }
 
@@ -84,6 +87,7 @@ function useCoordinatorStats(userId: string) {
         totalTrainings: trainingsResult.count || 0,
         totalVisits: visitsResult.count || 0,
         localMrName: localMr.name,
+        localMrId: localMr.id,
       };
     },
     enabled: !!userId,
@@ -400,6 +404,7 @@ export function CoordinatorDashboard() {
 
         {/* Side Column */}
         <div className="space-y-6">
+          <OverdueFollowUps localMrId={stats?.localMrId || undefined} limit={5} />
           <TopPerformers type="tots" />
           <TopPerformers type="farmers" />
           <ProductChart />

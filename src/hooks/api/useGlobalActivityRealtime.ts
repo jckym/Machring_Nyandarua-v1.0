@@ -47,6 +47,14 @@ export function useGlobalActivityRealtime() {
           queryClient.invalidateQueries({ queryKey: ['global-activity'] });
         }
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'training_attendees' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['global-activity'] });
+          queryClient.invalidateQueries({ queryKey: ['farmer-trainings'] });
+        }
+      )
       .subscribe();
 
     return () => {

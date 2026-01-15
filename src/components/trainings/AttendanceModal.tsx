@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Search, Download, Users, FileSpreadsheet, FileText, Upload, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { useFarmers } from '@/hooks/api/useFarmers';
+import { useFarmersAndTots } from '@/hooks/api/useFarmersAndTots';
 import { useAddMultipleAttendees } from '@/hooks/api/useTrainings';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
@@ -53,7 +53,7 @@ export function AttendanceModal({
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const { data: farmers = [] } = useFarmers({ localMrId });
+  const { data: farmers = [] } = useFarmersAndTots({ localMrId });
   const addAttendees = useAddMultipleAttendees();
 
   useEffect(() => {
@@ -62,7 +62,7 @@ export function AttendanceModal({
         farmerId: f.id,
         name: f.name,
         phone: f.phone || '',
-        village: f.location?.village || '',
+        village: f.village || '',
         selected: false,
       })));
       setUploadErrors([]);
@@ -329,7 +329,7 @@ export function AttendanceModal({
             <ScrollArea className="flex-1 max-h-[350px] border rounded-md">
               <div className="p-2 space-y-1">
                 {filteredAttendees.length === 0 ? (
-                  <p className="text-center py-8 text-muted-foreground">No farmers found</p>
+                  <p className="text-center py-8 text-muted-foreground">No farmers or TOTs found</p>
                 ) : (
                   filteredAttendees.map((attendee) => (
                     <div

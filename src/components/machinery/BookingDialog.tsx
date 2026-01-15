@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { useFarmers } from '@/hooks/api/useFarmers';
 import { useLocalMRs } from '@/hooks/api/useLocalMRs';
+import { useUsers } from '@/hooks/api/useUsers';
 import { useCreateBooking } from '@/hooks/api/useMachineryBookings';
 
 interface BookingDialogProps {
@@ -20,6 +21,7 @@ export function BookingDialog({ open, onOpenChange, machineryId, machineryName }
   const [formData, setFormData] = useState({
     farmer_id: '',
     local_mr_id: '',
+    tot_id: '',
     start_date: '',
     end_date: '',
     start_time: '',
@@ -30,7 +32,14 @@ export function BookingDialog({ open, onOpenChange, machineryId, machineryName }
 
   const { data: farmers = [] } = useFarmers();
   const { data: localMRs = [] } = useLocalMRs();
+  const { data: users = [] } = useUsers({ role: 'tot' });
   const createBooking = useCreateBooking();
+
+  // Filter TOTs by selected Local MR
+  const filteredTots = useMemo(() => {
+    if (!formData.local_mr_id) return users;
+    return users.filter(u => u.local_mr_id === formData.local_mr_id);
+  }, [users, formData.local_mr_id]);
 
   const handleSubmit = () => {
     if (!formData.start_date || !formData.end_date) {
@@ -41,6 +50,7 @@ export function BookingDialog({ open, onOpenChange, machineryId, machineryName }
       machinery_id: machineryId,
       farmer_id: formData.farmer_id || undefined,
       local_mr_id: formData.local_mr_id || undefined,
+      tot_id: formData.tot_id || undefined,
       start_date: formData.start_date,
       end_date: formData.end_date,
       start_time: formData.start_time || undefined,
@@ -53,6 +63,7 @@ export function BookingDialog({ open, onOpenChange, machineryId, machineryName }
         setFormData({
           farmer_id: '',
           local_mr_id: '',
+          tot_id: '',
           start_date: '',
           end_date: '',
           start_time: '',
@@ -112,13 +123,27 @@ export function BookingDialog({ open, onOpenChange, machineryId, machineryName }
 
           <div className="space-y-2">
             <Label>Local MR</Label>
-            <Select value={formData.local_mr_id} onValueChange={v => setFormData(p => ({ ...p, local_mr_id: v }))}>
+            <Select value={formData.local_mr_id} onValueChange={v => setFormData(p => ({ ...p, local_mr_id: v, tot_id: '' }))}>
               <SelectTrigger>
                 <SelectValue placeholder="Select Local MR" />
               </SelectTrigger>
               <SelectContent className="z-[200]">
                 {localMRs.map(mr => (
                   <SelectItem key={mr.id} value={mr.id}>{mr.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>TOT (Connected By)</Label>
+            <Select value={formData.tot_id} onValueChange={v => setFormData(p => ({ ...p, tot_id: v }))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select TOT" />
+              </SelectTrigger>
+              <SelectContent className="z-[200]">
+                {filteredTots.map(tot => (
+                  <SelectItem key={tot.id} value={tot.id}>{tot.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

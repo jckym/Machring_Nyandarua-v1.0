@@ -9,6 +9,7 @@ export interface MachineryBooking {
   mechanisation_job_id: string | null;
   booked_by: string;
   local_mr_id: string | null;
+  tot_id: string | null;
   start_date: string;
   end_date: string;
   start_time: string | null;
@@ -22,6 +23,7 @@ export interface MachineryBooking {
   machinery_name?: string;
   farmer_name?: string;
   local_mr_name?: string;
+  tot_name?: string;
 }
 
 export interface CreateBookingDto {
@@ -29,6 +31,7 @@ export interface CreateBookingDto {
   farmer_id?: string;
   mechanisation_job_id?: string;
   local_mr_id?: string;
+  tot_id?: string;
   start_date: string;
   end_date: string;
   start_time?: string;
@@ -54,7 +57,8 @@ export function useMachineryBookings(filters: { machineryId?: string; status?: s
           *,
           machinery:machinery_id(name),
           farmer:farmer_id(name),
-          local_mr:local_mr_id(name)
+          local_mr:local_mr_id(name),
+          tot:tot_id(name)
         `)
         .order('start_date', { ascending: false });
 
@@ -73,6 +77,7 @@ export function useMachineryBookings(filters: { machineryId?: string; status?: s
         machinery_name: b.machinery?.name || '',
         farmer_name: b.farmer?.name || '',
         local_mr_name: b.local_mr?.name || '',
+        tot_name: b.tot?.name || '',
       }));
     },
     staleTime: 1000 * 60 * 2,

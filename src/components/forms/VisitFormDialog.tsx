@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
@@ -42,12 +43,30 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
     purposes: [] as string[],
     notes: '',
   });
+  const [showTots, setShowTots] = useState(true);
   const [gpsLocation, setGpsLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [isLoadingGps, setIsLoadingGps] = useState(false);
 
-  const { data: farmers = [], isLoading: farmersLoading, error: farmersError } = useFarmersAndTots();
+  const { data: allFarmersAndTots = [], isLoading: farmersLoading, error: farmersError } = useFarmersAndTots();
   const { data: localMRs = [] } = useLocalMRs();
+
+  // Filter by selected Local MR and TOT visibility toggle
+  const filteredList = React.useMemo(() => {
+    let list = allFarmersAndTots;
+    
+    // Filter by Local MR if selected
+    if (formData.localMrId) {
+      list = list.filter(item => item.local_mr_id === formData.localMrId);
+    }
+    
+    // Filter out TOTs if toggle is off
+    if (!showTots) {
+      list = list.filter(item => item.type !== 'tot');
+    }
+    
+    return list;
+  }, [allFarmersAndTots, formData.localMrId, showTots]);
 
   const captureLocation = () => {
     if (!('geolocation' in navigator)) {
@@ -99,7 +118,7 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
     }
   }, [open, localMRs.length]);
 
-  const selectedFarmer = farmers.find((f) => f.id === formData.farmerId);
+  const selectedFarmer = allFarmersAndTots.find((f) => f.id === formData.farmerId);
   const selectedFarmerLocalMrId = selectedFarmer?.local_mr_id;
 
   // Auto-select local MR from farmer - use stable primitive dependency
@@ -203,7 +222,10 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
             <>
               <div className="space-y-2">
                 <Label>Select Local MR *</Label>
-                <Select value={formData.localMrId} onValueChange={(value) => setFormData({ ...formData, localMrId: value })}>
+                <Select 
+                  value={formData.localMrId} 
+                  onValueChange={(value) => setFormData({ ...formData, localMrId: value, farmerId: '' })}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Choose Local MR" />
                   </SelectTrigger>
@@ -216,15 +238,27 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
               </div>
 
               <div className="space-y-2">
-                <Label>Select Farmer / TOT *</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Select Farmer / TOT *</Label>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="show-tots" className="text-xs text-muted-foreground cursor-pointer">
+                      Include TOTs
+                    </Label>
+                    <Switch
+                      id="show-tots"
+                      checked={showTots}
+                      onCheckedChange={setShowTots}
+                    />
+                  </div>
+                </div>
                 <Select value={formData.farmerId} onValueChange={(value) => setFormData({ ...formData, farmerId: value })}>
                   <SelectTrigger>
-                    <SelectValue placeholder={farmers.length === 0 ? 'No farmers or TOTs' : 'Choose farmer or TOT'} />
+                    <SelectValue placeholder={filteredList.length === 0 ? 'No farmers or TOTs in this MR' : 'Choose farmer or TOT'} />
                   </SelectTrigger>
                   <SelectContent>
-                    {farmers.map((farmer) => (
-                      <SelectItem key={farmer.id} value={farmer.id}>
-                        {farmer.name}
+                    {filteredList.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -299,7 +333,7 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
               type="submit"
               variant="earth"
               className="flex-1"
-              disabled={farmersLoading || !!farmersError || farmers.length === 0}
+              disabled={farmersLoading || !!farmersError || filteredList.length === 0}
             >
               Log Visit
             </Button>

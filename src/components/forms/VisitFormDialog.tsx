@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import { useFarmers } from '@/hooks/api/useFarmers';
+import { useFarmersAndTots } from '@/hooks/api/useFarmersAndTots';
 import { useLocalMRs } from '@/hooks/api/useLocalMRs';
 import { MapPin, Loader2, AlertCircle, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -46,7 +46,7 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [isLoadingGps, setIsLoadingGps] = useState(false);
 
-  const { data: farmers = [], isLoading: farmersLoading, error: farmersError } = useFarmers();
+  const { data: farmers = [], isLoading: farmersLoading, error: farmersError } = useFarmersAndTots();
   const { data: localMRs = [] } = useLocalMRs();
 
   const captureLocation = () => {
@@ -216,10 +216,10 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
               </div>
 
               <div className="space-y-2">
-                <Label>Select Farmer *</Label>
+                <Label>Select Farmer / TOT *</Label>
                 <Select value={formData.farmerId} onValueChange={(value) => setFormData({ ...formData, farmerId: value })}>
                   <SelectTrigger>
-                    <SelectValue placeholder={farmers.length === 0 ? 'No farmers' : 'Choose farmer'} />
+                    <SelectValue placeholder={farmers.length === 0 ? 'No farmers or TOTs' : 'Choose farmer or TOT'} />
                   </SelectTrigger>
                   <SelectContent>
                     {farmers.map((farmer) => (

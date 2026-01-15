@@ -313,6 +313,7 @@ export type Database = {
           start_date: string
           start_time: string | null
           status: string
+          tot_id: string | null
           updated_at: string
         }
         Insert: {
@@ -330,6 +331,7 @@ export type Database = {
           start_date: string
           start_time?: string | null
           status?: string
+          tot_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -347,6 +349,7 @@ export type Database = {
           start_date?: string
           start_time?: string | null
           status?: string
+          tot_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -376,6 +379,13 @@ export type Database = {
             columns: ["mechanisation_job_id"]
             isOneToOne: false
             referencedRelation: "mechanisation_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "machinery_bookings_tot_id_fkey"
+            columns: ["tot_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]

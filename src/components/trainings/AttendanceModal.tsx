@@ -3,6 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -51,6 +53,7 @@ export function AttendanceModal({
   const [uploadErrors, setUploadErrors] = useState<UploadError[]>([]);
   const [uploadSuccess, setUploadSuccess] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [showTots, setShowTots] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const { data: farmers = [] } = useFarmersAndTots({ localMrId });
@@ -70,11 +73,21 @@ export function AttendanceModal({
     }
   }, [open, farmers]);
 
-  const filteredAttendees = attendees.filter(a => 
-    a.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    a.phone.includes(searchQuery) ||
-    a.village.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter attendees by search query and TOT toggle
+  const filteredAttendees = attendees.filter(a => {
+    // Check if this is a TOT (name ends with "(TOT)")
+    const isTot = a.name.endsWith('(TOT)');
+    
+    // Apply TOT filter
+    if (!showTots && isTot) return false;
+    
+    // Apply search filter
+    return (
+      a.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      a.phone.includes(searchQuery) ||
+      a.village.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  });
 
   const selectedCount = attendees.filter(a => a.selected).length;
 
@@ -311,10 +324,20 @@ export function AttendanceModal({
               </Badge>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Button variant="outline" size="sm" onClick={handleSelectAll}>
                 {filteredAttendees.every(a => a.selected) ? 'Deselect All' : 'Select All'}
               </Button>
+              <div className="flex items-center gap-2 ml-2">
+                <Label htmlFor="show-tots-attendance" className="text-xs text-muted-foreground cursor-pointer">
+                  Include TOTs
+                </Label>
+                <Switch
+                  id="show-tots-attendance"
+                  checked={showTots}
+                  onCheckedChange={setShowTots}
+                />
+              </div>
               <div className="flex-1" />
               <Button variant="outline" size="sm" onClick={exportToExcel} disabled={selectedCount === 0}>
                 <FileSpreadsheet className="w-4 h-4 mr-1" />

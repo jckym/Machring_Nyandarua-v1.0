@@ -26,6 +26,7 @@ import {
   TrendingUp,
   TrendingDown
 } from 'lucide-react';
+import { LocalMR, Sale } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
 
 interface TOTWithMetrics {
@@ -49,15 +50,10 @@ interface TOTWithMetrics {
   lastActivityDate?: string | null;
 }
 
-interface LocalMRForFilter {
-  id: string;
-  name: string;
-}
-
 interface TOTPerformanceOverviewProps {
   tots: TOTWithMetrics[];
-  localMRs: LocalMRForFilter[];
-  sales: { id: string }[];
+  localMRs: LocalMR[];
+  sales: Sale[];
 }
 
 export function TOTPerformanceOverview({ 

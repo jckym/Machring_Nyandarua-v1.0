@@ -944,12 +944,13 @@ export type Database = {
       visits: {
         Row: {
           created_at: string
-          farmer_id: string
+          farmer_id: string | null
           follow_up_date: string | null
           follow_up_required: boolean
           id: string
           local_mr_id: string | null
           notes: string | null
+          profile_id: string | null
           purpose: string
           tot_id: string
           updated_at: string
@@ -957,12 +958,13 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          farmer_id: string
+          farmer_id?: string | null
           follow_up_date?: string | null
           follow_up_required?: boolean
           id?: string
           local_mr_id?: string | null
           notes?: string | null
+          profile_id?: string | null
           purpose: string
           tot_id: string
           updated_at?: string
@@ -970,12 +972,13 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          farmer_id?: string
+          farmer_id?: string | null
           follow_up_date?: string | null
           follow_up_required?: boolean
           id?: string
           local_mr_id?: string | null
           notes?: string | null
+          profile_id?: string | null
           purpose?: string
           tot_id?: string
           updated_at?: string
@@ -994,6 +997,13 @@ export type Database = {
             columns: ["local_mr_id"]
             isOneToOne: false
             referencedRelation: "local_mrs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visits_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]

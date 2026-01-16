@@ -324,22 +324,59 @@ export function useAddAttendee() {
   });
 }
 
+export interface AttendeeInput {
+  id: string;
+  type: 'farmer' | 'tot';
+}
+
 export function useAddMultipleAttendees() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ trainingId, farmerIds }: { trainingId: string; farmerIds: string[] }) => {
-      const attendees = farmerIds.map(farmerId => ({
-        training_id: trainingId,
-        farmer_id: farmerId,
-        attended: true,
-      }));
+    mutationFn: async ({ trainingId, attendees }: { trainingId: string; attendees: AttendeeInput[] }) => {
+      // Separate farmers and TOTs
+      const attendeeRecords = attendees.map(attendee => {
+        if (attendee.type === 'tot') {
+          return {
+            training_id: trainingId,
+            farmer_id: null,
+            profile_id: attendee.id,
+            attended: true,
+          };
+        } else {
+          return {
+            training_id: trainingId,
+            farmer_id: attendee.id,
+            profile_id: null,
+            attended: true,
+          };
+        }
+      });
 
-      const { error } = await supabase
-        .from('training_attendees')
-        .upsert(attendees, { onConflict: 'training_id,farmer_id' });
+      // Insert attendees one by one to avoid upsert issues with the new constraint
+      for (const record of attendeeRecords) {
+        // Check if already exists
+        let existsQuery = supabase
+          .from('training_attendees')
+          .select('id')
+          .eq('training_id', trainingId);
+        
+        if (record.farmer_id) {
+          existsQuery = existsQuery.eq('farmer_id', record.farmer_id);
+        } else if (record.profile_id) {
+          existsQuery = existsQuery.eq('profile_id', record.profile_id);
+        }
 
-      if (error) throw error;
+        const { data: existing } = await existsQuery.maybeSingle();
+
+        if (!existing) {
+          const { error } = await supabase
+            .from('training_attendees')
+            .insert(record);
+          
+          if (error) throw error;
+        }
+      }
       
       // Note: trainings_attended count is now automatically updated via database trigger
     },

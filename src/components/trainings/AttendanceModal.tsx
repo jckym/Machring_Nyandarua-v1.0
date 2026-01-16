@@ -31,6 +31,7 @@ interface AttendeeInfo {
   phone: string;
   village: string;
   selected: boolean;
+  type: 'farmer' | 'tot';
 }
 
 interface UploadError {
@@ -53,8 +54,16 @@ export function AttendanceModal({
   const [uploadErrors, setUploadErrors] = useState<UploadError[]>([]);
   const [uploadSuccess, setUploadSuccess] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [showTots, setShowTots] = useState(true);
+  const [showTots, setShowTots] = useState(() => {
+    const stored = localStorage.getItem('showTotsInAttendance');
+    return stored !== null ? JSON.parse(stored) : true;
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Persist showTots toggle to localStorage
+  useEffect(() => {
+    localStorage.setItem('showTotsInAttendance', JSON.stringify(showTots));
+  }, [showTots]);
   
   const { data: farmers = [] } = useFarmersAndTots({ localMrId });
   const addAttendees = useAddMultipleAttendees();
@@ -67,6 +76,7 @@ export function AttendanceModal({
         phone: f.phone || '',
         village: f.village || '',
         selected: false,
+        type: f.type,
       })));
       setUploadErrors([]);
       setUploadSuccess([]);
@@ -106,18 +116,18 @@ export function AttendanceModal({
   };
 
   const handleSubmit = () => {
-    const selectedFarmers = attendees.filter(a => a.selected);
-    if (selectedFarmers.length === 0) {
+    const selectedAttendees = attendees.filter(a => a.selected);
+    if (selectedAttendees.length === 0) {
       toast.error('Please select at least one attendee');
       return;
     }
 
     addAttendees.mutate({
       trainingId,
-      farmerIds: selectedFarmers.map(f => f.farmerId),
+      attendees: selectedAttendees.map(a => ({ id: a.farmerId, type: a.type })),
     }, {
       onSuccess: () => {
-        toast.success(`${selectedFarmers.length} attendees recorded`);
+        toast.success(`${selectedAttendees.length} attendees recorded`);
         onOpenChange(false);
       },
     });

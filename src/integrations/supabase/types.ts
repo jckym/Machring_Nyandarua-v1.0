@@ -810,22 +810,25 @@ export type Database = {
         Row: {
           attended: boolean
           created_at: string
-          farmer_id: string
+          farmer_id: string | null
           id: string
+          profile_id: string | null
           training_id: string
         }
         Insert: {
           attended?: boolean
           created_at?: string
-          farmer_id: string
+          farmer_id?: string | null
           id?: string
+          profile_id?: string | null
           training_id: string
         }
         Update: {
           attended?: boolean
           created_at?: string
-          farmer_id?: string
+          farmer_id?: string | null
           id?: string
+          profile_id?: string | null
           training_id?: string
         }
         Relationships: [
@@ -834,6 +837,13 @@ export type Database = {
             columns: ["farmer_id"]
             isOneToOne: false
             referencedRelation: "farmers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_attendees_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {

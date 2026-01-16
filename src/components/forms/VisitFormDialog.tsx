@@ -43,7 +43,15 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
     purposes: [] as string[],
     notes: '',
   });
-  const [showTots, setShowTots] = useState(true);
+  const [showTots, setShowTots] = useState(() => {
+    const stored = localStorage.getItem('showTotsInVisits');
+    return stored !== null ? JSON.parse(stored) : true;
+  });
+
+  // Persist showTots toggle to localStorage
+  React.useEffect(() => {
+    localStorage.setItem('showTotsInVisits', JSON.stringify(showTots));
+  }, [showTots]);
   const [gpsLocation, setGpsLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [isLoadingGps, setIsLoadingGps] = useState(false);

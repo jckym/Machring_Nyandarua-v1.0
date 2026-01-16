@@ -157,9 +157,14 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
       return;
     }
 
+    // Determine participant type from selected farmer/TOT
+    const participantType = selectedFarmer?.type || 'farmer';
+
     // Create visit DTO for Supabase - combine purposes into comma-separated string
     const visitData: CreateVisitDto = {
-      farmer_id: formData.farmerId,
+      participant_type: participantType,
+      farmer_id: participantType === 'farmer' ? formData.farmerId : undefined,
+      profile_id: participantType === 'tot' ? formData.farmerId : undefined,
       tot_id: user?.id || '',
       local_mr_id: formData.localMrId || undefined,
       purpose: formData.purposes.join(', '),

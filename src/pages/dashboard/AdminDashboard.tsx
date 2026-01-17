@@ -1,7 +1,8 @@
 // src/pages/dashboard/AdminDashboard.tsx
+import { useState } from 'react';
 import { 
   Users, ShoppingCart, Tractor, Building2, 
-  GraduationCap, TrendingUp, UserCog, Package, AlertCircle 
+  GraduationCap, TrendingUp, UserCog, Package, AlertCircle, Plus 
 } from 'lucide-react';
 
 import { StatCard } from '@/components/dashboard/StatCard';
@@ -10,11 +11,15 @@ import { SalesChart } from '@/components/dashboard/SalesChart';
 import { ProductChart } from '@/components/dashboard/ProductChart';
 import { TopPerformers } from '@/components/dashboard/TopPerformers';
 import { OverdueFollowUps } from '@/components/dashboard/OverdueFollowUps';
+import { TOTPerformanceOverview } from '@/components/dashboard/TOTPerformanceOverview';
+import { AddTOTDialog } from '@/components/dashboard/AddTOTDialog';
 import {
   useSupabaseAdminStats, 
   useSupabaseLocalMRs,
+  useSupabaseSales,
   AdminStats 
 } from '@/hooks/api/useSupabaseDashboard';
+import { useUsers } from '@/hooks/api/useUsers';
 import { useDashboardRealtime, useFarmersRealtime } from '@/hooks/api/useDashboardRealtime';
 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -23,12 +28,19 @@ import { Badge } from '@/components/ui/badge';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export function AdminDashboard() {
+  const [isAddTOTOpen, setIsAddTOTOpen] = useState(false);
+  
   // Enable realtime updates
   useDashboardRealtime();
   useFarmersRealtime();
 
   const { data: stats, isLoading: statsLoading, error: statsError } = useSupabaseAdminStats();
   const { data: localMRs = [] } = useSupabaseLocalMRs();
+  const { data: allUsers = [] } = useUsers();
+  const { data: sales = [] } = useSupabaseSales();
+
+  // Filter TOTs from users
+  const tots = allUsers.filter(u => u.role === 'tot');
 
   // Process Local MR data for charts
   const top5MRs = localMRs.slice(0, 5);
@@ -251,8 +263,32 @@ export function AdminDashboard() {
         </div>
       </div>
 
+      {/* TOT Performance Overview */}
+      <Card variant="elevated">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <UserCog className="w-5 h-5" />
+            All TOTs Performance
+          </CardTitle>
+          <Button variant="forest" size="sm" onClick={() => setIsAddTOTOpen(true)}>
+            <Plus className="w-4 h-4 mr-1" />
+            Add TOT
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <TOTPerformanceOverview 
+            tots={tots as any}
+            localMRs={localMRs as any}
+            sales={sales as any}
+          />
+        </CardContent>
+      </Card>
+
       {/* Bottom Section */}
       <GlobalRecentActivity />
+
+      {/* Add TOT Dialog */}
+      <AddTOTDialog open={isAddTOTOpen} onOpenChange={setIsAddTOTOpen} />
     </div>
   );
 }

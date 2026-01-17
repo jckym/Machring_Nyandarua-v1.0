@@ -78,6 +78,7 @@ const managerNavItems = [
 const adminNavItems = [
   { to: '/dashboard/admin', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/users', icon: UserCog, label: 'User Management' },
+  { to: '/tots', icon: UserCog, label: 'All TOTs' },
   { to: '/local-mrs', icon: Building2, label: 'Local MRs' },
   { to: '/products', icon: Package, label: 'Products' },
   { to: '/machinery', icon: Tractor, label: 'Machinery' },

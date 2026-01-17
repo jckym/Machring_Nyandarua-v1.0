@@ -144,6 +144,41 @@ export function useCreateMachinery() {
   });
 }
 
+export function useBulkCreateMachinery() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (items: CreateMachineryDto[]) => {
+      const insertData = items.map(data => ({
+        name: data.name,
+        category: data.category,
+        model: data.model || null,
+        registration_number: data.registration_number || null,
+        condition: data.condition || 'good',
+        status: data.status || 'available',
+        hourly_rate: data.hourly_rate || 0,
+        daily_rate: data.daily_rate || 0,
+        local_mr_id: data.local_mr_id || null,
+      }));
+
+      const { data: machinery, error } = await supabase
+        .from('machinery')
+        .insert(insertData)
+        .select();
+
+      if (error) throw error;
+      return machinery;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: machineryKeys.all });
+      toast.success(`Successfully added ${variables.length} machinery items`);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to bulk add machinery');
+    },
+  });
+}
+
 export function useUpdateMachinery() {
   const queryClient = useQueryClient();
 

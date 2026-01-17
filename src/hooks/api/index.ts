@@ -8,7 +8,7 @@ export * from './useFarmerTrainings';
 export * from './useSales';
 export * from './useTrainings';
 export * from './useVisits';
-export * from './useMachinery';
+export { useMachinery, useMachineryItem, useCreateMachinery, useBulkCreateMachinery, useUpdateMachinery, useDeleteMachinery, useUpdateMachineryStatus, machineryKeys } from './useMachinery';
 export * from './useMachineryBookings';
 export * from './useMachineryService';
 export * from './useLocalMRs';

@@ -5,10 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Tractor, CheckCircle, Clock, MoreVertical, Wrench, Calendar, History, CalendarPlus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Tractor, CheckCircle, Clock, MoreVertical, Wrench, Calendar, History, CalendarPlus, Edit, Trash2, Upload } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
-import { useMachinery, useCreateMachinery, useUpdateMachineryStatus, useDeleteMachinery } from '@/hooks/api';
+import { useMachinery, useCreateMachinery, useUpdateMachineryStatus, useDeleteMachinery, useBulkCreateMachinery } from '@/hooks/api';
 import {
   Dialog,
   DialogContent,
@@ -48,6 +48,7 @@ import { MachineryBookingsList } from '@/components/machinery/MachineryBookingsL
 import { MachineryServiceHistory } from '@/components/machinery/MachineryServiceHistory';
 import { UpcomingMaintenance } from '@/components/machinery/UpcomingMaintenance';
 import { EditMachineryDialog } from '@/components/machinery/EditMachineryDialog';
+import { BulkUploadDialog } from '@/components/bulk-upload/BulkUploadDialog';
 
 type MachineryStatus = 'available' | 'in_use' | 'maintenance' | 'retired';
 
@@ -89,6 +90,7 @@ export function Machinery() {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('fleet');
 
   // Booking and service dialogs
@@ -128,6 +130,7 @@ export function Machinery() {
   // API hooks
   const { data: machinery = [], isLoading } = useMachinery();
   const createMachinery = useCreateMachinery();
+  const bulkCreateMachinery = useBulkCreateMachinery();
   const updateStatus = useUpdateMachineryStatus();
   const deleteMachinery = useDeleteMachinery();
 
@@ -207,10 +210,25 @@ export function Machinery() {
     );
   }
 
+  const handleBulkUpload = async (data: any[]) => {
+    const machineryItems = data.map(item => ({
+      name: item.name,
+      category: item.category,
+      model: item.model || undefined,
+      registration_number: item.registration_number || undefined,
+      condition: item.condition || 'good',
+      status: 'available' as const,
+      hourly_rate: item.hourly_rate ? Number(item.hourly_rate) : 0,
+      daily_rate: item.daily_rate ? Number(item.daily_rate) : 0,
+    }));
+
+    await bulkCreateMachinery.mutateAsync(machineryItems);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Machinery Management</h1>
           <p className="text-muted-foreground">
@@ -218,10 +236,16 @@ export function Machinery() {
           </p>
         </div>
         {isAdmin && (
-          <Button onClick={() => setIsAddDialogOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Machinery
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setIsBulkUploadOpen(true)}>
+              <Upload className="w-4 h-4 mr-2" />
+              Bulk Upload
+            </Button>
+            <Button onClick={() => setIsAddDialogOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Machinery
+            </Button>
+          </div>
         )}
       </div>
 
@@ -516,6 +540,14 @@ export function Machinery() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Bulk Upload Dialog */}
+      <BulkUploadDialog
+        open={isBulkUploadOpen}
+        onOpenChange={setIsBulkUploadOpen}
+        entityType="machinery"
+        onUpload={handleBulkUpload}
+      />
     </div>
   );
 }

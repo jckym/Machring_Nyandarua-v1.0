@@ -1,0 +1,167 @@
+import { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { PasswordStrengthIndicator, usePasswordValidation } from '@/components/ui/password-strength';
+import { useCreateUser } from '@/hooks/api/useUsers';
+import { useSupabaseLocalMRs } from '@/hooks/api/useSupabaseDashboard';
+import { toast } from 'sonner';
+
+interface AddTOTDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function AddTOTDialog({ open, onOpenChange }: AddTOTDialogProps) {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    password: '',
+    localMrId: '',
+  });
+
+  const { isValid: isPasswordValid } = usePasswordValidation(formData.password);
+  const createUser = useCreateUser();
+  const { data: localMRs = [] } = useSupabaseLocalMRs();
+
+  const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const validatePhone = (phone: string) => /^\d{10,15}$/.test(phone.replace(/\D/g, ''));
+
+  const resetForm = () => {
+    setFormData({ name: '', email: '', phone: '', password: '', localMrId: '' });
+  };
+
+  const handleSubmit = () => {
+    if (!formData.name.trim()) {
+      toast.error('Name is required');
+      return;
+    }
+    if (!formData.email.trim() || !validateEmail(formData.email)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+    if (!formData.phone.trim() || !validatePhone(formData.phone)) {
+      toast.error('Please enter a valid phone number (10-15 digits)');
+      return;
+    }
+    if (!formData.password || !isPasswordValid) {
+      toast.error('Password does not meet security requirements');
+      return;
+    }
+    if (!formData.localMrId) {
+      toast.error('Please select a Local MR');
+      return;
+    }
+
+    createUser.mutate(
+      {
+        name: formData.name.trim(),
+        email: formData.email.toLowerCase().trim(),
+        phone: formData.phone.trim(),
+        password: formData.password,
+        role: 'tot',
+        localMrId: formData.localMrId,
+      },
+      {
+        onSuccess: () => {
+          toast.success('TOT created successfully');
+          onOpenChange(false);
+          resetForm();
+        },
+        onError: (error: any) => {
+          toast.error(error.message || 'Failed to create TOT');
+        },
+      }
+    );
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) resetForm(); onOpenChange(isOpen); }}>
+      <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Add New TOT</DialogTitle>
+          <DialogDescription>
+            Create a new TOT account assigned to a Local MR.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 flex-1 overflow-y-auto py-2">
+          <div className="space-y-2">
+            <Label htmlFor="name">Full Name *</Label>
+            <Input
+              id="name"
+              placeholder="Enter full name"
+              value={formData.name}
+              onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email">Email *</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="email@example.com"
+              value={formData.email}
+              onChange={(e) => setFormData(p => ({ ...p, email: e.target.value }))}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="phone">Phone Number *</Label>
+            <Input
+              id="phone"
+              placeholder="0712345678"
+              value={formData.phone}
+              onChange={(e) => setFormData(p => ({ ...p, phone: e.target.value }))}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password">Password *</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="Create a password"
+              value={formData.password}
+              onChange={(e) => setFormData(p => ({ ...p, password: e.target.value }))}
+            />
+            <PasswordStrengthIndicator password={formData.password} />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="localMr">Local MR *</Label>
+            <Select value={formData.localMrId} onValueChange={(v) => setFormData(p => ({ ...p, localMrId: v }))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select Local MR" />
+              </SelectTrigger>
+              <SelectContent>
+                {localMRs.map((mr) => (
+                  <SelectItem key={mr.id} value={mr.id}>
+                    {mr.name} ({mr.code})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <DialogFooter className="pt-4">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button
+            variant="forest"
+            onClick={handleSubmit}
+            disabled={createUser.isPending}
+          >
+            {createUser.isPending ? 'Creating...' : 'Create TOT'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

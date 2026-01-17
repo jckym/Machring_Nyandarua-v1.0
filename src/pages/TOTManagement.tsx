@@ -34,6 +34,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocalMRs, useUsers, useFarmers } from '@/hooks/api';
 import { format } from 'date-fns';
+import { AddTOTDialog } from '@/components/dashboard/AddTOTDialog';
 
 interface TOTPerformance {
   totId: string;
@@ -190,6 +191,7 @@ export function TOTManagement() {
             <FileSpreadsheet className="w-4 h-4 mr-2" />
             Excel
           </Button>
+          {isAdmin && <AddTOTDialog />}
         </div>
       </div>
 

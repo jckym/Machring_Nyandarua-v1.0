@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,13 +8,20 @@ import { PasswordStrengthIndicator, usePasswordValidation } from '@/components/u
 import { useCreateUser } from '@/hooks/api/useUsers';
 import { useSupabaseLocalMRs } from '@/hooks/api/useSupabaseDashboard';
 import { toast } from 'sonner';
+import { Plus } from 'lucide-react';
 
 interface AddTOTDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  trigger?: React.ReactNode;
 }
 
-export function AddTOTDialog({ open, onOpenChange }: AddTOTDialogProps) {
+export function AddTOTDialog({ open: controlledOpen, onOpenChange: controlledOnOpenChange, trigger }: AddTOTDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const onOpenChange = isControlled ? controlledOnOpenChange! : setInternalOpen;
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -78,8 +85,20 @@ export function AddTOTDialog({ open, onOpenChange }: AddTOTDialogProps) {
     );
   };
 
+  const defaultTrigger = (
+    <Button variant="forest">
+      <Plus className="w-4 h-4 mr-2" />
+      Add TOT
+    </Button>
+  );
+
   return (
     <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) resetForm(); onOpenChange(isOpen); }}>
+      {(trigger || !isControlled) && (
+        <DialogTrigger asChild>
+          {trigger || defaultTrigger}
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Add New TOT</DialogTitle>

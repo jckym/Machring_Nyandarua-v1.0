@@ -102,7 +102,8 @@ export function TOTPerformanceOverview({
 
   const formatCurrency = (value: number) => {
     if (value >= 1000000) return `KES ${(value / 1000000).toFixed(1)}M`;
-    return `KES ${(value / 1000).toFixed(0)}K`;
+    if (value >= 1000) return `KES ${(value / 1000).toFixed(1)}K`;
+    return `KES ${value.toLocaleString()}`;
   };
 
   const getPerformanceBadge = (level: 'high' | 'medium' | 'low' | 'inactive') => {

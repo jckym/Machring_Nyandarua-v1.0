@@ -171,7 +171,7 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
                       'Choose TOT'
                     } />
                   </SelectTrigger>
-                  <SelectContent className="z-[200]">
+                  <SelectContent className="z-[200] max-h-[200px] overflow-y-auto">
                     {tots.map((tot) => (
                       <SelectItem key={tot.id} value={tot.id}>
                         {tot.name} ({tot.email})
@@ -187,7 +187,7 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
                   <SelectTrigger>
                     <SelectValue placeholder={farmers.length === 0 ? 'No farmers' : 'Choose farmer'} />
                   </SelectTrigger>
-                  <SelectContent className="z-[200]">
+                  <SelectContent className="z-[200] max-h-[200px] overflow-y-auto">
                     {farmers.map((farmer) => (
                       <SelectItem key={farmer.id} value={farmer.id}>
                         {farmer.name} - {farmer.phone}

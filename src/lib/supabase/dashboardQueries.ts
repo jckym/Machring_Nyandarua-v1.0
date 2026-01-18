@@ -652,13 +652,13 @@ export async function fetchUsers() {
     console.error("Error fetching sales for user metrics:", salesError);
   }
 
-  // Fetch mechanisation jobs for TOT metrics
+  // Fetch machinery bookings for TOT metrics
   const { data: jobs, error: jobsError } = await supabase
-    .from("mechanisation_jobs")
-    .select("tot_id, status, scheduled_date");
+    .from("machinery_bookings")
+    .select("tot_id, status, start_date");
 
   if (jobsError) {
-    console.error("Error fetching jobs for user metrics:", jobsError);
+    console.error("Error fetching machinery bookings for user metrics:", jobsError);
   }
 
   // Fetch trainings for TOT metrics
@@ -710,11 +710,12 @@ export async function fetchUsers() {
   // Aggregate jobs per TOT
   const totJobsMap = new Map<string, { count: number; completedCount: number; lastJobDate: string | null }>();
   (jobs || []).forEach((j) => {
+    if (!j.tot_id) return; // Skip entries without tot_id
     const existing = totJobsMap.get(j.tot_id) || { count: 0, completedCount: 0, lastJobDate: null };
     existing.count += 1;
     if (j.status === "completed") existing.completedCount += 1;
-    if (!existing.lastJobDate || j.scheduled_date > existing.lastJobDate) {
-      existing.lastJobDate = j.scheduled_date;
+    if (!existing.lastJobDate || j.start_date > existing.lastJobDate) {
+      existing.lastJobDate = j.start_date;
     }
     totJobsMap.set(j.tot_id, existing);
   });

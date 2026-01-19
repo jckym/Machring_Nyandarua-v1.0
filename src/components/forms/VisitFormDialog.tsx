@@ -1,19 +1,18 @@
 // src/components/forms/VisitFormDialog.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Switch } from '@/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import { useFarmersAndTots } from '@/hooks/api/useFarmersAndTots';
+import { useFarmers } from '@/hooks/api/useFarmers';
+import { useTotsByLocalMR } from '@/hooks/api/useTotsByLocalMR';
 import { useLocalMRs } from '@/hooks/api/useLocalMRs';
 import { MapPin, Loader2, AlertCircle, ChevronDown } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
 import { CreateVisitDto } from '@/hooks/api/useVisits';
 import { cn } from '@/lib/utils';
 
@@ -36,45 +35,27 @@ const visitPurposes = [
 
 export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialogProps) {
   const { toast } = useToast();
-  const { user } = useAuth();
   const [formData, setFormData] = useState({
     farmerId: '',
+    totId: '',
     localMrId: '',
     purposes: [] as string[],
     notes: '',
   });
-  const [showTots, setShowTots] = useState(() => {
-    const stored = localStorage.getItem('showTotsInVisits');
-    return stored !== null ? JSON.parse(stored) : true;
-  });
 
-  // Persist showTots toggle to localStorage
-  React.useEffect(() => {
-    localStorage.setItem('showTotsInVisits', JSON.stringify(showTots));
-  }, [showTots]);
   const [gpsLocation, setGpsLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [isLoadingGps, setIsLoadingGps] = useState(false);
 
-  const { data: allFarmersAndTots = [], isLoading: farmersLoading, error: farmersError } = useFarmersAndTots();
+  const { data: allFarmers = [], isLoading: farmersLoading, error: farmersError } = useFarmers();
   const { data: localMRs = [] } = useLocalMRs();
+  const { data: tots = [], isLoading: totsLoading } = useTotsByLocalMR(formData.localMrId);
 
-  // Filter by selected Local MR and TOT visibility toggle
-  const filteredList = React.useMemo(() => {
-    let list = allFarmersAndTots;
-    
-    // Filter by Local MR if selected
-    if (formData.localMrId) {
-      list = list.filter(item => item.local_mr_id === formData.localMrId);
-    }
-    
-    // Filter out TOTs if toggle is off
-    if (!showTots) {
-      list = list.filter(item => item.type !== 'tot');
-    }
-    
-    return list;
-  }, [allFarmersAndTots, formData.localMrId, showTots]);
+  // Filter farmers by selected Local MR
+  const filteredFarmers = useMemo(() => {
+    if (!formData.localMrId) return allFarmers;
+    return allFarmers.filter(f => f.local_mr_id === formData.localMrId);
+  }, [allFarmers, formData.localMrId]);
 
   const captureLocation = () => {
     if (!('geolocation' in navigator)) {
@@ -97,12 +78,13 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
     );
   };
 
-  // Reset form when dialog opens - only depend on open state
+  // Reset form when dialog opens
   useEffect(() => {
     if (open) {
       captureLocation();
       setFormData({
         farmerId: '',
+        totId: '',
         localMrId: '',
         purposes: [],
         notes: '',
@@ -113,7 +95,7 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // Set default local MR when data loads - use ref to track if default has been set
+  // Set default local MR when data loads
   const defaultLocalMrSet = React.useRef(false);
   
   useEffect(() => {
@@ -126,10 +108,10 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
     }
   }, [open, localMRs.length]);
 
-  const selectedFarmer = allFarmersAndTots.find((f) => f.id === formData.farmerId);
+  // Auto-select local MR from selected farmer
+  const selectedFarmer = allFarmers.find((f) => f.id === formData.farmerId);
   const selectedFarmerLocalMrId = selectedFarmer?.local_mr_id;
 
-  // Auto-select local MR from farmer - use stable primitive dependency
   useEffect(() => {
     if (selectedFarmerLocalMrId) {
       setFormData(prev => {
@@ -152,20 +134,18 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.farmerId || formData.purposes.length === 0 || !formData.notes.trim()) {
-      toast({ title: 'Validation Error', description: 'Please fill all required fields (Farmer, at least one Purpose, and Notes)', variant: 'destructive' });
+    if (!formData.farmerId || !formData.totId || formData.purposes.length === 0 || !formData.notes.trim()) {
+      toast({ title: 'Validation Error', description: 'Please fill all required fields (TOT, Farmer, at least one Purpose, and Notes)', variant: 'destructive' });
       return;
     }
 
-    // Determine participant type from selected farmer/TOT
-    const participantType = selectedFarmer?.type || 'farmer';
+    const selectedTot = tots.find(t => t.id === formData.totId);
 
-    // Create visit DTO for Supabase - combine purposes into comma-separated string
+    // Create visit DTO for Supabase
     const visitData: CreateVisitDto = {
-      participant_type: participantType,
-      farmer_id: participantType === 'farmer' ? formData.farmerId : undefined,
-      profile_id: participantType === 'tot' ? formData.farmerId : undefined,
-      tot_id: user?.id || '',
+      participant_type: 'farmer',
+      farmer_id: formData.farmerId,
+      tot_id: formData.totId,
       local_mr_id: formData.localMrId || undefined,
       purpose: formData.purposes.join(', '),
       notes: formData.notes.trim(),
@@ -173,9 +153,12 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
     };
 
     onSubmit(visitData);
-    toast({ title: 'Visit Logged', description: `Visit to ${selectedFarmer?.name} recorded` });
+    toast({ title: 'Visit Logged', description: `Visit to ${selectedFarmer?.name} by ${selectedTot?.name} recorded` });
     onOpenChange(false);
   };
+
+  const isLoading = farmersLoading || totsLoading;
+  const hasError = farmersError;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -193,7 +176,7 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
                 </>
               ) : gpsLocation ? (
                 <>
-                  <MapPin className="w-5 h-5 text-emerald-600" />
+                  <MapPin className="w-5 h-5 text-primary" />
                   <div>
                     <p className="text-sm font-medium">Location Captured</p>
                     <p className="text-xs text-muted-foreground">
@@ -220,24 +203,24 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
             </div>
           </div>
 
-          {farmersLoading && (
+          {isLoading && (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-6 h-6 animate-spin mr-2" />
-              <span>Loading farmers...</span>
+              <span>Loading data...</span>
             </div>
           )}
 
-          {farmersError && (
-            <div className="text-center py-8 text-destructive">Failed to load farmers</div>
+          {hasError && (
+            <div className="text-center py-8 text-destructive">Failed to load data</div>
           )}
 
-          {!farmersLoading && !farmersError && (
+          {!isLoading && !hasError && (
             <>
               <div className="space-y-2">
                 <Label>Select Local MR *</Label>
                 <Select 
                   value={formData.localMrId} 
-                  onValueChange={(value) => setFormData({ ...formData, localMrId: value, farmerId: '' })}
+                  onValueChange={(value) => setFormData({ ...formData, localMrId: value, farmerId: '', totId: '' })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Choose Local MR" />
@@ -251,29 +234,43 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
               </div>
 
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label>Select Farmer / TOT *</Label>
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor="show-tots" className="text-xs text-muted-foreground cursor-pointer">
-                      Include TOTs
-                    </Label>
-                    <Switch
-                      id="show-tots"
-                      checked={showTots}
-                      onCheckedChange={setShowTots}
-                    />
-                  </div>
-                </div>
-                <Select value={formData.farmerId} onValueChange={(value) => setFormData({ ...formData, farmerId: value })}>
+                <Label>TOT (Who Conducted Visit) *</Label>
+                <Select 
+                  value={formData.totId} 
+                  onValueChange={(value) => setFormData({ ...formData, totId: value })}
+                >
                   <SelectTrigger>
-                    <SelectValue placeholder={filteredList.length === 0 ? 'No farmers or TOTs in this MR' : 'Choose farmer or TOT'} />
+                    <SelectValue placeholder={tots.length === 0 ? 'No TOTs in this MR' : 'Select TOT'} />
                   </SelectTrigger>
                   <SelectContent>
-                    {filteredList.map((item) => (
-                      <SelectItem key={item.id} value={item.id}>
-                        {item.name}
-                      </SelectItem>
-                    ))}
+                    <ScrollArea className="max-h-[200px]">
+                      {tots.map((tot) => (
+                        <SelectItem key={tot.id} value={tot.id}>
+                          {tot.name}
+                        </SelectItem>
+                      ))}
+                    </ScrollArea>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Farmer (Who Was Visited) *</Label>
+                <Select 
+                  value={formData.farmerId} 
+                  onValueChange={(value) => setFormData({ ...formData, farmerId: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={filteredFarmers.length === 0 ? 'No farmers in this MR' : 'Select Farmer'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <ScrollArea className="max-h-[200px]">
+                      {filteredFarmers.map((farmer) => (
+                        <SelectItem key={farmer.id} value={farmer.id}>
+                          {farmer.name}
+                        </SelectItem>
+                      ))}
+                    </ScrollArea>
                   </SelectContent>
                 </Select>
               </div>
@@ -346,7 +343,7 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
               type="submit"
               variant="earth"
               className="flex-1"
-              disabled={farmersLoading || !!farmersError || filteredList.length === 0}
+              disabled={isLoading || !!hasError || filteredFarmers.length === 0 || tots.length === 0}
             >
               Log Visit
             </Button>

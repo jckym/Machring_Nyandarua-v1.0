@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFarmers, useSales, useVisits, useLocalMRs, useFarmerTrainings } from '@/hooks/api';
 import { useMachineryBookings } from '@/hooks/api/useMachineryBookings';
-import { ArrowLeft, Phone, Mail, MapPin, Calendar, ShoppingCart, Tractor, GraduationCap, Users, Star, Edit, TrendingUp, Download } from 'lucide-react';
+import { ArrowLeft, Phone, Mail, MapPin, Calendar, ShoppingCart, Tractor, GraduationCap, Users, Star, TrendingUp, Download } from 'lucide-react';
 import { Farmer, Sale, Visit } from '@/types';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
@@ -117,7 +117,7 @@ export function FarmerProfile() {
           <p className="text-sm text-muted-foreground">Farmer Profile</p>
         </div>
         <Button variant="outline" size="sm">
-          <Edit className="w-4 h-4 mr-2" />
+          
           Edit
         </Button>
       </div>

@@ -670,10 +670,20 @@ export async function fetchUsers() {
     console.error("Error fetching trainings for user metrics:", trainingsError);
   }
 
-  // Fetch visits for TOT metrics
+  // Fetch training attendance for TOTs (via profile_id)
+  const { data: trainingAttendees, error: attendeesError } = await supabase
+    .from("training_attendees")
+    .select("profile_id, training_id, trainings!inner(scheduled_date, status)")
+    .not("profile_id", "is", null);
+
+  if (attendeesError) {
+    console.error("Error fetching training attendees for user metrics:", attendeesError);
+  }
+
+  // Fetch visits for TOT metrics (both as creator via tot_id and as participant via profile_id)
   const { data: visits, error: visitsError } = await supabase
     .from("visits")
-    .select("tot_id, visit_date");
+    .select("tot_id, profile_id, visit_date");
 
   if (visitsError) {
     console.error("Error fetching visits for user metrics:", visitsError);
@@ -720,7 +730,7 @@ export async function fetchUsers() {
     totJobsMap.set(j.tot_id, existing);
   });
 
-  // Aggregate trainings per TOT (trainer_id)
+  // Aggregate trainings per TOT (as trainer via trainer_id)
   const totTrainingsMap = new Map<string, { count: number; completedCount: number; lastTrainingDate: string | null }>();
   (trainings || []).forEach((t) => {
     const existing = totTrainingsMap.get(t.trainer_id) || { count: 0, completedCount: 0, lastTrainingDate: null };
@@ -732,15 +742,41 @@ export async function fetchUsers() {
     totTrainingsMap.set(t.trainer_id, existing);
   });
 
-  // Aggregate visits per TOT
+  // Also count trainings where TOT attended as participant (via profile_id in training_attendees)
+  (trainingAttendees || []).forEach((a: any) => {
+    if (!a.profile_id) return;
+    const existing = totTrainingsMap.get(a.profile_id) || { count: 0, completedCount: 0, lastTrainingDate: null };
+    existing.count += 1;
+    const trainingStatus = a.trainings?.status;
+    const trainingDate = a.trainings?.scheduled_date;
+    if (trainingStatus === "completed") existing.completedCount += 1;
+    if (trainingDate && (!existing.lastTrainingDate || trainingDate > existing.lastTrainingDate)) {
+      existing.lastTrainingDate = trainingDate;
+    }
+    totTrainingsMap.set(a.profile_id, existing);
+  });
+
+  // Aggregate visits per TOT (both as creator via tot_id and as participant via profile_id)
   const totVisitsMap = new Map<string, { count: number; lastVisitDate: string | null }>();
   (visits || []).forEach((v) => {
-    const existing = totVisitsMap.get(v.tot_id) || { count: 0, lastVisitDate: null };
-    existing.count += 1;
-    if (!existing.lastVisitDate || v.visit_date > existing.lastVisitDate) {
-      existing.lastVisitDate = v.visit_date;
+    // Count visits created by TOT (tot_id)
+    if (v.tot_id) {
+      const existing = totVisitsMap.get(v.tot_id) || { count: 0, lastVisitDate: null };
+      existing.count += 1;
+      if (!existing.lastVisitDate || v.visit_date > existing.lastVisitDate) {
+        existing.lastVisitDate = v.visit_date;
+      }
+      totVisitsMap.set(v.tot_id, existing);
     }
-    totVisitsMap.set(v.tot_id, existing);
+    // Count visits where TOT is the participant (profile_id)
+    if (v.profile_id) {
+      const existing = totVisitsMap.get(v.profile_id) || { count: 0, lastVisitDate: null };
+      existing.count += 1;
+      if (!existing.lastVisitDate || v.visit_date > existing.lastVisitDate) {
+        existing.lastVisitDate = v.visit_date;
+      }
+      totVisitsMap.set(v.profile_id, existing);
+    }
   });
 
   return (profiles || []).map((user) => {

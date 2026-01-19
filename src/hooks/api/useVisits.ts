@@ -104,9 +104,7 @@ export function useVisit(id: string) {
 }
 
 export interface CreateVisitDto {
-  farmer_id?: string;
-  profile_id?: string;
-  participant_type: 'farmer' | 'tot';
+  farmer_id: string;
   tot_id: string;
   local_mr_id?: string;
   purpose: string;
@@ -114,6 +112,9 @@ export interface CreateVisitDto {
   visit_date?: string;
   follow_up_required?: boolean;
   follow_up_date?: string;
+  // Legacy fields for backwards compatibility
+  participant_type?: 'farmer' | 'tot';
+  profile_id?: string;
 }
 
 export function useCreateVisit() {
@@ -121,8 +122,9 @@ export function useCreateVisit() {
 
   return useMutation({
     mutationFn: async (data: CreateVisitDto) => {
-      // Build insert data based on participant type
+      // Build insert data - visits always have a farmer_id and tot_id
       const insertData = {
+        farmer_id: data.farmer_id,
         tot_id: data.tot_id,
         local_mr_id: data.local_mr_id || null,
         purpose: data.purpose,
@@ -130,9 +132,6 @@ export function useCreateVisit() {
         visit_date: data.visit_date || new Date().toISOString(),
         follow_up_required: data.follow_up_required || false,
         follow_up_date: data.follow_up_date || null,
-        // Set either farmer_id or profile_id based on participant type
-        farmer_id: data.participant_type === 'farmer' ? data.farmer_id : null,
-        profile_id: data.participant_type === 'tot' ? data.profile_id : null,
       };
 
       const { data: visit, error } = await supabase

@@ -661,10 +661,10 @@ export async function fetchUsers() {
     console.error("Error fetching machinery bookings for user metrics:", jobsError);
   }
 
-  // Fetch trainings for TOT metrics
+  // Fetch trainings for TOT metrics (include id for lookup)
   const { data: trainings, error: trainingsError } = await supabase
     .from("trainings")
-    .select("trainer_id, status, scheduled_date");
+    .select("id, trainer_id, status, scheduled_date");
 
   if (trainingsError) {
     console.error("Error fetching trainings for user metrics:", trainingsError);
@@ -673,12 +673,18 @@ export async function fetchUsers() {
   // Fetch training attendance for TOTs (via profile_id)
   const { data: trainingAttendees, error: attendeesError } = await supabase
     .from("training_attendees")
-    .select("profile_id, training_id, trainings!inner(scheduled_date, status)")
+    .select("profile_id, training_id")
     .not("profile_id", "is", null);
 
   if (attendeesError) {
     console.error("Error fetching training attendees for user metrics:", attendeesError);
   }
+
+  // Create a map of training_id to training details for lookup
+  const trainingDetailsMap = new Map<string, { status: string; scheduled_date: string }>();
+  (trainings || []).forEach((t: any) => {
+    trainingDetailsMap.set(t.id, { status: t.status, scheduled_date: t.scheduled_date });
+  });
 
   // Fetch visits for TOT metrics (both as creator via tot_id and as participant via profile_id)
   const { data: visits, error: visitsError } = await supabase
@@ -747,11 +753,11 @@ export async function fetchUsers() {
     if (!a.profile_id) return;
     const existing = totTrainingsMap.get(a.profile_id) || { count: 0, completedCount: 0, lastTrainingDate: null };
     existing.count += 1;
-    const trainingStatus = a.trainings?.status;
-    const trainingDate = a.trainings?.scheduled_date;
-    if (trainingStatus === "completed") existing.completedCount += 1;
-    if (trainingDate && (!existing.lastTrainingDate || trainingDate > existing.lastTrainingDate)) {
-      existing.lastTrainingDate = trainingDate;
+    // Lookup training details from the map
+    const trainingDetails = trainingDetailsMap.get(a.training_id);
+    if (trainingDetails?.status === "completed") existing.completedCount += 1;
+    if (trainingDetails?.scheduled_date && (!existing.lastTrainingDate || trainingDetails.scheduled_date > existing.lastTrainingDate)) {
+      existing.lastTrainingDate = trainingDetails.scheduled_date;
     }
     totTrainingsMap.set(a.profile_id, existing);
   });

@@ -116,10 +116,6 @@ export function FarmerProfile() {
           <h1 className="font-heading text-xl sm:text-2xl font-bold text-foreground">{farmer.name}</h1>
           <p className="text-sm text-muted-foreground">Farmer Profile</p>
         </div>
-        <Button variant="outline" size="sm">
-          
-          Edit
-        </Button>
       </div>
 
       {/* Profile Summary */}

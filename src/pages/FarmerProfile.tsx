@@ -5,43 +5,51 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFarmers, useSales, useVisits, useLocalMRs, useFarmerTrainings } from '@/hooks/api';
 import { useMachineryBookings } from '@/hooks/api/useMachineryBookings';
-import { 
-  ArrowLeft, Phone, Mail, MapPin, Calendar, ShoppingCart, Tractor, 
-  GraduationCap, Users, Star, Edit, TrendingUp, Download 
-} from 'lucide-react';
+import { ArrowLeft, Phone, Mail, MapPin, Calendar, ShoppingCart, Tractor, GraduationCap, Users, Star, Edit, TrendingUp, Download } from 'lucide-react';
 import { Farmer, Sale, Visit } from '@/types';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
-
 export function FarmerProfile() {
-  const { id } = useParams();
+  const {
+    id
+  } = useParams();
   const navigate = useNavigate();
-  
+
   // API hooks - data is already normalized by select transforms
-  const { data: farmers = [] } = useFarmers();
-  const { data: sales = [] } = useSales();
-  const { data: bookings = [] } = useMachineryBookings();
-  const { data: visits = [] } = useVisits();
-  const { data: localMRs = [] } = useLocalMRs();
-  
+  const {
+    data: farmers = []
+  } = useFarmers();
+  const {
+    data: sales = []
+  } = useSales();
+  const {
+    data: bookings = []
+  } = useMachineryBookings();
+  const {
+    data: visits = []
+  } = useVisits();
+  const {
+    data: localMRs = []
+  } = useLocalMRs();
+
   // Fetch training attendance specifically for this farmer
-  const { data: farmerTrainings = [] } = useFarmerTrainings(id || '');
-  
+  const {
+    data: farmerTrainings = []
+  } = useFarmerTrainings(id || '');
   const farmer = (farmers as Farmer[]).find(f => f.id === id);
-  
   if (!farmer) {
-    return (
-      <div className="flex items-center justify-center h-96">
+    return <div className="flex items-center justify-center h-96">
         <Card className="p-8 text-center">
           <h2 className="text-lg font-semibold mb-2">Farmer Not Found</h2>
           <p className="text-muted-foreground mb-4">The farmer profile you're looking for doesn't exist.</p>
           <Button onClick={() => navigate('/farmers')}>Back to Farmers</Button>
         </Card>
-      </div>
-    );
+      </div>;
   }
-
-  const localMr = (localMRs as { id: string; name: string }[]).find(mr => mr.id === farmer.localMrId);
+  const localMr = (localMRs as {
+    id: string;
+    name: string;
+  }[]).find(mr => mr.id === farmer.localMrId);
   const farmerSales = (sales as Sale[]).filter(s => s.farmerId === farmer.id);
   const farmerBookings = (bookings || []).filter(b => b.farmer_id === farmer.id);
   const farmerVisits = (visits as Visit[]).filter(v => v.farmerId === farmer.id);
@@ -52,36 +60,37 @@ export function FarmerProfile() {
 
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case 'Pioneer': return 'wheat';
-      case 'Existing': return 'forest';
-      default: return 'sage';
+      case 'Pioneer':
+        return 'wheat';
+      case 'Existing':
+        return 'forest';
+      default:
+        return 'sage';
     }
   };
-
   const getRatingColor = (rating: string) => {
     switch (rating) {
-      case 'High-Value': return 'success';
-      case 'Active': return 'forest';
-      default: return 'warning';
+      case 'High-Value':
+        return 'success';
+      case 'Active':
+        return 'forest';
+      default:
+        return 'warning';
     }
   };
-
   const formatDate = (date: Date | string) => {
     return new Intl.DateTimeFormat('en-KE', {
       day: 'numeric',
       month: 'short',
-      year: 'numeric',
+      year: 'numeric'
     }).format(new Date(date));
   };
-
   const formatCurrency = (value: number) => `KES ${value.toLocaleString()}`;
-
   const exportVisitsToCSV = () => {
     if (farmerVisits.length === 0) {
       toast.error('No visits to export');
       return;
     }
-
     const exportData = farmerVisits.map((visit: any, idx) => ({
       '#': idx + 1,
       'Date': formatDate(visit.date || visit.visit_date),
@@ -89,18 +98,15 @@ export function FarmerProfile() {
       'Notes': visit.notes || '',
       'TOT': visit.totName || visit.tot_name || '',
       'Follow-up Required': visit.follow_up_required ? 'Yes' : 'No',
-      'Follow-up Date': visit.follow_up_date ? formatDate(visit.follow_up_date) : '',
+      'Follow-up Date': visit.follow_up_date ? formatDate(visit.follow_up_date) : ''
     }));
-
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Visit History');
     XLSX.writeFile(wb, `${farmer.name}_visit_history.csv`);
     toast.success('Visit history exported');
   };
-
-  return (
-    <div className="space-y-4 sm:space-y-6">
+  return <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate('/farmers')}>
@@ -138,12 +144,10 @@ export function FarmerProfile() {
                     <Phone className="w-4 h-4" />
                     <span>{farmer.phone}</span>
                   </div>
-                  {farmer.email && (
-                    <div className="flex items-center gap-2 text-muted-foreground">
+                  {farmer.email && <div className="flex items-center gap-2 text-muted-foreground">
                       <Mail className="w-4 h-4" />
                       <span>{farmer.email}</span>
-                    </div>
-                  )}
+                    </div>}
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <MapPin className="w-4 h-4" />
                     <span>{farmer.location.village}, {farmer.location.county}</span>
@@ -169,10 +173,7 @@ export function FarmerProfile() {
               Engagement Summary
             </h3>
             <div className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <span className="opacity-80">Total Purchases</span>
-                <span className="font-semibold">{farmer.totalPurchases}</span>
-              </div>
+              
               <div className="flex justify-between">
                 <span className="opacity-80">Amount Spent</span>
                 <span className="font-semibold">{formatCurrency(totalSpent)}</span>
@@ -181,10 +182,7 @@ export function FarmerProfile() {
                 <span className="opacity-80">Machinery Bookings</span>
                 <span className="font-semibold">{farmerBookings.length}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="opacity-80">Booking Value</span>
-                <span className="font-semibold">{formatCurrency(bookingsSpent)}</span>
-              </div>
+              
               <div className="flex justify-between">
                 <span className="opacity-80">Trainings Attended</span>
                 <span className="font-semibold">{farmerTrainings.length || farmer.trainingsAttended}</span>
@@ -260,12 +258,8 @@ export function FarmerProfile() {
           
           <CardContent className="p-4 sm:p-6">
             <TabsContent value="sales" className="mt-0">
-              {farmerSales.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">No sales recorded yet.</p>
-              ) : (
-                <div className="space-y-3">
-                  {farmerSales.map(sale => (
-                    <div key={sale.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+              {farmerSales.length === 0 ? <p className="text-muted-foreground text-center py-8">No sales recorded yet.</p> : <div className="space-y-3">
+                  {farmerSales.map(sale => <div key={sale.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                       <div>
                         <p className="font-medium text-sm">{sale.productName}</p>
                         <p className="text-xs text-muted-foreground">{formatDate(sale.date)} • Qty: {sale.quantity}</p>
@@ -274,19 +268,13 @@ export function FarmerProfile() {
                         <p className="font-semibold text-primary text-sm">{formatCurrency(sale.total)}</p>
                         <Badge variant={sale.status === 'completed' ? 'success' : 'warning'} className="text-xs">{sale.status}</Badge>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    </div>)}
+                </div>}
             </TabsContent>
 
             <TabsContent value="bookings" className="mt-0">
-              {farmerBookings.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">No machinery bookings recorded yet.</p>
-              ) : (
-                <div className="space-y-3">
-                  {farmerBookings.map(booking => (
-                    <div key={booking.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+              {farmerBookings.length === 0 ? <p className="text-muted-foreground text-center py-8">No machinery bookings recorded yet.</p> : <div className="space-y-3">
+                  {farmerBookings.map(booking => <div key={booking.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                       <div>
                         <p className="font-medium text-sm">{booking.machinery_name || 'Machinery'}</p>
                         <p className="text-xs text-muted-foreground">{formatDate(booking.start_date)} - {formatDate(booking.end_date)}</p>
@@ -294,19 +282,13 @@ export function FarmerProfile() {
                       <div className="text-right">
                         <Badge variant={booking.status === 'completed' ? 'success' : 'info'} className="text-xs">{booking.status}</Badge>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    </div>)}
+                </div>}
             </TabsContent>
 
             <TabsContent value="trainings" className="mt-0">
-              {farmerTrainings.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">No trainings attended yet.</p>
-              ) : (
-                <div className="space-y-3">
-                  {farmerTrainings.map(training => (
-                    <div key={training.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+              {farmerTrainings.length === 0 ? <p className="text-muted-foreground text-center py-8">No trainings attended yet.</p> : <div className="space-y-3">
+                  {farmerTrainings.map(training => <div key={training.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                       <div>
                         <p className="font-medium text-sm">{training.title}</p>
                         <p className="text-xs text-muted-foreground">
@@ -317,41 +299,30 @@ export function FarmerProfile() {
                         <Badge variant="forest" className="text-xs">{training.training_type}</Badge>
                         <p className="text-xs text-muted-foreground mt-1">{training.duration_hours || 0} hrs</p>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    </div>)}
+                </div>}
             </TabsContent>
 
             <TabsContent value="visits" className="mt-0">
-              {farmerVisits.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">No visits recorded yet.</p>
-              ) : (
-                <div className="space-y-3">
+              {farmerVisits.length === 0 ? <p className="text-muted-foreground text-center py-8">No visits recorded yet.</p> : <div className="space-y-3">
                   <div className="flex justify-end">
                     <Button variant="outline" size="sm" onClick={exportVisitsToCSV}>
                       <Download className="w-4 h-4 mr-1" />
                       Export CSV
                     </Button>
                   </div>
-                  {farmerVisits.map(visit => (
-                    <div key={visit.id} className="p-3 rounded-lg bg-muted/50">
+                  {farmerVisits.map(visit => <div key={visit.id} className="p-3 rounded-lg bg-muted/50">
                       <div className="flex items-center justify-between mb-2">
                         <Badge variant="sage" className="text-xs">{visit.purpose}</Badge>
                         <span className="text-xs text-muted-foreground">{formatDate(visit.date)}</span>
                       </div>
                       <p className="text-sm text-muted-foreground">{visit.notes}</p>
-                      {visit.totName && (
-                        <p className="text-xs text-muted-foreground mt-2">By: {visit.totName}</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
+                      {visit.totName && <p className="text-xs text-muted-foreground mt-2">By: {visit.totName}</p>}
+                    </div>)}
+                </div>}
             </TabsContent>
           </CardContent>
         </Tabs>
       </Card>
-    </div>
-  );
+    </div>;
 }

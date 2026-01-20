@@ -945,11 +945,13 @@ export type Database = {
         Row: {
           created_at: string
           farmer_id: string | null
+          follow_up_completed: boolean
           follow_up_date: string | null
           follow_up_required: boolean
           id: string
           local_mr_id: string | null
           notes: string | null
+          parent_visit_id: string | null
           profile_id: string | null
           purpose: string
           tot_id: string
@@ -959,11 +961,13 @@ export type Database = {
         Insert: {
           created_at?: string
           farmer_id?: string | null
+          follow_up_completed?: boolean
           follow_up_date?: string | null
           follow_up_required?: boolean
           id?: string
           local_mr_id?: string | null
           notes?: string | null
+          parent_visit_id?: string | null
           profile_id?: string | null
           purpose: string
           tot_id: string
@@ -973,11 +977,13 @@ export type Database = {
         Update: {
           created_at?: string
           farmer_id?: string | null
+          follow_up_completed?: boolean
           follow_up_date?: string | null
           follow_up_required?: boolean
           id?: string
           local_mr_id?: string | null
           notes?: string | null
+          parent_visit_id?: string | null
           profile_id?: string | null
           purpose?: string
           tot_id?: string
@@ -1000,6 +1006,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "visits_parent_visit_id_fkey"
+            columns: ["parent_visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "visits_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
@@ -1013,6 +1026,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_and_notify_overdue_followups: { Args: never; Returns: undefined }
       get_local_mr_performance: {
         Args: { _local_mr_id?: string }
         Returns: {

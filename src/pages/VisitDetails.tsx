@@ -1,19 +1,21 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, MapPin, Calendar, MessageSquare, User, Building2, CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, MessageSquare, User, Building2, CheckCircle2, AlertTriangle, Link2 } from 'lucide-react';
 import { useVisit } from '@/hooks/api/useVisits';
-import { useMarkFollowUpComplete } from '@/hooks/api/useOverdueFollowUps';
 import { useAuth } from '@/contexts/AuthContext';
+import { MarkFollowUpCompleteDialog } from '@/components/dashboard/MarkFollowUpCompleteDialog';
+import { OverdueVisit } from '@/hooks/api/useOverdueFollowUps';
 
 export function VisitDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { data: visit, isLoading, error } = useVisit(id || '');
-  const { mutate: markComplete, isPending: isMarking } = useMarkFollowUpComplete();
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const formatDate = (date: Date | string) => {
     return new Intl.DateTimeFormat('en-KE', {
@@ -38,14 +40,25 @@ export function VisitDetails() {
     !visit?.follow_up_completed &&
     new Date(visit.follow_up_date) < new Date();
 
-  const handleMarkComplete = () => {
-    if (id) {
-      markComplete({ visitId: id });
-    }
-  };
-
   // Check if the current user is the TOT who organized the visit
   const canMarkComplete = user?.id === visit?.tot_id;
+
+  // Convert visit to OverdueVisit format for the dialog
+  const visitForDialog: OverdueVisit | null = visit && visit.farmer_id ? {
+    id: visit.id,
+    farmer_id: visit.farmer_id,
+    farmer_name: visit.farmer_name || visit.farmerName || 'Unknown',
+    tot_id: visit.tot_id,
+    local_mr_id: visit.local_mr_id,
+    local_mr_name: visit.local_mr_name || null,
+    purpose: visit.purpose,
+    notes: visit.notes,
+    visit_date: visit.visit_date,
+    follow_up_date: visit.follow_up_date || '',
+    follow_up_required: visit.follow_up_required,
+    follow_up_completed: visit.follow_up_completed || false,
+    parent_visit_id: visit.parent_visit_id || null,
+  } : null;
 
   if (isLoading) {
     return (
@@ -87,6 +100,12 @@ export function VisitDetails() {
             <CardTitle className="flex items-center gap-2">
               <MapPin className="w-5 h-5" />
               Field Visit
+              {visit.parent_visit_id && (
+                <Badge variant="outline" className="ml-2 text-xs">
+                  <Link2 className="w-3 h-3 mr-1" />
+                  Follow-up Visit
+                </Badge>
+              )}
             </CardTitle>
             <Badge variant="sage">{visit.purpose}</Badge>
           </div>
@@ -171,15 +190,10 @@ export function VisitDetails() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={handleMarkComplete}
-                        disabled={isMarking}
+                        onClick={() => setDialogOpen(true)}
                         className="flex-shrink-0"
                       >
-                        {isMarking ? (
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        ) : (
-                          <CheckCircle2 className="w-4 h-4 mr-2" />
-                        )}
+                        <CheckCircle2 className="w-4 h-4 mr-2" />
                         Mark Complete
                       </Button>
                     )}
@@ -204,6 +218,12 @@ export function VisitDetails() {
           </div>
         </CardContent>
       </Card>
+
+      <MarkFollowUpCompleteDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        visit={visitForDialog}
+      />
     </div>
   );
 }

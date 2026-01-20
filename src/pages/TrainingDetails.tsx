@@ -16,6 +16,7 @@ interface AttendeeDetail {
   phone: string | null;
   village: string | null;
   ward: string | null;
+  type: 'farmer' | 'tot';
 }
 
 export function TrainingDetails() {
@@ -37,14 +38,49 @@ export function TrainingDetails() {
 
       setLoadingAttendees(true);
       try {
-        const farmerIds = training.attendees.map((a: any) => a.farmer_id);
-        const { data: farmers, error } = await supabase
-          .from('farmers')
-          .select('id, name, phone, village, ward')
-          .in('id', farmerIds);
+        const attendees: AttendeeDetail[] = [];
+        
+        // Separate farmer IDs and profile IDs (TOTs)
+        const farmerIds = training.attendees
+          .map((a: any) => a.farmer_id)
+          .filter((id: string | null): id is string => id !== null);
+        
+        const profileIds = training.attendees
+          .map((a: any) => a.profile_id)
+          .filter((id: string | null): id is string => id !== null);
 
-        if (error) throw error;
-        setAttendeeDetails(farmers || []);
+        // Fetch farmer details
+        if (farmerIds.length > 0) {
+          const { data: farmers, error: farmersError } = await supabase
+            .from('farmers')
+            .select('id, name, phone, village, ward')
+            .in('id', farmerIds);
+
+          if (!farmersError && farmers) {
+            attendees.push(...farmers.map(f => ({ ...f, type: 'farmer' as const })));
+          }
+        }
+
+        // Fetch TOT (profile) details
+        if (profileIds.length > 0) {
+          const { data: profiles, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, name, phone')
+            .in('id', profileIds);
+
+          if (!profilesError && profiles) {
+            attendees.push(...profiles.map(p => ({ 
+              id: p.id, 
+              name: p.name || 'Unknown TOT', 
+              phone: p.phone, 
+              village: null, 
+              ward: null,
+              type: 'tot' as const 
+            })));
+          }
+        }
+
+        setAttendeeDetails(attendees);
       } catch (err) {
         console.error('Error fetching attendee details:', err);
         setAttendeeDetails([]);
@@ -215,7 +251,7 @@ export function TrainingDetails() {
                 <Users className="w-4 h-4" />
                 Attendance List
               </h3>
-              <Badge variant="secondary">{attendeeDetails.length} farmers</Badge>
+              <Badge variant="secondary">{attendeeDetails.length} attendees</Badge>
             </div>
             
             {loadingAttendees ? (
@@ -243,8 +279,13 @@ export function TrainingDetails() {
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium text-sm">
                       {index + 1}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm">{farmer.name}</p>
+                      <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-sm">{farmer.name}</p>
+                        <Badge variant={farmer.type === 'tot' ? 'sage' : 'wheat'} className="text-[10px] px-1.5 py-0">
+                          {farmer.type === 'tot' ? 'TOT' : 'Farmer'}
+                        </Badge>
+                      </div>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
                         {farmer.phone && (
                           <span className="flex items-center gap-1">

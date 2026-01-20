@@ -27,7 +27,6 @@ import {
   TrendingDown
 } from 'lucide-react';
 import { LocalMR, Sale } from '@/types';
-import { formatDistanceToNow } from 'date-fns';
 
 interface TOTWithMetrics {
   id: string;
@@ -200,7 +199,6 @@ export function TOTPerformanceOverview({
                   <TableHead className="text-right">Commission</TableHead>
                   <TableHead className="text-center">Jobs</TableHead>
                   <TableHead className="text-center">Trainings</TableHead>
-                  <TableHead>Last Active</TableHead>
                   <TableHead>Performance</TableHead>
                 </TableRow>
               </TableHeader>
@@ -226,15 +224,6 @@ export function TOTPerformanceOverview({
                     </TableCell>
                     <TableCell className="text-center">{tot.jobsCount}</TableCell>
                     <TableCell className="text-center">{tot.trainingsCount}</TableCell>
-                    <TableCell>
-                      {tot.lastActivityDate ? (
-                        <span className="text-sm text-muted-foreground">
-                          {formatDistanceToNow(new Date(tot.lastActivityDate), { addSuffix: true })}
-                        </span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">No activity</span>
-                      )}
-                    </TableCell>
                     <TableCell>{getPerformanceBadge(tot.performanceLevel)}</TableCell>
                   </TableRow>
                 ))}

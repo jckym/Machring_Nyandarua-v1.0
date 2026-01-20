@@ -3,13 +3,17 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, MapPin, Calendar, MessageSquare, User, Building2 } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, MessageSquare, User, Building2, CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react';
 import { useVisit } from '@/hooks/api/useVisits';
+import { useMarkFollowUpComplete } from '@/hooks/api/useOverdueFollowUps';
+import { useAuth } from '@/contexts/AuthContext';
 
 export function VisitDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { data: visit, isLoading, error } = useVisit(id || '');
+  const { mutate: markComplete, isPending: isMarking } = useMarkFollowUpComplete();
 
   const formatDate = (date: Date | string) => {
     return new Intl.DateTimeFormat('en-KE', {
@@ -20,6 +24,28 @@ export function VisitDetails() {
       minute: '2-digit',
     }).format(new Date(date));
   };
+
+  const formatDateOnly = (date: Date | string) => {
+    return new Intl.DateTimeFormat('en-KE', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).format(new Date(date));
+  };
+
+  const isOverdue = visit?.follow_up_required && 
+    visit?.follow_up_date && 
+    !visit?.follow_up_completed &&
+    new Date(visit.follow_up_date) < new Date();
+
+  const handleMarkComplete = () => {
+    if (id) {
+      markComplete({ visitId: id });
+    }
+  };
+
+  // Check if the current user is the TOT who organized the visit
+  const canMarkComplete = user?.id === visit?.tot_id;
 
   if (isLoading) {
     return (
@@ -101,15 +127,62 @@ export function VisitDetails() {
 
             <div className="space-y-4">
               {visit.follow_up_required && (
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
-                    <Calendar className="w-5 h-5 text-orange-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Follow-up Required</p>
-                    <p className="font-medium">
-                      {visit.follow_up_date ? formatDate(visit.follow_up_date) : 'Yes'}
-                    </p>
+                <div className={`p-4 rounded-lg border ${
+                  visit.follow_up_completed 
+                    ? 'bg-primary/5 border-primary/20' 
+                    : isOverdue 
+                      ? 'bg-destructive/5 border-destructive/20' 
+                      : 'bg-warning/5 border-warning/20'
+                }`}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                        visit.follow_up_completed 
+                          ? 'bg-primary/10' 
+                          : isOverdue 
+                            ? 'bg-destructive/10' 
+                            : 'bg-warning/10'
+                      }`}>
+                        {visit.follow_up_completed ? (
+                          <CheckCircle2 className="w-5 h-5 text-primary" />
+                        ) : isOverdue ? (
+                          <AlertTriangle className="w-5 h-5 text-destructive" />
+                        ) : (
+                          <Calendar className="w-5 h-5 text-warning" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Follow-up</p>
+                        <p className="font-medium">
+                          {visit.follow_up_completed 
+                            ? 'Completed' 
+                            : visit.follow_up_date 
+                              ? formatDateOnly(visit.follow_up_date) 
+                              : 'Required'}
+                        </p>
+                        {!visit.follow_up_completed && isOverdue && (
+                          <Badge variant="destructive" className="mt-1 text-xs">
+                            Overdue
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    {!visit.follow_up_completed && canMarkComplete && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleMarkComplete}
+                        disabled={isMarking}
+                        className="flex-shrink-0"
+                      >
+                        {isMarking ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="w-4 h-4 mr-2" />
+                        )}
+                        Mark Complete
+                      </Button>
+                    )}
                   </div>
                 </div>
               )}

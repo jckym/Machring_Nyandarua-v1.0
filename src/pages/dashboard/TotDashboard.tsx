@@ -13,6 +13,7 @@ import { StatCard } from '@/components/dashboard/StatCard';
 import { GlobalRecentActivity } from '@/components/dashboard/GlobalRecentActivity';
 import { SalesChart } from '@/components/dashboard/SalesChart';
 import { ProductChart } from '@/components/dashboard/ProductChart';
+import { OverdueFollowUps } from '@/components/dashboard/OverdueFollowUps';
 
 import { useSupabaseTotStats, TotStats } from '@/hooks/api/useSupabaseDashboard';
 import { useAuth } from '@/contexts/AuthContext';
@@ -57,7 +58,7 @@ export function TotDashboard() {
   if (error || !stats) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-        <AlertCircle className="w-16 h-16 mb-4 text-orange-500 opacity-80" />
+        <AlertCircle className="w-16 h-16 mb-4 text-warning opacity-80" />
         <p className="text-lg">Failed to load your dashboard</p>
         <p className="text-sm mt-2">Please check your connection and try again</p>
       </div>
@@ -140,6 +141,7 @@ export function TotDashboard() {
 
       {/* Bottom Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <OverdueFollowUps totId={totId} showPending={true} limit={5} />
         <GlobalRecentActivity />
       </div>
     </div>

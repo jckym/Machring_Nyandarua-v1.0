@@ -13,6 +13,8 @@ export interface Visit {
   visit_date: string;
   follow_up_required: boolean;
   follow_up_date: string | null;
+  follow_up_completed: boolean;
+  parent_visit_id: string | null;
   created_at: string;
   updated_at: string;
   // Joined
@@ -112,6 +114,7 @@ export interface CreateVisitDto {
   visit_date?: string;
   follow_up_required?: boolean;
   follow_up_date?: string;
+  parent_visit_id?: string;
   // Legacy fields for backwards compatibility
   participant_type?: 'farmer' | 'tot';
   profile_id?: string;
@@ -132,6 +135,7 @@ export function useCreateVisit() {
         visit_date: data.visit_date || new Date().toISOString(),
         follow_up_required: data.follow_up_required || false,
         follow_up_date: data.follow_up_date || null,
+        parent_visit_id: data.parent_visit_id || null,
       };
 
       const { data: visit, error } = await supabase

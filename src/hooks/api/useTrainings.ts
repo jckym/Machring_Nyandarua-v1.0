@@ -165,10 +165,10 @@ export function useTraining(id: string) {
         trainerName = trainer?.name || 'Trainer';
       }
 
-      // Fetch attendees
+      // Fetch attendees (both farmers and TOTs)
       const { data: attendees } = await supabase
         .from('training_attendees')
-        .select('farmer_id, attended')
+        .select('farmer_id, profile_id, attended')
         .eq('training_id', id);
 
       return {

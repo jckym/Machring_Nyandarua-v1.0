@@ -132,22 +132,32 @@ function useCoordinatorTots(userId: string) {
         .select('tot_id, total_amount, commission_amount, sale_date')
         .eq('local_mr_id', localMrId);
 
-      // Fetch bookings for this MR's TOTs
+      // Fetch bookings for this MR's TOTs (use tot_id, not booked_by)
       const { data: bookings } = await supabase
         .from('machinery_bookings')
-        .select('booked_by, status, start_date')
+        .select('tot_id, status, start_date')
         .eq('local_mr_id', localMrId);
 
       // Fetch trainings for this MR
       const { data: trainings } = await supabase
         .from('trainings')
-        .select('trainer_id, status, scheduled_date')
+        .select('id, trainer_id, status, scheduled_date')
         .eq('local_mr_id', localMrId);
+
+      // Fetch training attendees (TOTs as participants)
+      const trainingIds = (trainings || []).map(t => t.id);
+      const { data: trainingAttendees } = trainingIds.length > 0 
+        ? await supabase
+            .from('training_attendees')
+            .select('training_id, profile_id')
+            .in('training_id', trainingIds)
+            .not('profile_id', 'is', null)
+        : { data: [] };
 
       // Fetch visits for this MR's TOTs
       const { data: visits } = await supabase
         .from('visits')
-        .select('tot_id, visit_date')
+        .select('tot_id, profile_id, visit_date')
         .eq('local_mr_id', localMrId);
 
       // Aggregate sales metrics per TOT
@@ -164,21 +174,29 @@ function useCoordinatorTots(userId: string) {
         totSalesMap.set(s.tot_id, existing);
       });
 
-      // Aggregate bookings per TOT
+      // Aggregate bookings per TOT (use tot_id)
       const totJobsMap = new Map<string, { count: number; completedCount: number; lastJobDate: string | null }>();
       (bookings || []).forEach((b) => {
-        if (!totIds.includes(b.booked_by)) return;
-        const existing = totJobsMap.get(b.booked_by) || { count: 0, completedCount: 0, lastJobDate: null };
+        if (!b.tot_id || !totIds.includes(b.tot_id)) return;
+        const existing = totJobsMap.get(b.tot_id) || { count: 0, completedCount: 0, lastJobDate: null };
         existing.count += 1;
         if (b.status === 'completed') existing.completedCount += 1;
         if (!existing.lastJobDate || b.start_date > existing.lastJobDate) {
           existing.lastJobDate = b.start_date;
         }
-        totJobsMap.set(b.booked_by, existing);
+        totJobsMap.set(b.tot_id, existing);
       });
 
-      // Aggregate trainings per TOT (trainer_id)
+      // Build a map of training details for attendee lookups
+      const trainingDetailsMap = new Map<string, { status: string; scheduled_date: string }>();
+      (trainings || []).forEach((t) => {
+        trainingDetailsMap.set(t.id, { status: t.status || '', scheduled_date: t.scheduled_date || '' });
+      });
+
+      // Aggregate trainings per TOT (trainer_id and as attendee via profile_id)
       const totTrainingsMap = new Map<string, { count: number; completedCount: number; lastTrainingDate: string | null }>();
+      
+      // As trainer
       (trainings || []).forEach((t) => {
         if (!totIds.includes(t.trainer_id)) return;
         const existing = totTrainingsMap.get(t.trainer_id) || { count: 0, completedCount: 0, lastTrainingDate: null };
@@ -189,17 +207,41 @@ function useCoordinatorTots(userId: string) {
         }
         totTrainingsMap.set(t.trainer_id, existing);
       });
+      
+      // As attendee
+      (trainingAttendees || []).forEach((a: any) => {
+        if (!a.profile_id || !totIds.includes(a.profile_id)) return;
+        const existing = totTrainingsMap.get(a.profile_id) || { count: 0, completedCount: 0, lastTrainingDate: null };
+        existing.count += 1;
+        const trainingDetails = trainingDetailsMap.get(a.training_id);
+        if (trainingDetails?.status === 'completed') existing.completedCount += 1;
+        if (trainingDetails?.scheduled_date && (!existing.lastTrainingDate || trainingDetails.scheduled_date > existing.lastTrainingDate)) {
+          existing.lastTrainingDate = trainingDetails.scheduled_date;
+        }
+        totTrainingsMap.set(a.profile_id, existing);
+      });
 
-      // Aggregate visits per TOT
+      // Aggregate visits per TOT (tot_id and profile_id)
       const totVisitsMap = new Map<string, { count: number; lastVisitDate: string | null }>();
       (visits || []).forEach((v) => {
-        if (!totIds.includes(v.tot_id)) return;
-        const existing = totVisitsMap.get(v.tot_id) || { count: 0, lastVisitDate: null };
-        existing.count += 1;
-        if (!existing.lastVisitDate || v.visit_date > existing.lastVisitDate) {
-          existing.lastVisitDate = v.visit_date;
+        // Count visits where TOT is creator
+        if (v.tot_id && totIds.includes(v.tot_id)) {
+          const existing = totVisitsMap.get(v.tot_id) || { count: 0, lastVisitDate: null };
+          existing.count += 1;
+          if (!existing.lastVisitDate || v.visit_date > existing.lastVisitDate) {
+            existing.lastVisitDate = v.visit_date;
+          }
+          totVisitsMap.set(v.tot_id, existing);
         }
-        totVisitsMap.set(v.tot_id, existing);
+        // Count visits where TOT is participant
+        if (v.profile_id && totIds.includes(v.profile_id)) {
+          const existing = totVisitsMap.get(v.profile_id) || { count: 0, lastVisitDate: null };
+          existing.count += 1;
+          if (!existing.lastVisitDate || v.visit_date > existing.lastVisitDate) {
+            existing.lastVisitDate = v.visit_date;
+          }
+          totVisitsMap.set(v.profile_id, existing);
+        }
       });
 
       return (profiles || []).map(p => {

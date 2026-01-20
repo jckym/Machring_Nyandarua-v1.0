@@ -8,13 +8,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Calendar } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
 import { useFarmers } from '@/hooks/api/useFarmers';
 import { useTotsByLocalMR } from '@/hooks/api/useTotsByLocalMR';
 import { useLocalMRs } from '@/hooks/api/useLocalMRs';
-import { MapPin, Loader2, AlertCircle, ChevronDown } from 'lucide-react';
+import { MapPin, Loader2, AlertCircle, ChevronDown, CalendarIcon } from 'lucide-react';
 import { CreateVisitDto } from '@/hooks/api/useVisits';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 
 interface VisitFormDialogProps {
   open: boolean;
@@ -41,6 +43,8 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
     localMrId: '',
     purposes: [] as string[],
     notes: '',
+    followUpRequired: false,
+    followUpDate: null as Date | null,
   });
 
   const [gpsLocation, setGpsLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -88,6 +92,8 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
         localMrId: '',
         purposes: [],
         notes: '',
+        followUpRequired: false,
+        followUpDate: null,
       });
       setGpsLocation(null);
       setGpsError(null);
@@ -150,6 +156,8 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
       purpose: formData.purposes.join(', '),
       notes: formData.notes.trim(),
       visit_date: new Date().toISOString(),
+      follow_up_required: formData.followUpRequired,
+      follow_up_date: formData.followUpDate ? formData.followUpDate.toISOString() : undefined,
     };
 
     onSubmit(visitData);
@@ -328,9 +336,61 @@ export function VisitFormDialog({ open, onOpenChange, onSubmit }: VisitFormDialo
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   placeholder="Visit observations..."
-                  rows={5}
+                  rows={4}
                   required
                 />
+              </div>
+
+              {/* Follow-up Section */}
+              <div className="space-y-3 p-4 rounded-lg border bg-muted/30">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="followUpRequired"
+                    checked={formData.followUpRequired}
+                    onCheckedChange={(checked) => 
+                      setFormData({ 
+                        ...formData, 
+                        followUpRequired: checked === true,
+                        followUpDate: checked === true ? formData.followUpDate : null
+                      })
+                    }
+                  />
+                  <Label htmlFor="followUpRequired" className="cursor-pointer">
+                    Schedule a follow-up visit
+                  </Label>
+                </div>
+
+                {formData.followUpRequired && (
+                  <div className="space-y-2 pt-2">
+                    <Label>Follow-up Date</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !formData.followUpDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {formData.followUpDate 
+                            ? format(formData.followUpDate, "PPP") 
+                            : <span>Pick a follow-up date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0 z-50" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={formData.followUpDate || undefined}
+                          onSelect={(date) => setFormData({ ...formData, followUpDate: date || null })}
+                          disabled={(date) => date < new Date()}
+                          initialFocus
+                          className={cn("p-3 pointer-events-auto")}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                )}
               </div>
             </>
           )}

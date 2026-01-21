@@ -12,7 +12,7 @@ import {
 import { exportToExcelFile } from './excelUtils';
 
 // MR Logo path
-const MR_LOGO_PATH = '/mrlogo.png';
+const MR_LOGO_PATH = '/mrlogo.jpg';
 
 // Helper to get MR name
 const getMrName = (localMrId: string, localMrName?: string) => {

@@ -152,7 +152,7 @@ export function Sidebar() {
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 p-1 flex items-center justify-center">
               <img
-                src="/mrlogo.png"
+                src="/mrlogo.jpg"
                 alt="Machinery Ring Logo"
                 className="w-full h-full object-contain"
               />

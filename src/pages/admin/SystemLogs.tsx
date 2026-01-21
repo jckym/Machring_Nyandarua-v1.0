@@ -15,7 +15,7 @@ import {
   FileSpreadsheet, FileText,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import * as XLSX from 'xlsx';
+import { exportToExcelFile } from '@/lib/excelUtils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useSystemLogs } from '@/hooks/api/useSystemLogs';
@@ -69,11 +69,8 @@ export function SystemLogs() {
     </Badge>
   );
 
-  const exportToExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(filteredLogs);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'System Logs');
-    XLSX.writeFile(workbook, 'system_logs.xlsx');
+  const exportToExcel = async () => {
+    await exportToExcelFile(filteredLogs, 'system_logs', 'System Logs');
     toast.success('Logs exported to Excel');
   };
 

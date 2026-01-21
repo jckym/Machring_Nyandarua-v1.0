@@ -8,7 +8,7 @@ import { useMachineryBookings } from '@/hooks/api/useMachineryBookings';
 import { ArrowLeft, Phone, Mail, MapPin, Calendar, ShoppingCart, Tractor, GraduationCap, Users, Star, TrendingUp, Download } from 'lucide-react';
 import { Farmer, Sale, Visit } from '@/types';
 import { toast } from 'sonner';
-import * as XLSX from 'xlsx';
+import { exportToExcelFile } from '@/lib/excelUtils';
 export function FarmerProfile() {
   const {
     id
@@ -86,7 +86,7 @@ export function FarmerProfile() {
     }).format(new Date(date));
   };
   const formatCurrency = (value: number) => `KES ${value.toLocaleString()}`;
-  const exportVisitsToCSV = () => {
+  const exportVisitsToCSV = async () => {
     if (farmerVisits.length === 0) {
       toast.error('No visits to export');
       return;
@@ -100,10 +100,7 @@ export function FarmerProfile() {
       'Follow-up Required': visit.follow_up_required ? 'Yes' : 'No',
       'Follow-up Date': visit.follow_up_date ? formatDate(visit.follow_up_date) : ''
     }));
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Visit History');
-    XLSX.writeFile(wb, `${farmer.name}_visit_history.csv`);
+    await exportToExcelFile(exportData, `${farmer.name}_visit_history`, 'Visit History');
     toast.success('Visit history exported');
   };
   return <div className="space-y-4 sm:space-y-6">

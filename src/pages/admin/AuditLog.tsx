@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Search, Download, Eye, Edit, Trash2, Plus, FileText, FileSpreadsheet, Inbox } from 'lucide-react';
 import { toast } from 'sonner';
-import * as XLSX from 'xlsx';
+import { exportToExcelFile } from '@/lib/excelUtils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useSystemLogs, DisplaySystemLog } from '@/hooks/api/useSystemLogs';
@@ -62,7 +62,7 @@ export function AuditLog() {
     return <Badge className={colors[level] || 'bg-gray-500'}>{level.toUpperCase()}</Badge>;
   };
 
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
     if (filteredLogs.length === 0) {
       toast.error('No logs to export');
       return;
@@ -74,10 +74,7 @@ export function AuditLog() {
       'Message': log.message,
       'User': log.userName || 'System',
     }));
-    const worksheet = XLSX.utils.json_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'System Logs');
-    XLSX.writeFile(workbook, `system_logs_${new Date().toISOString().split('T')[0]}.xlsx`);
+    await exportToExcelFile(data, `system_logs`, 'System Logs');
     toast.success('System logs exported to Excel');
   };
 

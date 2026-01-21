@@ -1,4 +1,3 @@
-import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Farmer, Sale, MechanisationJob, Training, Visit } from '@/types';
@@ -10,6 +9,7 @@ import {
   renderSummaryCard,
   ChartDataItem,
 } from './pdfChartUtils';
+import { exportToExcelFile } from './excelUtils';
 
 // MR Logo path
 const MR_LOGO_PATH = '/mrlogo.png';
@@ -55,20 +55,9 @@ const addChartToPDF = (
   return y;
 };
 
-// Generic Excel export
-const exportToExcel = <T extends Record<string, any>>(data: T[], filename: string, sheetName: string) => {
-  const worksheet = XLSX.utils.json_to_sheet(data);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
-  
-  if (data.length > 0) {
-    const colWidths = Object.keys(data[0]).map(key => ({
-      wch: Math.max(key.length, ...data.map(row => String(row[key] || '').length))
-    }));
-    worksheet['!cols'] = colWidths;
-  }
-
-  XLSX.writeFile(workbook, `${filename}_${new Date().toISOString().split('T')[0]}.xlsx`);
+// Generic Excel export using ExcelJS
+const exportToExcel = async <T extends Record<string, any>>(data: T[], filename: string, sheetName: string) => {
+  await exportToExcelFile(data, filename, sheetName);
 };
 
 // Enhanced PDF export with charts

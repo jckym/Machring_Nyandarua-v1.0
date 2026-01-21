@@ -25,7 +25,7 @@ import {
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocalMRs, useUsers, useSales } from '@/hooks/api';
-import * as XLSX from 'xlsx';
+import { exportToExcelFile } from '@/lib/excelUtils';
 import jsPDF from 'jspdf';
 
 /* ---------------- TYPES ---------------- */
@@ -187,11 +187,8 @@ export function Commission() {
   }), [localMRSummaries]);
 
   /* ---------------- EXPORTS ---------------- */
-  const exportExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(localMRSummaries);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Commission Report');
-    XLSX.writeFile(wb, 'commission_report.xlsx');
+  const exportExcel = async () => {
+    await exportToExcelFile(localMRSummaries, 'commission_report', 'Commission Report');
     toast.success('Excel report downloaded');
   };
   const exportPDF = () => {

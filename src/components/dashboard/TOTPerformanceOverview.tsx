@@ -197,8 +197,6 @@ export function TOTPerformanceOverview({
                   <TableHead>Local MR</TableHead>
                   <TableHead className="text-center">Sales</TableHead>
                   <TableHead className="text-right">Commission</TableHead>
-                  <TableHead className="text-center">Jobs</TableHead>
-                  <TableHead className="text-center">Trainings</TableHead>
                   <TableHead>Performance</TableHead>
                 </TableRow>
               </TableHeader>
@@ -222,8 +220,6 @@ export function TOTPerformanceOverview({
                     <TableCell className="text-right font-semibold text-secondary">
                       {formatCurrency(tot.totalCommission)}
                     </TableCell>
-                    <TableCell className="text-center">{tot.jobsCount}</TableCell>
-                    <TableCell className="text-center">{tot.trainingsCount}</TableCell>
                     <TableCell>{getPerformanceBadge(tot.performanceLevel)}</TableCell>
                   </TableRow>
                 ))}

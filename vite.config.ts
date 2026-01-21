@@ -21,7 +21,7 @@ export default defineConfig(({ mode }) => ({
         short_name: "MR Nyandarua",
         description: "Comprehensive operations management dashboard for Machinery Ring Nyandarua",
         theme_color: "#2E7D32",
-        background_color: "#ffffff",
+        background_color: "#F5F5DC",
         display: "standalone",
         orientation: "portrait-primary",
         scope: "/",

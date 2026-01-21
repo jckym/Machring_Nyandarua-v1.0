@@ -75,7 +75,7 @@ export function FloatingActions() {
         <SaleFormDialog open={saleDialogOpen} onOpenChange={setSaleDialogOpen} onSubmit={() => {}} />
         <TrainingFormDialog open={trainingDialogOpen} onOpenChange={setTrainingDialogOpen} onSubmit={() => {}} />
         <VisitFormDialog open={visitDialogOpen} onOpenChange={setVisitDialogOpen} onSubmit={() => {}} />
-        <div className="fixed bottom-6 right-6 z-50 lg:hidden">
+        <div className="fixed bottom-6 right-6 z-50">
           <Button size="lg" variant="forest" className="h-14 w-14 rounded-full shadow-elevated" onClick={() => {
           const setOpen: Record<string, React.Dispatch<React.SetStateAction<boolean>>> = {
             'Add Farmer': setFarmerDialogOpen,
@@ -100,7 +100,7 @@ export function FloatingActions() {
       <TrainingFormDialog open={trainingDialogOpen} onOpenChange={setTrainingDialogOpen} onSubmit={() => {}} />
       <VisitFormDialog open={visitDialogOpen} onOpenChange={setVisitDialogOpen} onSubmit={() => {}} />
 
-      <div className="fixed bottom-6 right-6 z-50 lg:hidden">
+      <div className="fixed bottom-6 right-6 z-50">
         {/* Secondary actions */}
         <div className={cn('flex flex-col-reverse gap-3 mb-3 transition-all duration-300 ease-out', isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none')}>
           {relevantActions.map((action, index) => <div key={action.label} className="flex items-center gap-3 justify-end animate-in slide-in-from-bottom-2" style={{

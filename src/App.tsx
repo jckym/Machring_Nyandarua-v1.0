@@ -42,6 +42,7 @@ import { Commission } from "@/pages/Commission";
 import { TOTManagement } from "@/pages/TOTManagement";
 import { Notifications } from "@/pages/Notifications";
 import NotFound from "@/pages/NotFound";
+import Install from "@/pages/Install";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -67,6 +68,7 @@ const App = () => (
                 <Route path="/login" element={<Navigate to="/auth" replace />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/install" element={<Install />} />
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 
                 {/* Protected routes */}

@@ -13,7 +13,6 @@ import { useAuth } from '@/contexts/AuthContext';
 interface FloatingAction {
   icon: React.ElementType;
   label: string;
-  dialog: React.ReactNode;
 }
 export function FloatingActions() {
   const [isOpen, setIsOpen] = useState(false);
@@ -41,28 +40,16 @@ export function FloatingActions() {
 
   // Admin-only actions
   if (isAdmin) {
-    actions.push({
-      icon: Users,
-      label: 'Add Farmer',
-      dialog: <FarmerFormDialog open={farmerDialogOpen} onOpenChange={setFarmerDialogOpen} onSubmit={() => {}} />
-    }, {
-      icon: ShoppingCart,
-      label: 'Record Sale',
-      dialog: <SaleFormDialog open={saleDialogOpen} onOpenChange={setSaleDialogOpen} onSubmit={() => {}} />
-    }, {
-      icon: GraduationCap,
-      label: 'Schedule Training',
-      dialog: <TrainingFormDialog open={trainingDialogOpen} onOpenChange={setTrainingDialogOpen} onSubmit={() => {}} />
-    });
+    actions.push(
+      { icon: Users, label: 'Add Farmer' },
+      { icon: ShoppingCart, label: 'Record Sale' },
+      { icon: GraduationCap, label: 'Schedule Training' }
+    );
   }
 
   // Both Admin and TOT can log visits
   if (canLogVisit) {
-    actions.push({
-      icon: MapPin,
-      label: 'Log Visit',
-      dialog: <VisitFormDialog open={visitDialogOpen} onOpenChange={setVisitDialogOpen} onSubmit={() => {}} />
-    });
+    actions.push({ icon: MapPin, label: 'Log Visit' });
   }
 
   // Filter actions by current page
@@ -84,7 +71,10 @@ export function FloatingActions() {
   if (relevantActions.length === 1) {
     const action = relevantActions[0];
     return <>
-        {action.dialog}
+        <FarmerFormDialog open={farmerDialogOpen} onOpenChange={setFarmerDialogOpen} onSubmit={() => {}} />
+        <SaleFormDialog open={saleDialogOpen} onOpenChange={setSaleDialogOpen} onSubmit={() => {}} />
+        <TrainingFormDialog open={trainingDialogOpen} onOpenChange={setTrainingDialogOpen} onSubmit={() => {}} />
+        <VisitFormDialog open={visitDialogOpen} onOpenChange={setVisitDialogOpen} onSubmit={() => {}} />
         <div className="fixed bottom-6 right-6 z-50 lg:hidden">
           <Button size="lg" variant="forest" className="h-14 w-14 rounded-full shadow-elevated" onClick={() => {
           const setOpen: Record<string, React.Dispatch<React.SetStateAction<boolean>>> = {
@@ -105,7 +95,10 @@ export function FloatingActions() {
   // Multiple actions FAB menu
   return <>
       {/* Render all dialogs */}
-      {relevantActions.map(action => action.dialog)}
+      <FarmerFormDialog open={farmerDialogOpen} onOpenChange={setFarmerDialogOpen} onSubmit={() => {}} />
+      <SaleFormDialog open={saleDialogOpen} onOpenChange={setSaleDialogOpen} onSubmit={() => {}} />
+      <TrainingFormDialog open={trainingDialogOpen} onOpenChange={setTrainingDialogOpen} onSubmit={() => {}} />
+      <VisitFormDialog open={visitDialogOpen} onOpenChange={setVisitDialogOpen} onSubmit={() => {}} />
 
       <div className="fixed bottom-6 right-6 z-50 lg:hidden">
         {/* Secondary actions */}

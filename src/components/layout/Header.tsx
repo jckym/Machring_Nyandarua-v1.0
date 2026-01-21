@@ -69,7 +69,7 @@ export function Header() {
         <div className="sm:hidden flex items-center gap-2">
           <div className="w-2 h-8 bg-gradient-to-b from-forest to-emerald-600 rounded-full" />
           <div>
-            <h2 className="font-heading text-base font-semibold text-foreground">MR Kenya</h2>
+            <h2 className="font-heading text-base font-semibold text-foreground">MR Nyandarua</h2>
             <p className="text-xs text-muted-foreground">{getRoleTitle()}</p>
           </div>
         </div>

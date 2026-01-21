@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { getPrefetchHandlers, usePrefetchCommonRoutes } from '@/hooks/useRoutePrefetch';
 import {
   Tooltip,
   TooltipContent,
@@ -116,6 +117,10 @@ export function Sidebar() {
       ? coordinatorNavItems
       : totNavItems;
 
+  // Prefetch common routes after initial load
+  const commonRoutes = useMemo(() => navItems.slice(0, 5).map(item => item.to), [navItems]);
+  usePrefetchCommonRoutes(commonRoutes);
+
   const handleLogout = async () => {
     await signOut();
     toast.success('Logged out successfully');
@@ -186,13 +191,15 @@ export function Sidebar() {
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto scrollbar-thin">
           <ul className="p-3 space-y-1">
-            {navItems.map(({ to, icon: Icon, label }) =>
-              collapsed ? (
+            {navItems.map(({ to, icon: Icon, label }) => {
+              const prefetchHandlers = getPrefetchHandlers(to);
+              return collapsed ? (
                 <li key={to}>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <NavLink
                         to={to}
+                        {...prefetchHandlers}
                         className={({ isActive }) =>
                           cn(
                             'w-full flex justify-center p-3 rounded-xl transition',
@@ -212,6 +219,7 @@ export function Sidebar() {
                 <li key={to}>
                   <NavLink
                     to={to}
+                    {...prefetchHandlers}
                     className={({ isActive }) =>
                       cn(
                         'w-full flex items-center gap-3 px-4 py-3 rounded-xl transition',
@@ -225,8 +233,8 @@ export function Sidebar() {
                     <span className="truncate">{label}</span>
                   </NavLink>
                 </li>
-              )
-            )}
+              );
+            })}
           </ul>
         </nav>
 

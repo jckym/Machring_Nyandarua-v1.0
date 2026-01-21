@@ -19,7 +19,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
 import {
-  Search, Plus, MoreHorizontal, UserCog, Shield, Users as UsersIcon, Loader2, Trash2, AlertTriangle, Mail
+  Search, Plus, MoreHorizontal, UserCog, Shield, Users as UsersIcon, Loader2, Trash2, AlertTriangle, Mail, Eye, EyeOff
 } from 'lucide-react';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -80,10 +80,13 @@ export function Users() {
     email: '',
     phone: '',
     password: '',
+    confirmPassword: '',
     role: 'tot' as UserRole,
     localMrId: '',
     status: 'active' as 'active' | 'inactive',
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   /** ================= API HOOKS ================= */
   const { data: users = [], isLoading: usersLoading } = useUsers();
@@ -101,10 +104,13 @@ export function Users() {
       email: '',
       phone: '',
       password: '',
+      confirmPassword: '',
       role: 'tot',
       localMrId: '',
       status: 'active',
     });
+    setShowPassword(false);
+    setShowConfirmPassword(false);
   };
 
   const { isValid: isPasswordValid } = usePasswordValidation(formData.password);
@@ -185,6 +191,10 @@ export function Users() {
     }
     if (!isPasswordValid) {
       toast.error('Password does not meet security requirements');
+      return;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      toast.error('Passwords do not match');
       return;
     }
     if (formData.role !== 'admin' && formData.role !== 'manager' && !formData.localMrId) {
@@ -290,6 +300,7 @@ export function Users() {
       email: user.email,
       phone: user.phone || '',
       password: '',
+      confirmPassword: '',
       role: user.role,
       localMrId: user.localMrId || user.local_mr_id || '',
       status: (user.status === 'active' || user.status === 'inactive') ? user.status : 'active',
@@ -583,14 +594,48 @@ export function Users() {
 
             <div className="space-y-2">
               <Label htmlFor="add-password">Password *</Label>
-              <Input
-                id="add-password"
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                placeholder="••••••••"
-              />
+              <div className="relative">
+                <Input
+                  id="add-password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="••••••••"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
               <PasswordStrengthIndicator password={formData.password} />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="add-confirm-password">Confirm Password *</Label>
+              <div className="relative">
+                <Input
+                  id="add-confirm-password"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                  placeholder="••••••••"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                <p className="text-xs text-destructive">Passwords do not match</p>
+              )}
             </div>
 
             <Button

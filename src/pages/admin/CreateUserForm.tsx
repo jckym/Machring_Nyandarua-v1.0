@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { UserRole } from '@/types';
 import { useCreateUser } from '@/hooks/api/useUsers'; // Real mutation hook
 import { useLocalMRs } from '@/hooks/api/useLocalMRs';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 
 interface CreateUserFormProps {
   onSuccess: () => void;
@@ -34,6 +34,7 @@ export function CreateUserForm({ onSuccess }: CreateUserFormProps) {
     localMrId: '',
     password: '',
   });
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -177,14 +178,24 @@ export function CreateUserForm({ onSuccess }: CreateUserFormProps) {
       {/* Password */}
       <div className="space-y-2">
         <Label htmlFor="password">Password *</Label>
-        <Input
-          id="password"
-          type="password"
-          value={formData.password}
-          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-          placeholder="••••••••"
-          required
-        />
+        <div className="relative">
+          <Input
+            id="password"
+            type={showPassword ? 'text' : 'password'}
+            value={formData.password}
+            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+            placeholder="••••••••"
+            required
+            className="pr-10"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
         <p className="text-xs text-muted-foreground">
           Minimum 8 characters. User will be prompted to change on first login.
         </p>

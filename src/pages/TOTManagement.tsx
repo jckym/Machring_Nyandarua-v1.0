@@ -343,9 +343,6 @@ export function TOTManagement() {
                           <DropdownMenuItem onClick={() => handleViewDetails(tot.totId)}>
                             View Details
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleToggleStatus(tot.totId, tot.status)}>
-                            {tot.status === 'active' ? 'Deactivate' : 'Activate'}
-                          </DropdownMenuItem>
                           <DropdownMenuItem>Edit TOT</DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>

@@ -147,7 +147,7 @@ export function MobileNav() {
         {/* Header */}
         <SheetHeader className="p-5 border-b border-sidebar-border">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 p-1.5 flex items-center justify-center">
+            <div className="w-14 h-14 p-1.5 flex items-center justify-center bg-white rounded-lg">
               <img
                 src="/mrlogo.png"
                 alt="Machinery Ring Logo"

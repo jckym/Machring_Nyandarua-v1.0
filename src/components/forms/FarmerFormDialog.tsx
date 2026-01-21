@@ -37,7 +37,7 @@ const farmingTypes = [
 
 // Sub-Counties and Wards for Nyandarua County
 const subCountyWards: Record<string, string[]> = {
-  'Olkalou': ['Karau', 'Kanjuiri', 'Kaimbaga', 'Mirangine'],
+  'Olkalou': ['Karau', 'Kanjuiri', 'Kaimbaga', 'Mirangine', 'Rurii'],
   'Ol Joro Orok': ['Gathanji', 'Gatimu', 'Weru', 'Charagita'],
   'Ndaragwa': ['Leshau', 'Kiriita', 'Central', 'Shamata'],
   'Kinangop': ['Engineer', 'Gathara', 'North Kinangop', 'Murungaru', 'Njabini', 'Nyakio', 'Magumu', 'Githambi'],

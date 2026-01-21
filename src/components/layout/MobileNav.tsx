@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { getPrefetchHandlers, usePrefetchCommonRoutes } from '@/hooks/useRoutePrefetch';
 import {
   Sheet,
   SheetContent,
@@ -106,6 +107,10 @@ export function MobileNav() {
       ? coordinatorNavItems
       : totNavItems;
 
+  // Prefetch common routes after initial load
+  const commonRoutes = useMemo(() => navItems.slice(0, 5).map(item => item.to), [navItems]);
+  usePrefetchCommonRoutes(commonRoutes);
+
   const getRoleBadge = () => {
     switch (user?.role) {
       case 'admin':
@@ -183,26 +188,30 @@ export function MobileNav() {
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-3">
           <ul className="space-y-1">
-            {navItems.map(item => (
-              <li key={item.to}>
-                <NavLink
-                  to={item.to}
-                  end
-                  onClick={() => setOpen(false)}
-                  className={({ isActive }) =>
-                    cn(
-                      'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all',
-                      isActive
-                        ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-md'
-                        : 'text-sidebar-foreground/80 hover:bg-sidebar-accent'
-                    )
-                  }
-                >
-                  <item.icon className="w-5 h-5" />
-                  <span>{item.label}</span>
-                </NavLink>
-              </li>
-            ))}
+            {navItems.map(item => {
+              const prefetchHandlers = getPrefetchHandlers(item.to);
+              return (
+                <li key={item.to}>
+                  <NavLink
+                    to={item.to}
+                    end
+                    onClick={() => setOpen(false)}
+                    {...prefetchHandlers}
+                    className={({ isActive }) =>
+                      cn(
+                        'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all',
+                        isActive
+                          ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-md'
+                          : 'text-sidebar-foreground/80 hover:bg-sidebar-accent'
+                      )
+                    }
+                  >
+                    <item.icon className="w-5 h-5" />
+                    <span>{item.label}</span>
+                  </NavLink>
+                </li>
+              );
+            })}
           </ul>
         </nav>
 

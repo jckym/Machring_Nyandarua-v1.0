@@ -107,18 +107,48 @@ export type Database = {
         }
         Relationships: []
       }
+      farmer_private_data: {
+        Row: {
+          created_at: string
+          date_of_birth: string | null
+          farmer_id: string
+          id_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date_of_birth?: string | null
+          farmer_id: string
+          id_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date_of_birth?: string | null
+          farmer_id?: string
+          id_number?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "farmer_private_data_farmer_id_fkey"
+            columns: ["farmer_id"]
+            isOneToOne: true
+            referencedRelation: "farmers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       farmers: {
         Row: {
           county: string
           created_at: string
           crops: string[] | null
-          date_of_birth: string | null
           email: string | null
           farm_size: number | null
           farming_type: string | null
           gender: string | null
           id: string
-          id_number: string | null
           last_activity_date: string | null
           livestock: string[] | null
           local_mr_id: string | null
@@ -137,13 +167,11 @@ export type Database = {
           county: string
           created_at?: string
           crops?: string[] | null
-          date_of_birth?: string | null
           email?: string | null
           farm_size?: number | null
           farming_type?: string | null
           gender?: string | null
           id?: string
-          id_number?: string | null
           last_activity_date?: string | null
           livestock?: string[] | null
           local_mr_id?: string | null
@@ -162,13 +190,11 @@ export type Database = {
           county?: string
           created_at?: string
           crops?: string[] | null
-          date_of_birth?: string | null
           email?: string | null
           farm_size?: number | null
           farming_type?: string | null
           gender?: string | null
           id?: string
-          id_number?: string | null
           last_activity_date?: string | null
           livestock?: string[] | null
           local_mr_id?: string | null

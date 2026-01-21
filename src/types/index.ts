@@ -113,8 +113,7 @@ export interface Farmer {
   email?: string | null;
   age?: number;
   gender?: string | null;
-  date_of_birth?: string | null;
-  id_number?: string | null;
+  // Sensitive PII (date_of_birth, id_number) moved to farmer_private_data table
   location: {
     village: string;
     ward: string;

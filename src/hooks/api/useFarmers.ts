@@ -17,8 +17,7 @@ export interface Farmer {
   crops: string[] | null;
   livestock: string[] | null;
   gender: string | null;
-  date_of_birth: string | null;
-  id_number: string | null;
+  // Sensitive PII moved to farmer_private_data table (admin/manager only)
   status: string;
   local_mr_id: string | null;
   registered_by: string | null;
@@ -157,8 +156,7 @@ export interface CreateFarmerDto {
   crops?: string[];
   livestock?: string[];
   gender?: string;
-  date_of_birth?: string;
-  id_number?: string;
+  // Sensitive PII (id_number, date_of_birth) is managed separately in farmer_private_data (admin/manager only)
   local_mr_id?: string;
 }
 
@@ -182,8 +180,6 @@ export function useCreateFarmer() {
           crops: data.crops,
           livestock: data.livestock,
           gender: data.gender,
-          date_of_birth: data.date_of_birth,
-          id_number: data.id_number,
           local_mr_id: data.local_mr_id,
         })
         .select()

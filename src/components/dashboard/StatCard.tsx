@@ -54,7 +54,11 @@ export function StatCard({
           {subtitle && <p className={cn('text-xs', variant === 'default' ? 'text-muted-foreground' : 'opacity-70')}>
               {subtitle}
             </p>}
-          {trend}
+          {trend && (
+            <p className={cn('text-xs font-medium', trend.isPositive ? 'text-primary' : 'text-destructive', variant !== 'default' && 'opacity-90')}>
+              {trend.isPositive ? '↑' : '↓'} {trend.value}%
+            </p>
+          )}
         </div>
         <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center', iconContainerStyles[variant])}>
           <Icon className="w-6 h-6" />

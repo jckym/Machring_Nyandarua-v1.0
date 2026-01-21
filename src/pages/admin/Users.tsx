@@ -488,9 +488,6 @@ export function Users() {
                           <DropdownMenuItem onClick={() => openEditDialog(user)}>
                             Edit
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleToggleStatus(user)}>
-                            {user.status === 'active' ? 'Deactivate' : 'Activate'}
-                          </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => openDeleteDialog(user)}
                             className="text-destructive focus:text-destructive"

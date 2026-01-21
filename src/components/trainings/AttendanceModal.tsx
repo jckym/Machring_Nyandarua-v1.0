@@ -13,7 +13,7 @@ import { Search, Download, Users, FileSpreadsheet, FileText, Upload, AlertCircle
 import { useFarmersAndTots } from '@/hooks/api/useFarmersAndTots';
 import { useAddMultipleAttendees } from '@/hooks/api/useTrainings';
 import { toast } from 'sonner';
-import * as XLSX from 'xlsx';
+import { parseExcelFileRaw, exportToExcelFile, createExcelTemplate } from '@/lib/excelUtils';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
@@ -134,7 +134,7 @@ export function AttendanceModal({
   };
 
   // Handle Excel file upload
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -142,113 +142,101 @@ export function AttendanceModal({
     setUploadErrors([]);
     setUploadSuccess([]);
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const data = new Uint8Array(event.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+    try {
+      const jsonData = await parseExcelFileRaw(file);
 
-        if (jsonData.length < 2) {
-          toast.error('Excel file is empty or has no data rows');
-          setIsUploading(false);
-          return;
-        }
-
-        // Find phone column (case-insensitive)
-        const headers = jsonData[0].map((h: any) => String(h).toLowerCase().trim());
-        const phoneIndex = headers.findIndex((h: string) => 
-          h.includes('phone') || h.includes('tel') || h.includes('mobile') || h.includes('contact')
-        );
-        const nameIndex = headers.findIndex((h: string) => h.includes('name'));
-
-        if (phoneIndex === -1) {
-          toast.error('Could not find phone number column. Please ensure your Excel has a "Phone" column.');
-          setIsUploading(false);
-          return;
-        }
-
-        const errors: UploadError[] = [];
-        const matchedFarmerIds: string[] = [];
-        const matchedNames: string[] = [];
-
-        // Process each row (skip header)
-        for (let i = 1; i < jsonData.length; i++) {
-          const row = jsonData[i];
-          if (!row || row.length === 0) continue;
-
-          const phone = String(row[phoneIndex] || '').trim().replace(/\s+/g, '');
-          const name = nameIndex !== -1 ? String(row[nameIndex] || '').trim() : 'Unknown';
-
-          if (!phone) {
-            errors.push({ row: i + 1, phone: '', name, reason: 'Empty phone number' });
-            continue;
-          }
-
-          // Normalize phone number for matching (remove leading 0 or +254)
-          const normalizedPhone = phone.replace(/^(\+254|254|0)/, '');
-          
-          // Find matching farmer by phone
-          const matchedFarmer = farmers.find(f => {
-            const farmerPhone = (f.phone || '').replace(/\s+/g, '').replace(/^(\+254|254|0)/, '');
-            return farmerPhone === normalizedPhone || f.phone === phone;
-          });
-
-          if (matchedFarmer) {
-            if (!matchedFarmerIds.includes(matchedFarmer.id)) {
-              matchedFarmerIds.push(matchedFarmer.id);
-              matchedNames.push(matchedFarmer.name);
-            }
-          } else {
-            errors.push({ row: i + 1, phone, name, reason: 'Farmer not found in system' });
-          }
-        }
-
-        setUploadErrors(errors);
-        setUploadSuccess(matchedNames);
-
-        // Auto-select matched farmers
-        if (matchedFarmerIds.length > 0) {
-          setAttendees(prev => prev.map(a => ({
-            ...a,
-            selected: matchedFarmerIds.includes(a.farmerId) ? true : a.selected,
-          })));
-          toast.success(`Matched ${matchedFarmerIds.length} farmers from Excel`);
-        }
-
-        if (errors.length > 0) {
-          toast.warning(`${errors.length} rows could not be matched`);
-        }
-
-      } catch (err) {
-        console.error('Error parsing Excel:', err);
-        toast.error('Failed to parse Excel file');
-      } finally {
+      if (jsonData.length < 2) {
+        toast.error('Excel file is empty or has no data rows');
         setIsUploading(false);
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
+        return;
+      }
+
+      // Find phone column (case-insensitive)
+      const headers = jsonData[0].map((h: any) => String(h || '').toLowerCase().trim());
+      const phoneIndex = headers.findIndex((h: string) => 
+        h.includes('phone') || h.includes('tel') || h.includes('mobile') || h.includes('contact')
+      );
+      const nameIndex = headers.findIndex((h: string) => h.includes('name'));
+
+      if (phoneIndex === -1) {
+        toast.error('Could not find phone number column. Please ensure your Excel has a "Phone" column.');
+        setIsUploading(false);
+        return;
+      }
+
+      const errors: UploadError[] = [];
+      const matchedFarmerIds: string[] = [];
+      const matchedNames: string[] = [];
+
+      // Process each row (skip header)
+      for (let i = 1; i < jsonData.length; i++) {
+        const row = jsonData[i];
+        if (!row || row.length === 0) continue;
+
+        const phone = String(row[phoneIndex] || '').trim().replace(/\s+/g, '');
+        const name = nameIndex !== -1 ? String(row[nameIndex] || '').trim() : 'Unknown';
+
+        if (!phone) {
+          errors.push({ row: i + 1, phone: '', name, reason: 'Empty phone number' });
+          continue;
+        }
+
+        // Normalize phone number for matching (remove leading 0 or +254)
+        const normalizedPhone = phone.replace(/^(\+254|254|0)/, '');
+        
+        // Find matching farmer by phone
+        const matchedFarmer = farmers.find(f => {
+          const farmerPhone = (f.phone || '').replace(/\s+/g, '').replace(/^(\+254|254|0)/, '');
+          return farmerPhone === normalizedPhone || f.phone === phone;
+        });
+
+        if (matchedFarmer) {
+          if (!matchedFarmerIds.includes(matchedFarmer.id)) {
+            matchedFarmerIds.push(matchedFarmer.id);
+            matchedNames.push(matchedFarmer.name);
+          }
+        } else {
+          errors.push({ row: i + 1, phone, name, reason: 'Farmer not found in system' });
         }
       }
-    };
 
-    reader.readAsArrayBuffer(file);
+      setUploadErrors(errors);
+      setUploadSuccess(matchedNames);
+
+      // Auto-select matched farmers
+      if (matchedFarmerIds.length > 0) {
+        setAttendees(prev => prev.map(a => ({
+          ...a,
+          selected: matchedFarmerIds.includes(a.farmerId) ? true : a.selected,
+        })));
+        toast.success(`Matched ${matchedFarmerIds.length} farmers from Excel`);
+      }
+
+      if (errors.length > 0) {
+        toast.warning(`${errors.length} rows could not be matched`);
+      }
+
+    } catch (err) {
+      console.error('Error parsing Excel:', err);
+      toast.error('Failed to parse Excel file');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
-  const downloadTemplate = () => {
+  const downloadTemplate = async () => {
     const template = [
       { Name: 'John Doe', Phone: '0712345678', Village: 'Sample Village' },
       { Name: 'Jane Doe', Phone: '0723456789', Village: 'Sample Village' },
     ];
-    const ws = XLSX.utils.json_to_sheet(template);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Attendance Template');
-    XLSX.writeFile(wb, 'attendance_template.xlsx');
+    await createExcelTemplate(template, 'attendance_template', 'Attendance Template');
     toast.success('Template downloaded');
   };
 
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
     const selectedData = attendees
       .filter(a => a.selected)
       .map((a, idx) => ({
@@ -263,10 +251,7 @@ export function AttendanceModal({
       return;
     }
 
-    const ws = XLSX.utils.json_to_sheet(selectedData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Attendance');
-    XLSX.writeFile(wb, `${trainingTitle}_attendance.xlsx`);
+    await exportToExcelFile(selectedData, `${trainingTitle}_attendance`, 'Attendance');
     toast.success('Exported to Excel');
   };
 

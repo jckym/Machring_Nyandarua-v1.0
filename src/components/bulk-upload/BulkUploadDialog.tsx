@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Upload, FileSpreadsheet, AlertCircle, CheckCircle, Download, X } from 'lucide-react';
 import { toast } from 'sonner';
-import * as XLSX from 'xlsx';
+import { parseExcelFile, createExcelTemplate } from '@/lib/excelUtils';
 
 interface BulkUploadDialogProps {
   open: boolean;
@@ -71,15 +71,12 @@ export function BulkUploadDialog({ open, onOpenChange, entityType, onUpload }: B
     }
 
     setFile(selectedFile);
-    parseFile(selectedFile);
+    parseFileData(selectedFile);
   };
 
-  const parseFile = async (file: File) => {
+  const parseFileData = async (file: File) => {
     try {
-      const buffer = await file.arrayBuffer();
-      const workbook = XLSX.read(buffer, { type: 'array' });
-      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+      const jsonData = await parseExcelFile(file);
 
       if (jsonData.length === 0) {
         setErrors(['File is empty or has no valid data rows']);
@@ -104,7 +101,7 @@ export function BulkUploadDialog({ open, onOpenChange, entityType, onUpload }: B
       }
 
       // Normalize column names
-      const normalizedData = jsonData.map((row: any, idx) => {
+      const normalizedData = jsonData.map((row: any) => {
         const normalized: Record<string, any> = {};
         Object.entries(row).forEach(([key, value]) => {
           const normalizedKey = key.toLowerCase().trim().replace(/\s+/g, '_');
@@ -157,12 +154,9 @@ export function BulkUploadDialog({ open, onOpenChange, entityType, onUpload }: B
     }
   };
 
-  const downloadTemplate = () => {
+  const downloadTemplate = async () => {
     const data = sampleData[entityType];
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, entityType);
-    XLSX.writeFile(wb, `${entityType}_template.xlsx`);
+    await createExcelTemplate(data, `${entityType}_template`, entityType);
     toast.success('Template downloaded');
   };
 

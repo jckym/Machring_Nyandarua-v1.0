@@ -149,7 +149,7 @@ export function MobileNav() {
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 p-1.5 flex items-center justify-center bg-white rounded-lg">
               <img
-                src="/mrlogo.png"
+                src="/mrlogo.jpg"
                 alt="Machinery Ring Logo"
                 className="w-full h-full object-contain"
               />

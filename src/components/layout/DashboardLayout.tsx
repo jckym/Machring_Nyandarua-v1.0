@@ -59,7 +59,7 @@ export function DashboardLayout() {
           </div>
         </main>
 
-        <FloatingActions />
+        
       </div>
     </div>
   );

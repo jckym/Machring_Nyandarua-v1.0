@@ -13,6 +13,20 @@ serve(async (req) => {
   }
 
   try {
+    // Validate cron secret for authentication
+    const cronSecret = Deno.env.get("CRON_SECRET_KEY");
+    const providedSecret = req.headers.get("X-Cron-Secret");
+
+    if (!cronSecret || !providedSecret || providedSecret !== cronSecret) {
+      console.error("Unauthorized access attempt to followup-reminders");
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 401,
+        }
+      );
+    }
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     

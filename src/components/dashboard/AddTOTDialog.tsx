@@ -27,9 +27,11 @@ export function AddTOTDialog({ open: controlledOpen, onOpenChange: controlledOnO
     email: '',
     phone: '',
     password: '',
+    confirmPassword: '',
     localMrId: '',
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const { isValid: isPasswordValid } = usePasswordValidation(formData.password);
   const createUser = useCreateUser();
@@ -39,7 +41,7 @@ export function AddTOTDialog({ open: controlledOpen, onOpenChange: controlledOnO
   const validatePhone = (phone: string) => /^\d{10,15}$/.test(phone.replace(/\D/g, ''));
 
   const resetForm = () => {
-    setFormData({ name: '', email: '', phone: '', password: '', localMrId: '' });
+    setFormData({ name: '', email: '', phone: '', password: '', confirmPassword: '', localMrId: '' });
   };
 
   const handleSubmit = () => {
@@ -57,6 +59,10 @@ export function AddTOTDialog({ open: controlledOpen, onOpenChange: controlledOnO
     }
     if (!formData.password || !isPasswordValid) {
       toast.error('Password does not meet security requirements');
+      return;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      toast.error('Passwords do not match');
       return;
     }
     if (!formData.localMrId) {
@@ -160,6 +166,30 @@ export function AddTOTDialog({ open: controlledOpen, onOpenChange: controlledOnO
               </button>
             </div>
             <PasswordStrengthIndicator password={formData.password} />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword">Confirm Password *</Label>
+            <div className="relative">
+              <Input
+                id="confirmPassword"
+                type={showConfirmPassword ? 'text' : 'password'}
+                placeholder="Confirm password"
+                value={formData.confirmPassword}
+                onChange={(e) => setFormData(p => ({ ...p, confirmPassword: e.target.value }))}
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+              <p className="text-xs text-destructive">Passwords do not match</p>
+            )}
           </div>
 
           <div className="space-y-2">

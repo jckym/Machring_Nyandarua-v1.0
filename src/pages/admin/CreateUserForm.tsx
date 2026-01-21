@@ -33,8 +33,10 @@ export function CreateUserForm({ onSuccess }: CreateUserFormProps) {
     role: '' as UserRole,
     localMrId: '',
     password: '',
+    confirmPassword: '',
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,6 +45,15 @@ export function CreateUserForm({ onSuccess }: CreateUserFormProps) {
       toast({
         title: 'Missing Fields',
         description: 'Please fill in all required fields',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      toast({
+        title: 'Passwords Do Not Match',
+        description: 'Please ensure both password fields match',
         variant: 'destructive',
       });
       return;
@@ -81,6 +92,7 @@ export function CreateUserForm({ onSuccess }: CreateUserFormProps) {
             role: '' as UserRole,
             localMrId: '',
             password: '',
+            confirmPassword: '',
           });
 
           onSuccess();
@@ -199,6 +211,32 @@ export function CreateUserForm({ onSuccess }: CreateUserFormProps) {
         <p className="text-xs text-muted-foreground">
           Minimum 8 characters. User will be prompted to change on first login.
         </p>
+      </div>
+
+      {/* Confirm Password */}
+      <div className="space-y-2">
+        <Label htmlFor="confirmPassword">Confirm Password *</Label>
+        <div className="relative">
+          <Input
+            id="confirmPassword"
+            type={showConfirmPassword ? 'text' : 'password'}
+            value={formData.confirmPassword}
+            onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+            placeholder="••••••••"
+            required
+            className="pr-10"
+          />
+          <button
+            type="button"
+            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
+        {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+          <p className="text-xs text-destructive">Passwords do not match</p>
+        )}
       </div>
 
       {/* Submit Button */}

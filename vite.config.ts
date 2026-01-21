@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.ico", "mrlogo.jpg", "robots.txt"],
+      includeAssets: ["favicon.ico", "mrlogo.png", "robots.txt"],
       manifest: {
         name: "Machinery Ring Nyandarua - Operations Dashboard",
         short_name: "MR Nyandarua",
@@ -28,15 +28,15 @@ export default defineConfig(({ mode }) => ({
         start_url: "/",
         icons: [
           {
-            src: "/pwa-icon-192.jpg",
+            src: "/pwa-icon-192.png",
             sizes: "192x192",
-            type: "image/jpeg",
+            type: "image/png",
             purpose: "any"
           },
           {
-            src: "/pwa-icon-512.jpg",
+            src: "/pwa-icon-512.png",
             sizes: "512x512",
-            type: "image/jpeg",
+            type: "image/png",
             purpose: "maskable"
           }
         ]

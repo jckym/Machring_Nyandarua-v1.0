@@ -72,7 +72,7 @@ export function Auth() {
         {/* Logo and Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white shadow-md mb-4 overflow-hidden">
-            <img src="/mrlogo.jpg" alt="Machinery Ring Logo" className="w-16 h-16 object-contain" />
+            <img src="/mrlogo.png" alt="Machinery Ring Logo" className="w-16 h-16 object-contain" />
           </div>
           <h1 className="text-2xl font-heading font-bold text-foreground">
             Machinery Ring Nyandarua

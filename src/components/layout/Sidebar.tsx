@@ -148,13 +148,15 @@ export function Sidebar() {
         )}
       >
         {/* Logo */}
-        <div className="h-16 px-4 flex items-center border-b border-sidebar-border">
+        <div className="h-20 px-4 flex items-center border-b border-sidebar-border">
           <div className="flex items-center gap-3">
-            <img
-              src="/mrlogo.png"
-              alt="Machinery Ring Logo"
-              className="w-10 h-10 object-contain"
-            />
+            <div className="w-12 h-12 p-1 flex items-center justify-center">
+              <img
+                src="/mrlogo.png"
+                alt="Machinery Ring Logo"
+                className="w-full h-full object-contain"
+              />
+            </div>
             {!collapsed && (
               <div>
                 <p className="font-bold text-sm">Machinery Ring</p>

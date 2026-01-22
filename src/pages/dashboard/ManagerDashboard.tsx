@@ -23,6 +23,7 @@ import { TopPerformers } from "@/components/dashboard/TopPerformers";
 import { LocalMRPerformanceTable } from "@/components/dashboard/LocalMRPerformanceTable";
 import { TOTPerformanceOverview } from "@/components/dashboard/TOTPerformanceOverview";
 import { OverdueFollowUps } from "@/components/dashboard/OverdueFollowUps";
+import { AIInsights } from "@/components/dashboard/AIInsights";
 
 import {
   useSupabaseAdminStats,
@@ -319,6 +320,7 @@ export function ManagerDashboard() {
 
         {/* Side Column */}
         <div className="space-y-6">
+          <AIInsights />
           <OverdueFollowUps limit={5} />
           <TopPerformers type="tots" />
           <TopPerformers type="farmers" />

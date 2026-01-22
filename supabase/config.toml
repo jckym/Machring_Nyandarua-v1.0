@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.purge-user-by-email]
 verify_jwt = false
+
+[functions.sales-insights]
+verify_jwt = false

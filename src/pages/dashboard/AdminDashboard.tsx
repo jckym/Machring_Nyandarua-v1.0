@@ -12,6 +12,7 @@ import { ProductChart } from '@/components/dashboard/ProductChart';
 import { TopPerformers } from '@/components/dashboard/TopPerformers';
 import { OverdueFollowUps } from '@/components/dashboard/OverdueFollowUps';
 import { TOTPerformanceOverview } from '@/components/dashboard/TOTPerformanceOverview';
+import { AIInsights } from '@/components/dashboard/AIInsights';
 import { AddTOTDialog } from '@/components/dashboard/AddTOTDialog';
 import {
   useSupabaseAdminStats, 
@@ -256,6 +257,7 @@ export function AdminDashboard() {
 
         {/* Side Column */}
         <div className="space-y-6">
+          <AIInsights />
           <OverdueFollowUps limit={5} />
           <TopPerformers type="tots" />
           <ProductChart />

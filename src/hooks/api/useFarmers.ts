@@ -44,30 +44,53 @@ export const farmerKeys = {
   detail: (id: string) => [...farmerKeys.details(), id] as const,
 };
 
+// Helper function to fetch all records with pagination (bypasses 1000 row limit)
+async function fetchAllFarmers(filters: FarmerFilters) {
+  const pageSize = 1000;
+  let allData: any[] = [];
+  let from = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    let query = supabase
+      .from('farmers')
+      .select(`
+        *,
+        local_mrs!farmers_local_mr_id_fkey(name)
+      `)
+      .order('created_at', { ascending: false })
+      .range(from, from + pageSize - 1);
+
+    if (filters.localMrId) {
+      query = query.eq('local_mr_id', filters.localMrId);
+    }
+    if (filters.status) {
+      query = query.eq('status', filters.status);
+    }
+    if (filters.search) {
+      query = query.or(`name.ilike.%${filters.search}%,phone.ilike.%${filters.search}%,village.ilike.%${filters.search}%`);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    if (data && data.length > 0) {
+      allData = [...allData, ...data];
+      from += pageSize;
+      hasMore = data.length === pageSize;
+    } else {
+      hasMore = false;
+    }
+  }
+
+  return allData;
+}
+
 export function useFarmers(filters: FarmerFilters = {}) {
   return useQuery({
     queryKey: farmerKeys.list(filters),
     queryFn: async () => {
-      let query = supabase
-        .from('farmers')
-        .select(`
-          *,
-          local_mrs!farmers_local_mr_id_fkey(name)
-        `)
-        .order('created_at', { ascending: false });
-
-      if (filters.localMrId) {
-        query = query.eq('local_mr_id', filters.localMrId);
-      }
-      if (filters.status) {
-        query = query.eq('status', filters.status);
-      }
-      if (filters.search) {
-        query = query.or(`name.ilike.%${filters.search}%,phone.ilike.%${filters.search}%,village.ilike.%${filters.search}%`);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
+      const data = await fetchAllFarmers(filters);
       
       return (data || []).map(f => ({
         ...f,

@@ -126,8 +126,10 @@ export function Users() {
     return matchesSearch && matchesStatus;
   });
 
-  const getBranchName = (id?: string) =>
-    localMRs.find((m: LocalMR) => m.id === id)?.name || 'HQ';
+  const getBranchName = (id?: string, role?: string) => {
+    if (role === 'manager') return 'Regional MR';
+    return localMRs.find((m: LocalMR) => m.id === id)?.name || '-';
+  };
 
   const getRoleLabel = (role: string) => {
     switch (role) {
@@ -479,7 +481,7 @@ export function Users() {
                     <TableCell className="font-medium">{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>{roleBadge(user.role)}</TableCell>
-                    <TableCell>{getBranchName(user.localMrId)}</TableCell>
+                    <TableCell>{getBranchName(user.localMrId, user.role)}</TableCell>
                     <TableCell>{statusBadge(user.status)}</TableCell>
                     <TableCell>
                       <DropdownMenu>

@@ -31,7 +31,16 @@ import {
   Upload,
   Loader2,
   Trash2,
+  AlertTriangle,
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -78,6 +87,25 @@ export function Farmers() {
   const [editingFarmer, setEditingFarmer] = useState<Farmer | null>(null);
   const [deletingFarmer, setDeletingFarmer] = useState<Farmer | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Purge farmer state
+  const [isPurgeOpen, setIsPurgeOpen] = useState(false);
+  const [purgePhone, setPurgePhone] = useState('');
+  const [isPurgeLoading, setIsPurgeLoading] = useState(false);
+  const [isPurging, setIsPurging] = useState(false);
+  const [purgeImpact, setPurgeImpact] = useState<{
+    farmerId: string;
+    farmerName?: string;
+    county?: string;
+    village?: string;
+    counts: {
+      sales: number;
+      visits: number;
+      trainingAttendances: number;
+      mechanisationJobs: number;
+      machineryBookings: number;
+    };
+  } | null>(null);
 
   // Debounce search input
   useEffect(() => {
@@ -175,6 +203,90 @@ export function Farmers() {
     }
   };
 
+  // Purge farmer handlers
+  const handlePurgePreview = async () => {
+    if (!purgePhone.trim()) {
+      toast.error('Please enter a phone number');
+      return;
+    }
+
+    setIsPurgeLoading(true);
+    setPurgeImpact(null);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Not authenticated');
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('purge-farmer', {
+        body: { phone: purgePhone.trim(), preview: true },
+      });
+
+      if (error) throw error;
+
+      if (!data.success) {
+        toast.error(data.error || 'Failed to lookup farmer');
+        return;
+      }
+
+      if (!data.found) {
+        toast.info('No farmer found with this phone number');
+        return;
+      }
+
+      setPurgeImpact(data.impact);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to check farmer');
+    } finally {
+      setIsPurgeLoading(false);
+    }
+  };
+
+  const handlePurgeExecute = async () => {
+    if (!purgeImpact?.farmerId) return;
+
+    setIsPurging(true);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Not authenticated');
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('purge-farmer', {
+        body: { phone: purgePhone.trim(), preview: false },
+      });
+
+      if (error) throw error;
+
+      if (!data.success) {
+        toast.error(data.error || 'Failed to purge farmer');
+        return;
+      }
+
+      toast.success(data.message || 'Farmer purged successfully');
+      setPurgePhone('');
+      setPurgeImpact(null);
+      setIsPurgeOpen(false);
+      
+      // Refresh the farmers list
+      window.location.reload();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to purge farmer');
+    } finally {
+      setIsPurging(false);
+    }
+  };
+
+  const resetPurgeDialog = () => {
+    setPurgePhone('');
+    setPurgeImpact(null);
+    setIsPurgeOpen(false);
+  };
+
   const handleExport = async (format: 'excel' | 'pdf') => {
     // Fetch all farmers for export
     const { data: exportData } = await fetchAllFarmers();
@@ -253,6 +365,14 @@ export function Farmers() {
           {/* Admin only: Add Farmer button */}
           {isAdmin && (
             <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setIsPurgeOpen(true)}
+                className="text-destructive hover:text-destructive border-destructive/50 hover:border-destructive hover:bg-destructive/10"
+              >
+                <Trash2 className="w-4 h-4 mr-2" /> Purge by Phone
+              </Button>
               <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
                 <Upload className="w-4 h-4 mr-2" /> Bulk Upload
               </Button>
@@ -521,6 +641,105 @@ export function Farmers() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Purge Farmer Dialog */}
+      <Dialog open={isPurgeOpen} onOpenChange={(open) => !open && resetPurgeDialog()}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-5 h-5" />
+              Purge Farmer by Phone
+            </DialogTitle>
+            <DialogDescription>
+              This will permanently delete a farmer and ALL their associated data including sales, visits, training records, and mechanisation jobs.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Enter phone number (e.g., 0712345678)"
+                value={purgePhone}
+                onChange={(e) => setPurgePhone(e.target.value)}
+                disabled={isPurgeLoading || isPurging}
+              />
+              <Button
+                variant="outline"
+                onClick={handlePurgePreview}
+                disabled={isPurgeLoading || isPurging || !purgePhone.trim()}
+              >
+                {isPurgeLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  'Lookup'
+                )}
+              </Button>
+            </div>
+
+            {purgeImpact && (
+              <div className="border rounded-lg p-4 space-y-3 bg-destructive/5 border-destructive/20">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-destructive" />
+                  <span className="font-medium text-destructive">Impact Preview</span>
+                </div>
+                
+                <div className="space-y-2 text-sm">
+                  <p><strong>Farmer:</strong> {purgeImpact.farmerName || 'Unknown'}</p>
+                  <p><strong>Location:</strong> {purgeImpact.village || 'N/A'}, {purgeImpact.county || 'N/A'}</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="bg-background rounded p-2">
+                    <span className="text-muted-foreground">Sales:</span>
+                    <span className="ml-2 font-medium">{purgeImpact.counts.sales}</span>
+                  </div>
+                  <div className="bg-background rounded p-2">
+                    <span className="text-muted-foreground">Visits:</span>
+                    <span className="ml-2 font-medium">{purgeImpact.counts.visits}</span>
+                  </div>
+                  <div className="bg-background rounded p-2">
+                    <span className="text-muted-foreground">Trainings:</span>
+                    <span className="ml-2 font-medium">{purgeImpact.counts.trainingAttendances}</span>
+                  </div>
+                  <div className="bg-background rounded p-2">
+                    <span className="text-muted-foreground">Mech Jobs:</span>
+                    <span className="ml-2 font-medium">{purgeImpact.counts.mechanisationJobs}</span>
+                  </div>
+                </div>
+
+                <p className="text-xs text-destructive font-medium">
+                  ⚠️ All records above will be permanently deleted!
+                </p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={resetPurgeDialog} disabled={isPurging}>
+              Cancel
+            </Button>
+            {purgeImpact && (
+              <Button
+                variant="destructive"
+                onClick={handlePurgeExecute}
+                disabled={isPurging}
+              >
+                {isPurging ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Purging...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Purge Farmer
+                  </>
+                )}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

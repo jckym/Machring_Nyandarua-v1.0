@@ -11,8 +11,11 @@ import { toast } from 'sonner';
 import { exportFarmersToExcel, exportFarmersToPDF } from '@/lib/exportUtils';
 import { FarmerFormDialog } from '@/components/forms/FarmerFormDialog';
 import { BulkUploadDialog } from '@/components/bulk-upload/BulkUploadDialog';
+import { TablePagination } from '@/components/ui/table-pagination';
 import { Farmer } from '@/types';
-import { useFarmers, useCreateFarmer, useUpdateFarmer, useLocalMRs } from '@/hooks/api';
+import { usePaginatedFarmers, useFarmerStats } from '@/hooks/api/usePaginatedFarmers';
+import { useFarmers, useCreateFarmer, useUpdateFarmer } from '@/hooks/api/useFarmers';
+import { useLocalMRs } from '@/hooks/api';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Search,
@@ -26,6 +29,7 @@ import {
   Star,
   Eye,
   Upload,
+  Loader2,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -47,19 +51,60 @@ export function Farmers() {
   const { user, isAdmin, canEdit } = useAuth();
   const { addNotification } = useNotifications();
 
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  
+  // Filter state
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [localMrFilter, setLocalMrFilter] = useState('all');
-  const [valueChainFilter, setValueChainFilter] = useState('all');
   const [ratingFilter, setRatingFilter] = useState('all');
+  
+  // Dialog state
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
   const [editingFarmer, setEditingFarmer] = useState<Farmer | null>(null);
 
-  // API hooks
-  const { data: farmers = [], isLoading } = useFarmers({ 
-    search: searchQuery, 
-    localMrId: localMrFilter !== 'all' ? localMrFilter : undefined 
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPage(1); // Reset to first page on search
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [localMrFilter, ratingFilter]);
+
+  // Build filters object
+  const filters = {
+    search: debouncedSearch || undefined,
+    localMrId: localMrFilter !== 'all' ? localMrFilter : undefined,
+  };
+
+  // API hooks - server-side pagination
+  const {
+    data: farmers,
+    totalCount,
+    totalPages,
+    isLoading,
+    isFetching,
+  } = usePaginatedFarmers(filters, { page, pageSize });
+
+  // Stats query (efficient count-based)
+  const { data: stats } = useFarmerStats({
+    localMrId: localMrFilter !== 'all' ? localMrFilter : undefined,
   });
+
+  // For exports - fetch all farmers (lazy, only when exporting)
+  const { data: allFarmers = [], refetch: fetchAllFarmers } = useFarmers({
+    localMrId: localMrFilter !== 'all' ? localMrFilter : undefined,
+  });
+
   const { data: localMRs = [] } = useLocalMRs();
   const createFarmer = useCreateFarmer();
   const updateFarmer = useUpdateFarmer();
@@ -73,13 +118,10 @@ export function Farmers() {
     }
   }, [searchParams, setSearchParams, isAdmin]);
 
+  // Client-side filter for rating (applied after server-side pagination)
   const filteredFarmers = farmers.filter(farmer => {
-    const matchesSearch = farmer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      farmer.location.village.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesLocalMr = localMrFilter === 'all' || farmer.localMrId === localMrFilter;
-    const matchesValueChain = valueChainFilter === 'all' || farmer.valueChain === valueChainFilter;
     const matchesRating = ratingFilter === 'all' || farmer.farmerRating === ratingFilter;
-    return matchesSearch && matchesLocalMr && matchesValueChain && matchesRating;
+    return matchesRating;
   });
 
   const getRatingColor = (rating: string) => {
@@ -108,32 +150,39 @@ export function Farmers() {
     }
   };
 
-  const handleExport = (format: 'excel' | 'pdf') => {
-    if (filteredFarmers.length === 0) {
+  const handleExport = async (format: 'excel' | 'pdf') => {
+    // Fetch all farmers for export
+    const { data: exportData } = await fetchAllFarmers();
+    const farmersToExport = exportData || allFarmers;
+    
+    if (farmersToExport.length === 0) {
       toast.error('No farmers to export');
       return;
     }
     try {
-      if (format === 'excel') exportFarmersToExcel(filteredFarmers, 'farmers_export');
-      else exportFarmersToPDF(filteredFarmers, 'farmers_export');
-      toast.success(`Exported ${filteredFarmers.length} farmers to ${format.toUpperCase()}`);
+      if (format === 'excel') exportFarmersToExcel(farmersToExport, 'farmers_export');
+      else exportFarmersToPDF(farmersToExport, 'farmers_export');
+      toast.success(`Exported ${farmersToExport.length} farmers to ${format.toUpperCase()}`);
     } catch (error) {
       toast.error(`Failed to export: ${error}`);
     }
   };
 
-  const formatDate = (date: Date | string) => {
-    return new Intl.DateTimeFormat('en-KE', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    }).format(new Date(date));
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    // Scroll to top of table
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(newPageSize);
+    setPage(1); // Reset to first page
   };
 
   // Manager and Coordinator can export reports
   const canExport = user?.role === 'admin' || user?.role === 'manager' || user?.role === 'local_mr_coordinator';
 
-  if (isLoading) {
+  if (isLoading && !isFetching) {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
@@ -197,7 +246,7 @@ export function Farmers() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search by name or location..."
+                placeholder="Search by name, phone, or location..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -240,7 +289,9 @@ export function Farmers() {
               <Users className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
-              <p className="text-lg sm:text-2xl font-bold font-heading">{filteredFarmers.length}</p>
+              <p className="text-lg sm:text-2xl font-bold font-heading">
+                {(stats?.total || totalCount).toLocaleString()}
+              </p>
               <p className="text-xs sm:text-sm opacity-80">Total Farmers</p>
             </div>
           </div>
@@ -252,7 +303,7 @@ export function Farmers() {
             </div>
             <div>
               <p className="text-lg sm:text-2xl font-bold font-heading text-primary">
-                {filteredFarmers.filter(f => f.farmerRating === 'High-Value').length}
+                {(stats?.highValue || 0).toLocaleString()}
               </p>
               <p className="text-xs sm:text-sm text-muted-foreground">High-Value</p>
             </div>
@@ -265,7 +316,7 @@ export function Farmers() {
             </div>
             <div>
               <p className="text-lg sm:text-2xl font-bold font-heading text-emerald-600">
-                {filteredFarmers.filter(f => f.farmerRating === 'Active').length}
+                {(stats?.active || 0).toLocaleString()}
               </p>
               <p className="text-xs sm:text-sm text-muted-foreground">Active</p>
             </div>
@@ -275,8 +326,13 @@ export function Farmers() {
 
       {/* Farmers List */}
       <Card variant="elevated">
-        <CardHeader>
-          <CardTitle className="text-lg">All Farmers ({filteredFarmers.length})</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-lg">
+            All Farmers ({totalCount.toLocaleString()})
+          </CardTitle>
+          {isFetching && (
+            <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+          )}
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -291,60 +347,78 @@ export function Farmers() {
                 </tr>
               </thead>
               <tbody>
-                {filteredFarmers.map((farmer, index) => (
-                  <tr 
-                    key={farmer.id}
-                    className="border-b border-border/50 hover:bg-muted/50 transition-colors animate-fade-in"
-                    style={{ animationDelay: `${index * 0.05}s` }}
-                  >
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm">
-                          {farmer.name.split(' ').map(n => n[0]).join('')}
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">{farmer.name}</p>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Phone className="w-3 h-3" />
-                            {farmer.phone}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <MapPin className="w-3 h-3" />
-                        {farmer.location.village}{farmer.location.ward ? `, ${farmer.location.ward}` : ''}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <Badge variant={getRatingColor(farmer.farmerRating) as any} className="flex items-center gap-1 w-fit">
-                        <Star className="w-3 h-3" />
-                        {farmer.farmerRating}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-4 text-sm">{farmer.valueChain}</td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => navigate(`/farmers/${farmer.id}`)}>
-                          <Eye className="w-4 h-4 mr-1" /> View
-                        </Button>
-                        {/* Only Admin can edit farmers */}
-                        {isAdmin && (
-                          <Button variant="outline" size="sm" onClick={() => {
-                            setEditingFarmer(farmer as any);
-                            setIsFormOpen(true);
-                          }}>
-                            Edit
-                          </Button>
-                        )}
-                      </div>
+                {filteredFarmers.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="text-center py-8 text-muted-foreground">
+                      {isLoading ? 'Loading farmers...' : 'No farmers found'}
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredFarmers.map((farmer) => (
+                    <tr 
+                      key={farmer.id}
+                      className="border-b border-border/50 hover:bg-muted/50 transition-colors"
+                    >
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm">
+                            {farmer.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">{farmer.name}</p>
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Phone className="w-3 h-3" />
+                              {farmer.phone || 'No phone'}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <MapPin className="w-3 h-3" />
+                          {farmer.location.village}{farmer.location.ward ? `, ${farmer.location.ward}` : ''}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <Badge variant={getRatingColor(farmer.farmerRating) as any} className="flex items-center gap-1 w-fit">
+                          <Star className="w-3 h-3" />
+                          {farmer.farmerRating}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4 text-sm">{farmer.valueChain}</td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => navigate(`/farmers/${farmer.id}`)}>
+                            <Eye className="w-4 h-4 mr-1" /> View
+                          </Button>
+                          {/* Only Admin can edit farmers */}
+                          {isAdmin && (
+                            <Button variant="outline" size="sm" onClick={() => {
+                              setEditingFarmer(farmer as any);
+                              setIsFormOpen(true);
+                            }}>
+                              Edit
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
+
+          {/* Pagination */}
+          <TablePagination
+            page={page}
+            pageSize={pageSize}
+            totalCount={totalCount}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+            isLoading={isFetching}
+          />
         </CardContent>
       </Card>
 

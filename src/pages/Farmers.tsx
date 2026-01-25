@@ -14,7 +14,7 @@ import { BulkUploadDialog } from '@/components/bulk-upload/BulkUploadDialog';
 import { TablePagination } from '@/components/ui/table-pagination';
 import { Farmer } from '@/types';
 import { usePaginatedFarmers, useFarmerStats } from '@/hooks/api/usePaginatedFarmers';
-import { useFarmers, useCreateFarmer, useUpdateFarmer } from '@/hooks/api/useFarmers';
+import { useFarmers, useCreateFarmer, useUpdateFarmer, useDeleteFarmer } from '@/hooks/api/useFarmers';
 import { useLocalMRs } from '@/hooks/api';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -30,6 +30,7 @@ import {
   Eye,
   Upload,
   Loader2,
+  Trash2,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -44,6 +45,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export function Farmers() {
   const navigate = useNavigate();
@@ -65,6 +76,8 @@ export function Farmers() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
   const [editingFarmer, setEditingFarmer] = useState<Farmer | null>(null);
+  const [deletingFarmer, setDeletingFarmer] = useState<Farmer | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Debounce search input
   useEffect(() => {
@@ -108,6 +121,7 @@ export function Farmers() {
   const { data: localMRs = [] } = useLocalMRs();
   const createFarmer = useCreateFarmer();
   const updateFarmer = useUpdateFarmer();
+  const deleteFarmer = useDeleteFarmer();
 
   // Auto-open add modal from Quick Actions (Admin only)
   useEffect(() => {
@@ -147,6 +161,17 @@ export function Farmers() {
         message: `New farmer registered successfully`,
         type: 'farmer',
       });
+    }
+  };
+
+  const handleDeleteFarmer = async () => {
+    if (!deletingFarmer) return;
+    setIsDeleting(true);
+    try {
+      await deleteFarmer.mutateAsync(deletingFarmer.id);
+      setDeletingFarmer(null);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -391,14 +416,24 @@ export function Farmers() {
                           <Button variant="ghost" size="sm" onClick={() => navigate(`/farmers/${farmer.id}`)}>
                             <Eye className="w-4 h-4 mr-1" /> View
                           </Button>
-                          {/* Only Admin can edit farmers */}
+                          {/* Only Admin can edit/delete farmers */}
                           {isAdmin && (
-                            <Button variant="outline" size="sm" onClick={() => {
-                              setEditingFarmer(farmer as any);
-                              setIsFormOpen(true);
-                            }}>
-                              Edit
-                            </Button>
+                            <>
+                              <Button variant="outline" size="sm" onClick={() => {
+                                setEditingFarmer(farmer as any);
+                                setIsFormOpen(true);
+                              }}>
+                                Edit
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => setDeletingFarmer(farmer as any)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </>
                           )}
                         </div>
                       </td>
@@ -457,6 +492,35 @@ export function Farmers() {
           if (error) throw error;
         }}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deletingFarmer} onOpenChange={(open) => !open && setDeletingFarmer(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Farmer</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong>{deletingFarmer?.name}</strong>? This action cannot be undone and will remove all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteFarmer}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

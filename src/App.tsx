@@ -37,6 +37,7 @@ const LocalMRs = lazy(() => import("@/pages/admin/LocalMRs").then(m => ({ defaul
 const LocalMRDetails = lazy(() => import("@/pages/admin/LocalMRDetails").then(m => ({ default: m.LocalMRDetails })));
 const AuditLog = lazy(() => import("@/pages/admin/AuditLog").then(m => ({ default: m.AuditLog })));
 const SystemLogs = lazy(() => import("@/pages/admin/SystemLogs").then(m => ({ default: m.SystemLogs })));
+const OrgChart = lazy(() => import("@/pages/admin/OrgChart"));
 const Commission = lazy(() => import("@/pages/Commission").then(m => ({ default: m.Commission })));
 const TOTManagement = lazy(() => import("@/pages/TOTManagement").then(m => ({ default: m.TOTManagement })));
 const Notifications = lazy(() => import("@/pages/Notifications").then(m => ({ default: m.Notifications })));
@@ -159,6 +160,11 @@ const App = () => (
                     <Route path="/system-logs" element={
                       <ProtectedRoute allowedRoles={['admin']}>
                         <SystemLogs />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/org-chart" element={
+                      <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                        <OrgChart />
                       </ProtectedRoute>
                     } />
                   </Route>

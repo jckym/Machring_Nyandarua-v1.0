@@ -82,6 +82,12 @@ Deno.serve(async (req) => {
 
     console.info(`Admin ${requestingUserId} deleting user: ${userId}`);
 
+    // First, check if user exists in auth.users
+    const { data: existingUser, error: getUserError } = await supabaseAdmin.auth.admin.getUserById(userId);
+    
+    const userExistsInAuth = !getUserError && existingUser?.user;
+    console.info(`User ${userId} exists in auth: ${userExistsInAuth}`);
+
     // 1) Clean up public tables FIRST to remove foreign key dependencies
     console.info(`Cleaning up related records for user: ${userId}`);
     
@@ -109,19 +115,23 @@ Deno.serve(async (req) => {
       console.warn('Profile delete warning:', profileError);
     }
 
-    console.info(`Related records cleaned up, now deleting auth user: ${userId}`);
-
-    // 2) Now delete auth user (email is freed for re-creation)
-    const { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(userId);
-    if (deleteAuthError) {
-      console.error('Delete auth user error:', deleteAuthError);
-      return new Response(
-        JSON.stringify({ success: false, error: deleteAuthError.message }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // 2) Now delete auth user if it exists (email is freed for re-creation)
+    if (userExistsInAuth) {
+      console.info(`Deleting auth user: ${userId}`);
+      const { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+      if (deleteAuthError) {
+        console.error('Delete auth user error:', deleteAuthError);
+        return new Response(
+          JSON.stringify({ success: false, error: deleteAuthError.message }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      console.info(`User ${userId} deleted successfully from auth`);
+    } else {
+      console.info(`User ${userId} was already deleted from auth, cleaned up orphaned records`);
     }
 
-    console.info(`User ${userId} deleted successfully`);
+    console.info(`User ${userId} deletion complete`);
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,

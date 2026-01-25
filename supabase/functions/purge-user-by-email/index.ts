@@ -100,7 +100,15 @@ async function purgeUserCompletely(supabaseAdmin: any, userId: string) {
 
   // Delete records owned by / linked to this user
   await supabaseAdmin.from("sales").delete().eq("tot_id", userId);
+  
+  // Delete visits where user is the TOT
   await supabaseAdmin.from("visits").delete().eq("tot_id", userId);
+  // Also delete visits where user is referenced via profile_id (due to visits_participant_check constraint)
+  await supabaseAdmin.from("visits").delete().eq("profile_id", userId);
+  
+  // Delete training attendees where user is the profile
+  await supabaseAdmin.from("training_attendees").delete().eq("profile_id", userId);
+  
   await supabaseAdmin.from("trainings").delete().eq("trainer_id", userId);
   await supabaseAdmin.from("mechanisation_jobs").delete().eq("tot_id", userId);
   await supabaseAdmin.from("machinery_bookings").delete().eq("booked_by", userId);

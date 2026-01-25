@@ -115,7 +115,11 @@ export function Users() {
 
   const { isValid: isPasswordValid } = usePasswordValidation(formData.password);
 
+  // Filter out admin users from the display list
   const filteredUsers = users.filter((user: User) => {
+    // Hide admin users from the list
+    if (user.role === 'admin') return false;
+    
     const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || user.status === statusFilter;

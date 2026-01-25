@@ -46,6 +46,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import {
   Select,
@@ -362,24 +363,30 @@ export function Farmers() {
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-          {/* Admin only: Add Farmer button */}
+          {/* Admin only: Actions dropdown */}
           {isAdmin && (
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setIsPurgeOpen(true)}
-                className="text-destructive hover:text-destructive border-destructive/50 hover:border-destructive hover:bg-destructive/10"
-              >
-                <Trash2 className="w-4 h-4 mr-2" /> Purge by Phone
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
-                <Upload className="w-4 h-4 mr-2" /> Bulk Upload
-              </Button>
-              <Button variant="forest" size="sm" onClick={() => setIsFormOpen(true)}>
-                <Plus className="w-4 h-4 mr-2" /> Add Farmer
-              </Button>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="forest" size="sm">
+                  <Plus className="w-4 h-4 mr-2" /> Actions
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={() => setIsFormOpen(true)}>
+                  <Plus className="w-4 h-4 mr-2" /> Add Farmer
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsBulkUploadOpen(true)}>
+                  <Upload className="w-4 h-4 mr-2" /> Bulk Upload
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={() => setIsPurgeOpen(true)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" /> Purge by Phone
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
       </div>

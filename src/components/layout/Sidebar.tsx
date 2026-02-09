@@ -30,7 +30,7 @@ import {
   Shield,
   Bell,
   AlertCircle,
-  Network,
+  
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -71,7 +71,6 @@ const coordinatorNavItems: NavItem[] = [
 // Manager: Read-only, organization-wide access
 const managerNavItems: NavItem[] = [
   { to: '/dashboard/manager', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/org-chart', icon: Network, label: 'Org Chart' },
   { to: '/local-mrs', icon: Building2, label: 'Local MRs' },
   { to: '/tots', icon: UserCog, label: 'All TOTs' },
   { to: '/farmers', icon: Users, label: 'All Farmers' },
@@ -88,7 +87,6 @@ const managerNavItems: NavItem[] = [
 // Admin: Full data entry and management access
 const adminNavItems: NavItem[] = [
   { to: '/dashboard/admin', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/org-chart', icon: Network, label: 'Org Chart' },
   { to: '/users', icon: UserCog, label: 'User Management' },
   { to: '/tots', icon: UserCog, label: 'All TOTs' },
   { to: '/local-mrs', icon: Building2, label: 'Local MRs' },

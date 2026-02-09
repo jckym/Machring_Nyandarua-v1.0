@@ -286,7 +286,6 @@ export function LocalMRs() {
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Region</TableHead>
-                    <TableHead>County</TableHead>
                     <TableHead>Subcounty</TableHead>
                     <TableHead>Ward</TableHead>
                     <TableHead>Coordinator</TableHead>
@@ -298,7 +297,7 @@ export function LocalMRs() {
                 <TableBody>
                   {filteredMRs.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                         No Local MRs found. Click "Add Local MR" to create one.
                       </TableCell>
                     </TableRow>
@@ -307,7 +306,6 @@ export function LocalMRs() {
                       <TableRow key={mr.id}>
                         <TableCell className="font-medium">{mr.name}</TableCell>
                         <TableCell>{mr.region}</TableCell>
-                        <TableCell>{mr.county}</TableCell>
                         <TableCell>{mr.subcounty || '-'}</TableCell>
                         <TableCell>{mr.ward || '-'}</TableCell>
                         <TableCell>

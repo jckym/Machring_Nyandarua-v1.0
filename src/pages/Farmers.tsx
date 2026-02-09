@@ -603,18 +603,39 @@ export function Farmers() {
         onOpenChange={setIsBulkUploadOpen}
         entityType="farmers"
         onUpload={async (data) => {
-          const farmersToInsert = data.map(row => ({
-            name: String(row.name),
-            county: 'Nyandarua',
-            sub_county: row.sub_county ? String(row.sub_county) : null,
-            ward: row.ward ? String(row.ward) : null,
-            village: row.village ? String(row.village) : null,
-            phone: row.phone ? String(row.phone) : null,
-            email: row.email ? String(row.email) : null,
-            farming_type: row.farming_type ? String(row.farming_type) : null,
-            farm_size: row.farm_size ? Number(row.farm_size) : null,
-          }));
-          
+          // Resolve local_mr names to IDs
+          const mrList = localMRs || [];
+          const farmersToInsert = data.map(row => {
+            let localMrId: string | null = null;
+            if (row.local_mr) {
+              const mrName = String(row.local_mr).trim().toLowerCase();
+              const matchedMR = mrList.find(mr => mr.name.toLowerCase() === mrName);
+              if (matchedMR) localMrId = matchedMR.id;
+            }
+            return {
+              name: String(row.name),
+              county: 'Nyandarua',
+              sub_county: row.sub_county ? String(row.sub_county) : null,
+              ward: row.ward ? String(row.ward) : null,
+              village: row.village ? String(row.village) : null,
+              phone: row.phone ? String(row.phone) : null,
+              email: row.email ? String(row.email) : null,
+              farming_type: row.farming_type ? String(row.farming_type) : null,
+              farm_size: row.farm_size ? Number(row.farm_size) : null,
+              local_mr_id: localMrId,
+            };
+          });
+
+          // Warn about unmatched MR names
+          const unmatchedRows = data.filter(row => {
+            if (!row.local_mr) return false;
+            const mrName = String(row.local_mr).trim().toLowerCase();
+            return !mrList.find(mr => mr.name.toLowerCase() === mrName);
+          });
+          if (unmatchedRows.length > 0) {
+            toast.warning(`${unmatchedRows.length} row(s) had unrecognized Local MR names and were uploaded without MR assignment.`);
+          }
+
           const { error } = await supabase.from('farmers').insert(farmersToInsert);
           if (error) throw error;
         }}

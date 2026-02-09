@@ -13,7 +13,7 @@ import { parseExcelFile, createExcelTemplate } from '@/lib/excelUtils';
 interface BulkUploadDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  entityType: 'products' | 'farmers' | 'machinery';
+  entityType: 'products' | 'farmers' | 'machinery' | 'sales';
   onUpload: (data: any[]) => Promise<void>;
 }
 
@@ -35,6 +35,10 @@ const columnConfigs: Record<string, ColumnConfig> = {
     required: ['name', 'category'],
     optional: ['model', 'hourly_rate', 'daily_rate', 'condition', 'registration_number'],
   },
+  sales: {
+    required: ['farmer', 'product', 'quantity', 'tot'],
+    optional: ['sale_date', 'payment_method', 'notes'],
+  },
 };
 
 const sampleData: Record<string, any[]> = {
@@ -49,6 +53,10 @@ const sampleData: Record<string, any[]> = {
   machinery: [
     { name: 'John Deere Tractor', category: 'Tractor', model: 'JD-5050', hourly_rate: 1500, daily_rate: 10000, condition: 'good', registration_number: 'KBX 123A' },
     { name: 'Planter Machine', category: 'Planter', model: 'PM-200', hourly_rate: 800, daily_rate: 5000, condition: 'good' },
+  ],
+  sales: [
+    { farmer: 'John Kamau', product: 'Maize Seeds 10kg', quantity: 5, tot: 'Jane Wanjiru', sale_date: '2026-02-09', payment_method: 'cash', notes: 'Bulk purchase' },
+    { farmer: 'Mary Wanjiku', product: 'DAP Fertilizer 50kg', quantity: 2, tot: 'Jane Wanjiru', payment_method: 'mpesa' },
   ],
 };
 

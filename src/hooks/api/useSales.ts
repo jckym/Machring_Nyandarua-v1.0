@@ -195,6 +195,41 @@ export function useCreateSale() {
   });
 }
 
+export function useBulkCreateSales() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (sales: CreateSaleDto[]) => {
+      const insertData = sales.map(s => ({
+        farmer_id: s.farmer_id,
+        product_id: s.product_id,
+        tot_id: s.tot_id,
+        local_mr_id: s.local_mr_id,
+        quantity: s.quantity,
+        unit_price: 0,
+        total_amount: 0,
+        commission_per_unit: 0,
+        commission_amount: 0,
+      }));
+
+      const { data, error } = await supabase
+        .from('sales')
+        .insert(insertData)
+        .select();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: saleKeys.all });
+      toast.success(`${data.length} sales recorded successfully`);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to bulk create sales');
+    },
+  });
+}
+
 export function useCompleteSale() {
   const queryClient = useQueryClient();
 

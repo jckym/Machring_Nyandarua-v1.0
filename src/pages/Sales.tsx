@@ -4,14 +4,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Search, Plus, TrendingUp, Calendar, Download, Package, FileSpreadsheet, FileText, MoreVertical } from 'lucide-react';
+import { Search, Plus, TrendingUp, Calendar, Download, Package, FileSpreadsheet, FileText, MoreVertical, Upload } from 'lucide-react';
 import { exportSalesToExcel, exportSalesToPDF } from '@/lib/exportUtils';
 import { SaleFormDialog } from '@/components/forms/SaleFormDialog';
+import { BulkUploadDialog } from '@/components/bulk-upload/BulkUploadDialog';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Sale } from '@/types';
-import { useSales, useCreateSale, useProducts, useCompleteSale, useCancelSale } from '@/hooks/api';
+import { useSales, useCreateSale, useProducts, useCompleteSale, useCancelSale, useBulkCreateSales } from '@/hooks/api';
+import { useFarmers } from '@/hooks/api/useFarmers';
+import { useUsers } from '@/hooks/api/useUsers';
+import { useLocalMRs } from '@/hooks/api/useLocalMRs';
+import { supabase } from '@/integrations/supabase/client';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,6 +34,7 @@ import {
 export function Sales() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
   const [productFilter, setProductFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const { addNotification } = useNotifications();
@@ -37,7 +43,11 @@ export function Sales() {
   // API hooks
   const { data: sales = [], isLoading } = useSales();
   const { data: products = [] } = useProducts();
+  const { data: farmers = [] } = useFarmers();
+  const { data: users = [] } = useUsers();
+  const { data: localMRs = [] } = useLocalMRs();
   const createSale = useCreateSale();
+  const bulkCreateSales = useBulkCreateSales();
   const completeSale = useCompleteSale();
   const cancelSale = useCancelSale();
 
@@ -99,6 +109,75 @@ export function Sales() {
   // Manager and Coordinator can export reports
   const canExport = user?.role === 'admin' || user?.role === 'manager' || user?.role === 'local_mr_coordinator';
 
+  const handleBulkUpload = async (data: any[]) => {
+    // Resolve names to IDs
+    const errors: string[] = [];
+    const salesToCreate: any[] = [];
+
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i];
+      const rowNum = i + 2; // Excel row (header is row 1)
+
+      // Resolve farmer
+      const farmerName = String(row.farmer).trim().toLowerCase();
+      const farmer = (farmers as any[]).find(f => f.name?.toLowerCase() === farmerName);
+      if (!farmer) {
+        errors.push(`Row ${rowNum}: Farmer "${row.farmer}" not found`);
+        continue;
+      }
+
+      // Resolve product
+      const productName = String(row.product).trim().toLowerCase();
+      const product = (products as any[]).find(p => p.name?.toLowerCase() === productName);
+      if (!product) {
+        errors.push(`Row ${rowNum}: Product "${row.product}" not found`);
+        continue;
+      }
+
+      // Resolve TOT
+      const totName = String(row.tot).trim().toLowerCase();
+      const tot = (users as any[]).find(u => u.name?.toLowerCase() === totName && u.role === 'tot');
+      if (!tot) {
+        errors.push(`Row ${rowNum}: TOT "${row.tot}" not found`);
+        continue;
+      }
+
+      // Get TOT's local MR from their assignment
+      const { data: assignment } = await supabase
+        .from('tot_assignments')
+        .select('local_mr_id')
+        .eq('tot_id', tot.id)
+        .eq('status', 'active')
+        .limit(1)
+        .single();
+
+      if (!assignment?.local_mr_id) {
+        errors.push(`Row ${rowNum}: TOT "${row.tot}" has no active Local MR assignment`);
+        continue;
+      }
+
+      salesToCreate.push({
+        farmer_id: farmer.id,
+        product_id: product.id,
+        tot_id: tot.id,
+        local_mr_id: assignment.local_mr_id,
+        quantity: Number(row.quantity),
+      });
+    }
+
+    if (errors.length > 0) {
+      toast.warning(`${errors.length} rows skipped`, {
+        description: errors.slice(0, 3).join('; ') + (errors.length > 3 ? `... and ${errors.length - 3} more` : ''),
+      });
+    }
+
+    if (salesToCreate.length === 0) {
+      throw new Error('No valid sales to upload. Check farmer, product, and TOT names.');
+    }
+
+    await bulkCreateSales.mutateAsync(salesToCreate);
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -145,12 +224,18 @@ export function Sales() {
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-          {/* Admin only: Record Sale button */}
+          {/* Admin only: Record Sale & Bulk Upload buttons */}
           {isAdmin && (
-            <Button variant="wheat" size="sm" onClick={() => setIsFormOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Record Sale
-            </Button>
+            <>
+              <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
+                <Upload className="w-4 h-4 mr-2" />
+                Bulk Upload
+              </Button>
+              <Button variant="wheat" size="sm" onClick={() => setIsFormOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Record Sale
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -323,11 +408,19 @@ export function Sales() {
 
       {/* Sale Form Dialog - Admin only */}
       {isAdmin && (
-        <SaleFormDialog
-          open={isFormOpen}
-          onOpenChange={setIsFormOpen}
-          onSubmit={handleAddSale}
-        />
+        <>
+          <SaleFormDialog
+            open={isFormOpen}
+            onOpenChange={setIsFormOpen}
+            onSubmit={handleAddSale}
+          />
+          <BulkUploadDialog
+            open={isBulkUploadOpen}
+            onOpenChange={setIsBulkUploadOpen}
+            entityType="sales"
+            onUpload={handleBulkUpload}
+          />
+        </>
       )}
     </div>
   );

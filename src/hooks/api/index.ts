@@ -5,7 +5,7 @@ export * from './useFarmersAndTots';
 // Core entities
 export * from './useFarmers';
 export * from './useFarmerTrainings';
-export * from './useSales';
+export { useSales, useSale, useCreateSale, useBulkCreateSales, useCompleteSale, useCancelSale, saleKeys } from './useSales';
 export * from './useTrainings';
 export * from './useVisits';
 export { useMachinery, useMachineryItem, useCreateMachinery, useBulkCreateMachinery, useUpdateMachinery, useDeleteMachinery, useUpdateMachineryStatus, machineryKeys } from './useMachinery';

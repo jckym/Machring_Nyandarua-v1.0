@@ -29,7 +29,7 @@ const columnConfigs: Record<string, ColumnConfig> = {
   },
   farmers: {
     required: ['name', 'sub_county'],
-    optional: ['phone', 'email', 'ward', 'village', 'farming_type', 'farm_size'],
+    optional: ['phone', 'email', 'ward', 'village', 'farming_type', 'farm_size', 'local_mr'],
   },
   machinery: {
     required: ['name', 'category'],
@@ -43,8 +43,8 @@ const sampleData: Record<string, any[]> = {
     { name: 'DAP Fertilizer 50kg', category: 'Fertilizers', unit_price: 4500, commission_per_unit: 150, stock_quantity: 30, description: 'Diammonium phosphate' },
   ],
   farmers: [
-    { name: 'John Kamau', phone: '0712345678', sub_county: 'Olkalou', ward: 'Karau', village: 'Kamuchege', farming_type: 'Potato', farm_size: 2.5 },
-    { name: 'Mary Wanjiku', phone: '0723456789', sub_county: 'Kinangop', ward: 'Engineer', village: 'Njabini', farming_type: 'Barley', farm_size: 1.5 },
+    { name: 'John Kamau', phone: '0712345678', sub_county: 'Olkalou', ward: 'Karau', village: 'Kamuchege', farming_type: 'Potato', farm_size: 2.5, local_mr: 'Mawingu MR' },
+    { name: 'Mary Wanjiku', phone: '0723456789', sub_county: 'Kinangop', ward: 'Engineer', village: 'Njabini', farming_type: 'Barley', farm_size: 1.5, local_mr: 'Kanjuiri MR' },
   ],
   machinery: [
     { name: 'John Deere Tractor', category: 'Tractor', model: 'JD-5050', hourly_rate: 1500, daily_rate: 10000, condition: 'good', registration_number: 'KBX 123A' },

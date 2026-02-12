@@ -21,6 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AlertTriangle, Send, Loader2 } from 'lucide-react';
 import { useLocalMRs } from '@/hooks/api/useLocalMRs';
 import { CreateFarmerDto } from '@/hooks/api/useFarmers';
+import { supabase } from '@/integrations/supabase/client';
 
 // Updated farming types per request - removed Coffee, Tea, Sugarcane; added Potato, Barley
 const farmingTypes = [
@@ -112,7 +113,9 @@ export function FarmerFormDialog({
     }
   }, [farmer, open, localMRs]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validation - County is now fixed to Nyandarua
@@ -128,6 +131,36 @@ export function FarmerFormDialog({
         variant: 'destructive',
       });
       return;
+    }
+
+    // Check for duplicate phone number
+    if (formData.phone.trim()) {
+      setIsSubmitting(true);
+      try {
+        let query = supabase
+          .from('farmers')
+          .select('id, name')
+          .eq('phone', formData.phone.trim());
+
+        // Exclude current farmer when editing
+        if (isEditing && farmer?.id) {
+          query = query.neq('id', farmer.id);
+        }
+
+        const { data: existing } = await query.limit(1);
+        if (existing && existing.length > 0) {
+          toast({
+            title: 'Duplicate Farmer',
+            description: `A farmer with phone "${formData.phone.trim()}" already exists: ${existing[0].name}`,
+            variant: 'destructive',
+          });
+          setIsSubmitting(false);
+          return;
+        }
+      } catch {
+        // If check fails, let the DB constraint catch it
+      }
+      setIsSubmitting(false);
     }
 
     // Create farmer DTO for Supabase - County is fixed to Nyandarua
@@ -350,9 +383,11 @@ export function FarmerFormDialog({
               type="submit"
               variant={isEditing ? 'default' : 'forest'}
               className="flex-1"
-              disabled={mrsLoading || !!mrsError}
+              disabled={mrsLoading || !!mrsError || isSubmitting}
             >
-              {isEditing ? (
+              {isSubmitting ? (
+                'Checking...'
+              ) : isEditing ? (
                 <>
                   <Send className="w-4 h-4 mr-2" />
                   Update Farmer

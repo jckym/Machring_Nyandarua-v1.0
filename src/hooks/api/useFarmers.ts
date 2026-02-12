@@ -215,8 +215,13 @@ export function useCreateFarmer() {
       queryClient.invalidateQueries({ queryKey: farmerKeys.all });
       toast.success('Farmer registered successfully');
     },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Failed to register farmer');
+    onError: (error: any) => {
+      const msg = error?.message || '';
+      if (msg.includes('idx_farmers_unique_phone') || msg.includes('duplicate key')) {
+        toast.error('A farmer with this phone number already exists');
+      } else {
+        toast.error(msg || 'Failed to register farmer');
+      }
     },
   });
 }

@@ -636,8 +636,42 @@ export function Farmers() {
             toast.warning(`${unmatchedRows.length} row(s) had unrecognized Local MR names and were uploaded without MR assignment.`);
           }
 
+          // Check for duplicate phones in upload batch and against existing farmers
+          const phonesInBatch = farmersToInsert
+            .map(f => f.phone)
+            .filter((p): p is string => !!p && p.trim() !== '');
+          
+          if (phonesInBatch.length > 0) {
+            // Check for duplicates within the batch itself
+            const seen = new Set<string>();
+            const batchDupes: string[] = [];
+            phonesInBatch.forEach(p => {
+              if (seen.has(p)) batchDupes.push(p);
+              seen.add(p);
+            });
+            if (batchDupes.length > 0) {
+              throw new Error(`Duplicate phone numbers found in upload: ${batchDupes.join(', ')}`);
+            }
+
+            // Check against existing farmers in DB
+            const { data: existingFarmers } = await supabase
+              .from('farmers')
+              .select('phone, name')
+              .in('phone', phonesInBatch);
+            
+            if (existingFarmers && existingFarmers.length > 0) {
+              const dupeNames = existingFarmers.map(f => `${f.name} (${f.phone})`).join(', ');
+              throw new Error(`These farmers already exist: ${dupeNames}`);
+            }
+          }
+
           const { error } = await supabase.from('farmers').insert(farmersToInsert);
-          if (error) throw error;
+          if (error) {
+            if (error.message?.includes('idx_farmers_unique_phone') || error.message?.includes('duplicate key')) {
+              throw new Error('One or more farmers with the same phone number already exist in the system');
+            }
+            throw error;
+          }
         }}
       />
 

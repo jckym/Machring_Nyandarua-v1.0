@@ -16,6 +16,7 @@ import { ProductChart } from '@/components/dashboard/ProductChart';
 import { OverdueFollowUps } from '@/components/dashboard/OverdueFollowUps';
 
 import { useSupabaseTotStats, TotStats } from '@/hooks/api/useSupabaseDashboard';
+import { PerformanceSummary } from '@/components/dashboard/PerformanceSummary';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDashboardRealtime, useFarmersRealtime } from '@/hooks/api/useDashboardRealtime';
 
@@ -136,6 +137,7 @@ export function TotDashboard() {
         {/* Sidebar - No QuickActions for TOT (Admin only) */}
         <div className="flex flex-col gap-6">
           <ProductChart />
+          <PerformanceSummary />
         </div>
       </div>
 

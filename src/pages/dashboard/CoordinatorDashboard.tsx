@@ -11,7 +11,7 @@ import { ProductChart } from '@/components/dashboard/ProductChart';
 import { TopPerformers } from '@/components/dashboard/TopPerformers';
 import { TOTPerformanceOverview } from '@/components/dashboard/TOTPerformanceOverview';
 import { OverdueFollowUps } from '@/components/dashboard/OverdueFollowUps';
-
+import { PerformanceSummary } from '@/components/dashboard/PerformanceSummary';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useDashboardRealtime, useFarmersRealtime, useMechanisationRealtime } from '@/hooks/api/useDashboardRealtime';
@@ -447,7 +447,7 @@ export function CoordinatorDashboard() {
 
         {/* Side Column */}
         <div className="space-y-6">
-          
+          <PerformanceSummary />
           <OverdueFollowUps localMrId={stats?.localMrId || undefined} limit={5} />
           <TopPerformers type="tots" />
           <TopPerformers type="farmers" />

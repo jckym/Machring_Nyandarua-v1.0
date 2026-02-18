@@ -17,6 +17,7 @@ import { OverdueFollowUps } from '@/components/dashboard/OverdueFollowUps';
 
 import { useSupabaseTotStats, TotStats } from '@/hooks/api/useSupabaseDashboard';
 import { PerformanceSummary } from '@/components/dashboard/PerformanceSummary';
+import { CommissionSummary } from '@/components/dashboard/CommissionSummary';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDashboardRealtime, useFarmersRealtime } from '@/hooks/api/useDashboardRealtime';
 
@@ -142,8 +143,9 @@ export function TotDashboard() {
       </div>
 
       {/* Bottom Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <OverdueFollowUps totId={totId} showPending={true} limit={5} />
+        <CommissionSummary />
         <GlobalRecentActivity />
       </div>
     </div>

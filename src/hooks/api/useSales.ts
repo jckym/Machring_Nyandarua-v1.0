@@ -157,6 +157,9 @@ export interface CreateSaleDto {
   tot_id: string;
   local_mr_id: string;
   quantity: number;
+  sale_date?: string;
+  payment_method?: string;
+  notes?: string;
 }
 
 export function useCreateSale() {

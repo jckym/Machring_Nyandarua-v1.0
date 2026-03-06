@@ -176,6 +176,9 @@ export function useCreateSale() {
           tot_id: data.tot_id,
           local_mr_id: data.local_mr_id,
           quantity: data.quantity,
+          ...(data.sale_date ? { sale_date: data.sale_date } : {}),
+          ...(data.payment_method ? { payment_method: data.payment_method } : {}),
+          ...(data.notes ? { notes: data.notes } : {}),
           // These will be calculated by the trigger
           unit_price: 0,
           total_amount: 0,

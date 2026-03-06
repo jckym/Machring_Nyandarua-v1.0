@@ -144,6 +144,12 @@ export const ForgotPassword = () => {
           </form>
         </CardContent>
       </Card>
+      <p className="text-center text-xs text-muted-foreground mt-6">
+        &copy; {new Date().getFullYear()} Machinery Ring Nyandarua. Built by{' '}
+        <a href="https://agricircuit.com" target="_blank" rel="noopener noreferrer" className="font-medium hover:text-primary transition-colors">
+          Agricircuit Creative Agency
+        </a>
+      </p>
     </div>
   );
 };

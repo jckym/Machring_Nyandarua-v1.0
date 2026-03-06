@@ -157,6 +157,9 @@ export interface CreateSaleDto {
   tot_id: string;
   local_mr_id: string;
   quantity: number;
+  sale_date?: string;
+  payment_method?: string;
+  notes?: string;
 }
 
 export function useCreateSale() {
@@ -173,6 +176,9 @@ export function useCreateSale() {
           tot_id: data.tot_id,
           local_mr_id: data.local_mr_id,
           quantity: data.quantity,
+          ...(data.sale_date ? { sale_date: data.sale_date } : {}),
+          ...(data.payment_method ? { payment_method: data.payment_method } : {}),
+          ...(data.notes ? { notes: data.notes } : {}),
           // These will be calculated by the trigger
           unit_price: 0,
           total_amount: 0,
@@ -206,6 +212,9 @@ export function useBulkCreateSales() {
         tot_id: s.tot_id,
         local_mr_id: s.local_mr_id,
         quantity: s.quantity,
+        ...(s.sale_date ? { sale_date: s.sale_date } : {}),
+        ...(s.payment_method ? { payment_method: s.payment_method } : {}),
+        ...(s.notes ? { notes: s.notes } : {}),
         unit_price: 0,
         total_amount: 0,
         commission_per_unit: 0,

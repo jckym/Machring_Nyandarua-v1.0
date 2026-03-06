@@ -162,6 +162,9 @@ export function Sales() {
         tot_id: tot.id,
         local_mr_id: assignment.local_mr_id,
         quantity: Number(row.quantity),
+        ...(row.sale_date ? { sale_date: String(row.sale_date).trim() } : {}),
+        ...(row.payment_method ? { payment_method: String(row.payment_method).trim().toLowerCase() } : {}),
+        ...(row.notes ? { notes: String(row.notes).trim() } : {}),
       });
     }
 

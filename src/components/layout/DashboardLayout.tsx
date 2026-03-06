@@ -57,9 +57,14 @@ export function DashboardLayout() {
           <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
             <Outlet />
           </div>
-        </main>
 
-        
+          <footer className="py-3 px-4 text-center text-xs text-muted-foreground border-t border-border bg-card/50">
+            &copy; {new Date().getFullYear()} Machinery Ring Nyandarua. Built by{' '}
+            <a href="https://agricircuit.com" target="_blank" rel="noopener noreferrer" className="font-medium hover:text-primary transition-colors">
+              Agricircuit Creative Agency
+            </a>
+          </footer>
+        </main>
       </div>
     </div>
   );

@@ -60,8 +60,8 @@ export function DashboardLayout() {
 
           <footer className="py-3 px-4 text-center text-xs text-muted-foreground border-t border-border bg-card/50">
             &copy; {new Date().getFullYear()} Machinery Ring Nyandarua. Built by{' '}
-            <a href="https://agricircuit.com" target="_blank" rel="noopener noreferrer" className="font-medium hover:text-primary transition-colors">
-              Agricircuit Creative Agency
+            <a href="https://qeemlabs.com" target="_blank" rel="noopener noreferrer" className="font-medium hover:text-primary transition-colors">
+              Qeem Labs Ltd.
             </a>
           </footer>
         </main>

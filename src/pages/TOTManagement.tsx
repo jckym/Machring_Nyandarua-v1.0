@@ -35,6 +35,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLocalMRs, useUsers, useFarmers } from '@/hooks/api';
 import { format } from 'date-fns';
 import { AddTOTDialog } from '@/components/dashboard/AddTOTDialog';
+import { EditTOTDialog } from '@/components/dashboard/EditTOTDialog';
 
 interface TOTPerformance {
   totId: string;
@@ -73,6 +74,7 @@ export function TOTManagement() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTOT, setSelectedTOT] = useState<string | null>(null);
+  const [editingTOTId, setEditingTOTId] = useState<string | null>(null);
 
   // Build TOT performance data with Local MR info - use metrics from fetchUsers
   const totsPerformance: TOTPerformance[] = tots.map(tot => {
@@ -343,7 +345,11 @@ export function TOTManagement() {
                           <DropdownMenuItem onClick={() => handleViewDetails(tot.totId)}>
                             View Details
                           </DropdownMenuItem>
-                          <DropdownMenuItem>Edit TOT</DropdownMenuItem>
+                          {isAdmin && (
+                            <DropdownMenuItem onClick={() => setEditingTOTId(tot.totId)}>
+                              Edit TOT
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -419,6 +425,22 @@ export function TOTManagement() {
           )}
         </DialogContent>
       </Dialog>
+
+      <EditTOTDialog
+        open={!!editingTOTId}
+        onOpenChange={(o) => !o && setEditingTOTId(null)}
+        tot={editingTOTId ? (() => {
+          const t = tots.find((u: any) => u.id === editingTOTId);
+          return t ? {
+            id: t.id,
+            name: t.name,
+            email: t.email,
+            phone: t.phone,
+            status: t.status,
+            localMrId: t.localMrId || t.local_mr_id,
+          } : null;
+        })() : null}
+      />
     </div>
   );
 }

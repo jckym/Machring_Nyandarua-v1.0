@@ -59,7 +59,7 @@ export function prefetchRoute(path: string): void {
  * Hook to prefetch routes on hover
  */
 export function usePrefetchOnHover(path: string) {
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   const onMouseEnter = useCallback(() => {
     // Small delay to avoid prefetching on accidental hovers
@@ -97,7 +97,7 @@ export function usePrefetchCommonRoutes(routes: string[]) {
  * Get prefetch handlers for a link
  */
 export function getPrefetchHandlers(path: string) {
-  let timeout: NodeJS.Timeout;
+  let timeout: ReturnType<typeof setTimeout>;
   
   return {
     onMouseEnter: () => {

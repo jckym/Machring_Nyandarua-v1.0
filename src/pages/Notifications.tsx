@@ -17,7 +17,7 @@ export function Notifications() {
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isSelecting, setIsSelecting] = useState(false);
-  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const filteredNotifications = filter === 'unread' 
     ? notifications.filter(n => !n.read)

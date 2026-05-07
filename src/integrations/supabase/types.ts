@@ -639,6 +639,7 @@ export type Database = {
       }
       products: {
         Row: {
+          buying_price: number
           category: string
           commission_per_unit: number
           created_at: string
@@ -646,6 +647,7 @@ export type Database = {
           id: string
           min_stock_level: number
           name: string
+          selling_price: number
           status: string
           stock_quantity: number
           unit: string
@@ -653,6 +655,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          buying_price?: number
           category: string
           commission_per_unit?: number
           created_at?: string
@@ -660,6 +663,7 @@ export type Database = {
           id?: string
           min_stock_level?: number
           name: string
+          selling_price?: number
           status?: string
           stock_quantity?: number
           unit?: string
@@ -667,6 +671,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          buying_price?: number
           category?: string
           commission_per_unit?: number
           created_at?: string
@@ -674,6 +679,7 @@ export type Database = {
           id?: string
           min_stock_level?: number
           name?: string
+          selling_price?: number
           status?: string
           stock_quantity?: number
           unit?: string
@@ -722,15 +728,19 @@ export type Database = {
           commission_paid_at: string | null
           commission_per_unit: number
           created_at: string
-          farmer_id: string
+          farmer_id: string | null
           id: string
+          local_mr_commission: number
           local_mr_id: string
           notes: string | null
           payment_method: string | null
           payment_status: string
           product_id: string
+          profit_amount: number
           quantity: number
+          regional_mr_commission: number
           sale_date: string
+          tot_commission: number
           tot_id: string
           total_amount: number
           unit_price: number
@@ -742,15 +752,19 @@ export type Database = {
           commission_paid_at?: string | null
           commission_per_unit: number
           created_at?: string
-          farmer_id: string
+          farmer_id?: string | null
           id?: string
+          local_mr_commission?: number
           local_mr_id: string
           notes?: string | null
           payment_method?: string | null
           payment_status?: string
           product_id: string
+          profit_amount?: number
           quantity: number
+          regional_mr_commission?: number
           sale_date?: string
+          tot_commission?: number
           tot_id: string
           total_amount: number
           unit_price: number
@@ -762,15 +776,19 @@ export type Database = {
           commission_paid_at?: string | null
           commission_per_unit?: number
           created_at?: string
-          farmer_id?: string
+          farmer_id?: string | null
           id?: string
+          local_mr_commission?: number
           local_mr_id?: string
           notes?: string | null
           payment_method?: string | null
           payment_status?: string
           product_id?: string
+          profit_amount?: number
           quantity?: number
+          regional_mr_commission?: number
           sale_date?: string
+          tot_commission?: number
           tot_id?: string
           total_amount?: number
           unit_price?: number

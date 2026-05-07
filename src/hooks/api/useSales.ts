@@ -76,11 +76,11 @@ export function useSales(filters: SaleFilters = {}) {
         throw error;
       }
 
-      // Get unique IDs
-      const farmerIds = [...new Set((data || []).map(s => s.farmer_id).filter(Boolean))];
-      const productIds = [...new Set((data || []).map(s => s.product_id).filter(Boolean))];
-      const localMrIds = [...new Set((data || []).map(s => s.local_mr_id).filter(Boolean))];
-      const totIds = [...new Set((data || []).map(s => s.tot_id).filter(Boolean))];
+      // Get unique IDs (filter out nulls)
+      const farmerIds = [...new Set((data || []).map(s => s.farmer_id).filter((x): x is string => !!x))];
+      const productIds = [...new Set((data || []).map(s => s.product_id).filter((x): x is string => !!x))];
+      const localMrIds = [...new Set((data || []).map(s => s.local_mr_id).filter((x): x is string => !!x))];
+      const totIds = [...new Set((data || []).map(s => s.tot_id).filter((x): x is string => !!x))];
 
       // Fetch names in parallel
       const [farmersRes, productsRes, localMrsRes, totsRes] = await Promise.all([
@@ -129,7 +129,7 @@ export function useSale(id: string) {
 
       // Fetch related data
       const [farmerRes, productRes, localMrRes, totRes] = await Promise.all([
-        supabase.from('farmers').select('name').eq('id', data.farmer_id).single(),
+        data.farmer_id ? supabase.from('farmers').select('name').eq('id', data.farmer_id).single() : Promise.resolve({ data: null }),
         supabase.from('products').select('name').eq('id', data.product_id).single(),
         supabase.from('local_mrs').select('name').eq('id', data.local_mr_id).single(),
         supabase.from('profiles').select('name').eq('id', data.tot_id).single(),

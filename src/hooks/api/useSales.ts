@@ -211,7 +211,7 @@ export function useBulkCreateSales() {
   return useMutation({
     mutationFn: async (sales: CreateSaleDto[]) => {
       const insertData = sales.map(s => ({
-        farmer_id: s.farmer_id,
+        farmer_id: s.farmer_id || null,
         product_id: s.product_id,
         tot_id: s.tot_id,
         local_mr_id: s.local_mr_id,

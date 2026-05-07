@@ -118,12 +118,16 @@ export function Sales() {
       const row = data[i];
       const rowNum = i + 2; // Excel row (header is row 1)
 
-      // Resolve farmer
-      const farmerName = String(row.farmer).trim().toLowerCase();
-      const farmer = (farmers as any[]).find(f => f.name?.toLowerCase() === farmerName);
-      if (!farmer) {
-        errors.push(`Row ${rowNum}: Farmer "${row.farmer}" not found`);
-        continue;
+      // Resolve farmer (optional - blank = walk-in)
+      let farmerId: string | null = null;
+      const rawFarmer = String(row.farmer ?? '').trim();
+      if (rawFarmer && rawFarmer.toLowerCase() !== 'walk-in') {
+        const farmer = (farmers as any[]).find(f => f.name?.toLowerCase() === rawFarmer.toLowerCase());
+        if (!farmer) {
+          errors.push(`Row ${rowNum}: Farmer "${row.farmer}" not found (use blank or "walk-in" for no farmer)`);
+          continue;
+        }
+        farmerId = farmer.id;
       }
 
       // Resolve product
@@ -157,7 +161,7 @@ export function Sales() {
       }
 
       salesToCreate.push({
-        farmer_id: farmer.id,
+        farmer_id: farmerId,
         product_id: product.id,
         tot_id: tot.id,
         local_mr_id: assignment.local_mr_id,
@@ -347,13 +351,18 @@ export function Sales() {
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Product</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Qty</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Total</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Commission</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Profit</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">TOT 40%</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Reg 50%</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Local 10%</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Status</th>
                   {isAdmin && <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Actions</th>}
                 </tr>
               </thead>
               <tbody>
-                {filteredSales.map((sale, index) => (
+                {filteredSales.map((sale: any, index) => {
+                  const farmerLabel = sale.farmerId ? (sale.farmerName || 'Unknown') : 'Walk-in';
+                  return (
                   <tr
                     key={sale.id}
                     className="border-b border-border/50 hover:bg-muted/50 transition-colors animate-fade-in"
@@ -363,15 +372,18 @@ export function Sales() {
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary text-xs font-semibold">
-                          {(sale.farmerName ?? '').split(' ').map(n => n[0]).join('')}
+                          {farmerLabel.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
                         </div>
-                        <span className="font-medium text-sm">{sale.farmerName ?? ''}</span>
+                        <span className="font-medium text-sm">{farmerLabel}</span>
                       </div>
                     </td>
                     <td className="py-3 px-4 text-sm">{sale.productName}</td>
                     <td className="py-3 px-4 text-sm font-medium">{sale.quantity}</td>
                     <td className="py-3 px-4 text-sm font-semibold text-primary">{formatCurrency(sale.total)}</td>
-                    <td className="py-3 px-4 text-sm text-emerald-600 font-medium">{formatCurrency(sale.commissionAmount)}</td>
+                    <td className="py-3 px-4 text-sm font-medium text-emerald-700">{formatCurrency(sale.profitAmount ?? 0)}</td>
+                    <td className="py-3 px-4 text-sm">{formatCurrency(sale.totCommission ?? 0)}</td>
+                    <td className="py-3 px-4 text-sm">{formatCurrency(sale.regionalMrCommission ?? 0)}</td>
+                    <td className="py-3 px-4 text-sm">{formatCurrency(sale.localMrCommission ?? 0)}</td>
                     <td className="py-3 px-4">
                       <Badge variant={getStatusColor(sale.status) as any}>{sale.status}</Badge>
                     </td>
@@ -402,7 +414,8 @@ export function Sales() {
                       </td>
                     )}
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

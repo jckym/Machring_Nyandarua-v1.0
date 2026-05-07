@@ -44,8 +44,8 @@ export function Products() {
     name: '',
     sku: '',
     category: 'Seeds' as ProductCategory,
-    unitPrice: 0,
-    commission: 0,
+    buyingPrice: 0,
+    sellingPrice: 0,
     inStock: 0,
     description: '',
   });
@@ -72,8 +72,8 @@ export function Products() {
       name: '',
       sku: '',
       category: 'Seeds',
-      unitPrice: 0,
-      commission: 0,
+      buyingPrice: 0,
+      sellingPrice: 0,
       inStock: 0,
       description: '',
     });
@@ -87,16 +87,20 @@ export function Products() {
     return { variant: 'success' as const, label: 'In Stock' };
   };
   const handleAddProduct = () => {
-    if (!formData.name || !formData.sku || !formData.unitPrice) {
-      toast.error('Please fill in all required fields');
+    if (!formData.name || !formData.sellingPrice) {
+      toast.error('Please fill in name and selling price');
+      return;
+    }
+    if (formData.buyingPrice > formData.sellingPrice) {
+      toast.error('Selling price must be greater than buying price');
       return;
     }
     createProduct.mutate({
       name: formData.name,
       category: formData.category,
       description: formData.description || undefined,
-      unit_price: formData.unitPrice,
-      commission_per_unit: formData.commission,
+      buying_price: formData.buyingPrice,
+      selling_price: formData.sellingPrice,
       stock_quantity: formData.inStock,
     });
     setIsAddDialogOpen(false);
@@ -108,8 +112,8 @@ export function Products() {
       name: product.name,
       sku: product.sku,
       category: product.category as ProductCategory,
-      unitPrice: product.unitPrice,
-      commission: product.commission,
+      buyingPrice: (product as any).buyingPrice ?? (product as any).buying_price ?? 0,
+      sellingPrice: (product as any).sellingPrice ?? product.unitPrice ?? 0,
       inStock: product.inStock,
       description: product.description || '',
     });
@@ -117,14 +121,18 @@ export function Products() {
   };
   const handleUpdateProduct = () => {
     if (!selectedProduct) return;
+    if (formData.buyingPrice > formData.sellingPrice) {
+      toast.error('Selling price must be greater than buying price');
+      return;
+    }
     updateProduct.mutate({
       id: selectedProduct.id,
       data: {
         name: formData.name,
         category: formData.category,
         description: formData.description || undefined,
-        unit_price: formData.unitPrice,
-        commission_per_unit: formData.commission,
+        buying_price: formData.buyingPrice,
+        selling_price: formData.sellingPrice,
         stock_quantity: formData.inStock,
       }
     });
@@ -294,16 +302,20 @@ export function Products() {
                 <p className="text-xs text-muted-foreground mb-3 sm:mb-4">SKU: {product.sku}</p>
                 <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Unit Price:</span>
+                    <span className="text-muted-foreground">Buying Price:</span>
+                    <span className="font-medium">{formatCurrency((product as any).buyingPrice ?? 0)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Selling Price:</span>
                     <span className="font-semibold text-primary">{formatCurrency(product.unitPrice)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Profit / unit:</span>
+                    <span className="font-medium text-emerald-600">{formatCurrency((product as any).profitPerUnit ?? 0)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">In Stock:</span>
                     <span className="font-medium">{product.inStock} units</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Commission:</span>
-                    <span className="font-medium text-emerald-600">{formatCurrency(product.commission)}</span>
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground mt-3 sm:mt-4 line-clamp-2">{product.description}</p>
@@ -368,22 +380,27 @@ export function Products() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Unit Price (KES) *</Label>
+                <Label>Buying Price (KES) *</Label>
                 <Input
                   type="number"
-                  value={formData.unitPrice}
-                  onChange={(e) => setFormData({ ...formData, unitPrice: parseFloat(e.target.value) || 0 })}
+                  value={formData.buyingPrice}
+                  onChange={(e) => setFormData({ ...formData, buyingPrice: parseFloat(e.target.value) || 0 })}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Commission (KES)</Label>
+                <Label>Selling Price (KES) *</Label>
                 <Input
                   type="number"
-                  value={formData.commission}
-                  onChange={(e) => setFormData({ ...formData, commission: parseFloat(e.target.value) || 0 })}
+                  value={formData.sellingPrice}
+                  onChange={(e) => setFormData({ ...formData, sellingPrice: parseFloat(e.target.value) || 0 })}
                 />
               </div>
             </div>
+            {formData.sellingPrice > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Profit per unit: KES {Math.max(formData.sellingPrice - formData.buyingPrice, 0).toLocaleString()} · TOT 40% / Regional 50% / Local 10%
+              </p>
+            )}
             <div className="space-y-2">
               <Label>Initial Stock</Label>
               <Input
@@ -454,22 +471,27 @@ export function Products() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Unit Price (KES) *</Label>
+                <Label>Buying Price (KES) *</Label>
                 <Input
                   type="number"
-                  value={formData.unitPrice}
-                  onChange={(e) => setFormData({ ...formData, unitPrice: parseFloat(e.target.value) || 0 })}
+                  value={formData.buyingPrice}
+                  onChange={(e) => setFormData({ ...formData, buyingPrice: parseFloat(e.target.value) || 0 })}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Commission (KES)</Label>
+                <Label>Selling Price (KES) *</Label>
                 <Input
                   type="number"
-                  value={formData.commission}
-                  onChange={(e) => setFormData({ ...formData, commission: parseFloat(e.target.value) || 0 })}
+                  value={formData.sellingPrice}
+                  onChange={(e) => setFormData({ ...formData, sellingPrice: parseFloat(e.target.value) || 0 })}
                 />
               </div>
             </div>
+            {formData.sellingPrice > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Profit per unit: KES {Math.max(formData.sellingPrice - formData.buyingPrice, 0).toLocaleString()} · TOT 40% / Regional 50% / Local 10%
+              </p>
+            )}
             <div className="space-y-2">
               <Label>Description</Label>
               <Textarea
@@ -541,14 +563,18 @@ export function Products() {
         onOpenChange={setIsBulkUploadOpen}
         entityType="products"
         onUpload={async (data) => {
-          const productsToInsert = data.map(row => ({
-            name: String(row.name),
-            category: String(row.category || 'Others'),
-            description: row.description ? String(row.description) : null,
-            unit_price: Number(row.unit_price) || 0,
-            commission_per_unit: Number(row.commission_per_unit) || 0,
-            stock_quantity: Number(row.stock_quantity) || 0,
-          }));
+          const productsToInsert = data.map(row => {
+            const selling = Number(row.selling_price ?? row.unit_price) || 0;
+            return {
+              name: String(row.name),
+              category: String(row.category || 'Others'),
+              description: row.description ? String(row.description) : null,
+              buying_price: Number(row.buying_price) || 0,
+              selling_price: selling,
+              unit_price: selling,
+              stock_quantity: Number(row.stock_quantity) || 0,
+            };
+          });
           
           const { error } = await supabase.from('products').insert(productsToInsert);
           if (error) throw error;

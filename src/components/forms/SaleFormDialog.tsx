@@ -38,9 +38,15 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
   const selectedProduct = useMemo(() => products.find((p) => p.id === formData.productId), [formData.productId, products]);
   const selectedFarmer = useMemo(() => farmers.find((f) => f.id === formData.farmerId), [formData.farmerId, farmers]);
 
-  const total = selectedProduct ? selectedProduct.unitPrice * formData.quantity : 0;
-  const commission = selectedProduct ? selectedProduct.commission * formData.quantity : 0;
-  const formatCurrency = (value: number) => `KES ${value.toLocaleString()}`;
+  const sellingPrice = (selectedProduct as any)?.sellingPrice ?? selectedProduct?.unitPrice ?? 0;
+  const buyingPrice = (selectedProduct as any)?.buyingPrice ?? 0;
+  const profitPerUnit = Math.max(sellingPrice - buyingPrice, 0);
+  const total = sellingPrice * formData.quantity;
+  const profit = profitPerUnit * formData.quantity;
+  const totShare = profit * 0.4;
+  const regionalShare = profit * 0.5;
+  const localShare = profit * 0.1;
+  const formatCurrency = (value: number) => `KES ${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
   const isLoading = farmersLoading || productsLoading;
   const hasError = farmersError || productsError;
 
@@ -80,8 +86,8 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.farmerId || !formData.productId || formData.quantity < 1) {
-      toast({ title: 'Validation Error', description: 'Please select farmer, product, and quantity', variant: 'destructive' });
+    if (!formData.productId || formData.quantity < 1) {
+      toast({ title: 'Validation Error', description: 'Please select a product and quantity', variant: 'destructive' });
       return;
     }
 
@@ -100,9 +106,8 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
       return;
     }
 
-    // Create sale DTO for Supabase
     const saleData: CreateSaleDto = {
-      farmer_id: formData.farmerId,
+      farmer_id: formData.farmerId || null,
       product_id: formData.productId,
       tot_id: formData.totId,
       local_mr_id: formData.localMrId,
@@ -182,12 +187,13 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
               </div>
 
               <div className="space-y-2">
-                <Label>Select Farmer *</Label>
-                <Select value={formData.farmerId} onValueChange={(value) => setFormData({ ...formData, farmerId: value })}>
+                <Label>Select Farmer (optional)</Label>
+                <Select value={formData.farmerId || 'walk-in'} onValueChange={(value) => setFormData({ ...formData, farmerId: value === 'walk-in' ? '' : value })}>
                   <SelectTrigger>
-                    <SelectValue placeholder={farmers.length === 0 ? 'No farmers' : 'Choose farmer'} />
+                    <SelectValue placeholder="Walk-in / no farmer" />
                   </SelectTrigger>
                   <SelectContent className="z-[200] max-h-[200px] overflow-y-auto">
+                    <SelectItem value="walk-in">Walk-in (no farmer)</SelectItem>
                     {farmers.map((farmer) => (
                       <SelectItem key={farmer.id} value={farmer.id}>
                         {farmer.name} - {farmer.phone}
@@ -243,12 +249,17 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
                 <div className="bg-muted/50 rounded-lg p-4 space-y-2">
                   <h4 className="font-medium text-sm">Summary</h4>
                   <div className="flex justify-between text-sm">
-                    <span>Total:</span>
+                    <span>Revenue:</span>
                     <span className="font-semibold">{formatCurrency(total)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span>Commission:</span>
-                    <span className="text-emerald-600">+{formatCurrency(commission)}</span>
+                    <span>Profit:</span>
+                    <span className="font-semibold text-emerald-700">{formatCurrency(profit)}</span>
+                  </div>
+                  <div className="border-t border-border pt-2 mt-2 space-y-1 text-xs">
+                    <div className="flex justify-between"><span className="text-muted-foreground">TOT (40%)</span><span className="font-medium">{formatCurrency(totShare)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Regional MR (50%)</span><span className="font-medium">{formatCurrency(regionalShare)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Local MR (10%)</span><span className="font-medium">{formatCurrency(localShare)}</span></div>
                   </div>
                 </div>
               )}

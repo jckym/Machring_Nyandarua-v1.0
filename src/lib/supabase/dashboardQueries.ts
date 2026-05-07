@@ -384,6 +384,7 @@ export async function fetchTopPerformers(
 
     (sales || []).forEach((sale) => {
       const farmerId = sale.farmer_id;
+      if (!farmerId) return; // skip walk-in sales
       const farmerName = (sale.farmers as any)?.name || "Unknown Farmer";
       if (!farmerMap[farmerId]) {
         farmerMap[farmerId] = { name: farmerName, totalSpent: 0, purchases: 0 };

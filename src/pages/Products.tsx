@@ -302,16 +302,20 @@ export function Products() {
                 <p className="text-xs text-muted-foreground mb-3 sm:mb-4">SKU: {product.sku}</p>
                 <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Unit Price:</span>
+                    <span className="text-muted-foreground">Buying Price:</span>
+                    <span className="font-medium">{formatCurrency((product as any).buyingPrice ?? 0)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Selling Price:</span>
                     <span className="font-semibold text-primary">{formatCurrency(product.unitPrice)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Profit / unit:</span>
+                    <span className="font-medium text-emerald-600">{formatCurrency((product as any).profitPerUnit ?? 0)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">In Stock:</span>
                     <span className="font-medium">{product.inStock} units</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Commission:</span>
-                    <span className="font-medium text-emerald-600">{formatCurrency(product.commission)}</span>
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground mt-3 sm:mt-4 line-clamp-2">{product.description}</p>
@@ -559,14 +563,18 @@ export function Products() {
         onOpenChange={setIsBulkUploadOpen}
         entityType="products"
         onUpload={async (data) => {
-          const productsToInsert = data.map(row => ({
-            name: String(row.name),
-            category: String(row.category || 'Others'),
-            description: row.description ? String(row.description) : null,
-            unit_price: Number(row.unit_price) || 0,
-            commission_per_unit: Number(row.commission_per_unit) || 0,
-            stock_quantity: Number(row.stock_quantity) || 0,
-          }));
+          const productsToInsert = data.map(row => {
+            const selling = Number(row.selling_price ?? row.unit_price) || 0;
+            return {
+              name: String(row.name),
+              category: String(row.category || 'Others'),
+              description: row.description ? String(row.description) : null,
+              buying_price: Number(row.buying_price) || 0,
+              selling_price: selling,
+              unit_price: selling,
+              stock_quantity: Number(row.stock_quantity) || 0,
+            };
+          });
           
           const { error } = await supabase.from('products').insert(productsToInsert);
           if (error) throw error;

@@ -38,9 +38,15 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
   const selectedProduct = useMemo(() => products.find((p) => p.id === formData.productId), [formData.productId, products]);
   const selectedFarmer = useMemo(() => farmers.find((f) => f.id === formData.farmerId), [formData.farmerId, farmers]);
 
-  const total = selectedProduct ? selectedProduct.unitPrice * formData.quantity : 0;
-  const commission = selectedProduct ? selectedProduct.commission * formData.quantity : 0;
-  const formatCurrency = (value: number) => `KES ${value.toLocaleString()}`;
+  const sellingPrice = (selectedProduct as any)?.sellingPrice ?? selectedProduct?.unitPrice ?? 0;
+  const buyingPrice = (selectedProduct as any)?.buyingPrice ?? 0;
+  const profitPerUnit = Math.max(sellingPrice - buyingPrice, 0);
+  const total = sellingPrice * formData.quantity;
+  const profit = profitPerUnit * formData.quantity;
+  const totShare = profit * 0.4;
+  const regionalShare = profit * 0.5;
+  const localShare = profit * 0.1;
+  const formatCurrency = (value: number) => `KES ${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
   const isLoading = farmersLoading || productsLoading;
   const hasError = farmersError || productsError;
 
@@ -80,8 +86,8 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.farmerId || !formData.productId || formData.quantity < 1) {
-      toast({ title: 'Validation Error', description: 'Please select farmer, product, and quantity', variant: 'destructive' });
+    if (!formData.productId || formData.quantity < 1) {
+      toast({ title: 'Validation Error', description: 'Please select a product and quantity', variant: 'destructive' });
       return;
     }
 
@@ -100,9 +106,8 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
       return;
     }
 
-    // Create sale DTO for Supabase
     const saleData: CreateSaleDto = {
-      farmer_id: formData.farmerId,
+      farmer_id: formData.farmerId || null,
       product_id: formData.productId,
       tot_id: formData.totId,
       local_mr_id: formData.localMrId,

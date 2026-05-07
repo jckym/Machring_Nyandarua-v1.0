@@ -97,7 +97,7 @@ export function useSales(filters: SaleFilters = {}) {
 
       return (data || []).map((s: any) => ({
         ...s,
-        farmerName: farmersMap[s.farmer_id] || '',
+        farmerName: s.farmer_id ? (farmersMap[s.farmer_id] || '') : 'Walk-in',
         productName: productsMap[s.product_id] || '',
         localMrName: localMrsMap[s.local_mr_id] || '',
         totName: totsMap[s.tot_id] || '',
@@ -107,6 +107,10 @@ export function useSales(filters: SaleFilters = {}) {
         localMrId: s.local_mr_id,
         total: s.total_amount,
         commissionAmount: s.commission_amount,
+        profitAmount: Number(s.profit_amount) || 0,
+        totCommission: Number(s.tot_commission) || 0,
+        regionalMrCommission: Number(s.regional_mr_commission) || 0,
+        localMrCommission: Number(s.local_mr_commission) || 0,
         status: s.payment_status,
         date: s.sale_date,
       }));
@@ -152,7 +156,7 @@ export function useSale(id: string) {
 }
 
 export interface CreateSaleDto {
-  farmer_id: string;
+  farmer_id?: string | null;
   product_id: string;
   tot_id: string;
   local_mr_id: string;
@@ -171,7 +175,7 @@ export function useCreateSale() {
       const { data: sale, error } = await supabase
         .from('sales')
         .insert({
-          farmer_id: data.farmer_id,
+          farmer_id: data.farmer_id || null,
           product_id: data.product_id,
           tot_id: data.tot_id,
           local_mr_id: data.local_mr_id,

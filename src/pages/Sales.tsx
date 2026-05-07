@@ -118,12 +118,16 @@ export function Sales() {
       const row = data[i];
       const rowNum = i + 2; // Excel row (header is row 1)
 
-      // Resolve farmer
-      const farmerName = String(row.farmer).trim().toLowerCase();
-      const farmer = (farmers as any[]).find(f => f.name?.toLowerCase() === farmerName);
-      if (!farmer) {
-        errors.push(`Row ${rowNum}: Farmer "${row.farmer}" not found`);
-        continue;
+      // Resolve farmer (optional - blank = walk-in)
+      let farmerId: string | null = null;
+      const rawFarmer = String(row.farmer ?? '').trim();
+      if (rawFarmer && rawFarmer.toLowerCase() !== 'walk-in') {
+        const farmer = (farmers as any[]).find(f => f.name?.toLowerCase() === rawFarmer.toLowerCase());
+        if (!farmer) {
+          errors.push(`Row ${rowNum}: Farmer "${row.farmer}" not found (use blank or "walk-in" for no farmer)`);
+          continue;
+        }
+        farmerId = farmer.id;
       }
 
       // Resolve product
@@ -157,7 +161,7 @@ export function Sales() {
       }
 
       salesToCreate.push({
-        farmer_id: farmer.id,
+        farmer_id: farmerId,
         product_id: product.id,
         tot_id: tot.id,
         local_mr_id: assignment.local_mr_id,

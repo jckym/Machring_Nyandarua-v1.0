@@ -467,22 +467,27 @@ export function Products() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Unit Price (KES) *</Label>
+                <Label>Buying Price (KES) *</Label>
                 <Input
                   type="number"
-                  value={formData.unitPrice}
-                  onChange={(e) => setFormData({ ...formData, unitPrice: parseFloat(e.target.value) || 0 })}
+                  value={formData.buyingPrice}
+                  onChange={(e) => setFormData({ ...formData, buyingPrice: parseFloat(e.target.value) || 0 })}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Commission (KES)</Label>
+                <Label>Selling Price (KES) *</Label>
                 <Input
                   type="number"
-                  value={formData.commission}
-                  onChange={(e) => setFormData({ ...formData, commission: parseFloat(e.target.value) || 0 })}
+                  value={formData.sellingPrice}
+                  onChange={(e) => setFormData({ ...formData, sellingPrice: parseFloat(e.target.value) || 0 })}
                 />
               </div>
             </div>
+            {formData.sellingPrice > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Profit per unit: KES {Math.max(formData.sellingPrice - formData.buyingPrice, 0).toLocaleString()} · TOT 40% / Regional 50% / Local 10%
+              </p>
+            )}
             <div className="space-y-2">
               <Label>Description</Label>
               <Textarea

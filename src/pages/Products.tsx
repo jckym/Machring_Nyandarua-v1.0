@@ -44,8 +44,8 @@ export function Products() {
     name: '',
     sku: '',
     category: 'Seeds' as ProductCategory,
-    unitPrice: 0,
-    commission: 0,
+    buyingPrice: 0,
+    sellingPrice: 0,
     inStock: 0,
     description: '',
   });
@@ -72,8 +72,8 @@ export function Products() {
       name: '',
       sku: '',
       category: 'Seeds',
-      unitPrice: 0,
-      commission: 0,
+      buyingPrice: 0,
+      sellingPrice: 0,
       inStock: 0,
       description: '',
     });
@@ -87,16 +87,20 @@ export function Products() {
     return { variant: 'success' as const, label: 'In Stock' };
   };
   const handleAddProduct = () => {
-    if (!formData.name || !formData.sku || !formData.unitPrice) {
-      toast.error('Please fill in all required fields');
+    if (!formData.name || !formData.sellingPrice) {
+      toast.error('Please fill in name and selling price');
+      return;
+    }
+    if (formData.buyingPrice > formData.sellingPrice) {
+      toast.error('Selling price must be greater than buying price');
       return;
     }
     createProduct.mutate({
       name: formData.name,
       category: formData.category,
       description: formData.description || undefined,
-      unit_price: formData.unitPrice,
-      commission_per_unit: formData.commission,
+      buying_price: formData.buyingPrice,
+      selling_price: formData.sellingPrice,
       stock_quantity: formData.inStock,
     });
     setIsAddDialogOpen(false);
@@ -108,8 +112,8 @@ export function Products() {
       name: product.name,
       sku: product.sku,
       category: product.category as ProductCategory,
-      unitPrice: product.unitPrice,
-      commission: product.commission,
+      buyingPrice: (product as any).buyingPrice ?? (product as any).buying_price ?? 0,
+      sellingPrice: (product as any).sellingPrice ?? product.unitPrice ?? 0,
       inStock: product.inStock,
       description: product.description || '',
     });
@@ -117,14 +121,18 @@ export function Products() {
   };
   const handleUpdateProduct = () => {
     if (!selectedProduct) return;
+    if (formData.buyingPrice > formData.sellingPrice) {
+      toast.error('Selling price must be greater than buying price');
+      return;
+    }
     updateProduct.mutate({
       id: selectedProduct.id,
       data: {
         name: formData.name,
         category: formData.category,
         description: formData.description || undefined,
-        unit_price: formData.unitPrice,
-        commission_per_unit: formData.commission,
+        buying_price: formData.buyingPrice,
+        selling_price: formData.sellingPrice,
         stock_quantity: formData.inStock,
       }
     });

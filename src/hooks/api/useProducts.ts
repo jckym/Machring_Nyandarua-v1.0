@@ -35,6 +35,8 @@ export interface Product {
   description: string | null;
   unit: string;
   unit_price: number;
+  buying_price: number;
+  selling_price: number;
   commission_per_unit: number;
   stock_quantity: number;
   min_stock_level: number;
@@ -79,14 +81,24 @@ export function useProducts(filters: ProductFilters = {}) {
       const { data, error } = await query;
       if (error) throw error;
 
-      return (data || []).map(p => ({
-        ...p,
-        // Legacy format
-        sku: p.id.slice(0, 8).toUpperCase(),
-        unitPrice: p.unit_price,
-        commission: p.commission_per_unit,
-        inStock: p.stock_quantity,
-      }));
+      return (data || []).map((p: any) => {
+        const buying = Number(p.buying_price) || 0;
+        const selling = Number(p.selling_price) || Number(p.unit_price) || 0;
+        const profitPerUnit = Math.max(selling - buying, 0);
+        return {
+          ...p,
+          buying_price: buying,
+          selling_price: selling,
+          // Legacy format
+          sku: p.id.slice(0, 8).toUpperCase(),
+          unitPrice: selling,
+          buyingPrice: buying,
+          sellingPrice: selling,
+          profitPerUnit,
+          commission: Math.round(profitPerUnit * 0.4 * 100) / 100, // TOT share for display
+          inStock: p.stock_quantity,
+        };
+      });
     },
     staleTime: 1000 * 60 * 5,
   });
@@ -120,7 +132,9 @@ export interface CreateProductDto {
   category: string;
   description?: string;
   unit?: string;
-  unit_price: number;
+  buying_price: number;
+  selling_price: number;
+  unit_price?: number;
   commission_per_unit?: number;
   stock_quantity?: number;
   min_stock_level?: number;
@@ -138,8 +152,10 @@ export function useCreateProduct() {
           category: data.category,
           description: data.description,
           unit: data.unit || 'kg',
-          unit_price: data.unit_price,
-          commission_per_unit: data.commission_per_unit || 0,
+          buying_price: data.buying_price,
+          selling_price: data.selling_price,
+          unit_price: data.selling_price, // mirror for legacy
+          commission_per_unit: 0,
           stock_quantity: data.stock_quantity || 0,
           min_stock_level: data.min_stock_level || 10,
         })
@@ -152,7 +168,6 @@ export function useCreateProduct() {
     onSuccess: async (product) => {
       await queryClient.invalidateQueries({ queryKey: productKeys.all });
       await queryClient.refetchQueries({ queryKey: productKeys.all });
-      // Create notification for admins and managers
       await createProductNotification(product.name, 'created');
       toast.success('Product created successfully');
     },
@@ -172,8 +187,11 @@ export function useUpdateProduct() {
       if (data.category) updateData.category = data.category;
       if (data.description !== undefined) updateData.description = data.description;
       if (data.unit) updateData.unit = data.unit;
-      if (data.unit_price !== undefined) updateData.unit_price = data.unit_price;
-      if (data.commission_per_unit !== undefined) updateData.commission_per_unit = data.commission_per_unit;
+      if (data.buying_price !== undefined) updateData.buying_price = data.buying_price;
+      if (data.selling_price !== undefined) {
+        updateData.selling_price = data.selling_price;
+        updateData.unit_price = data.selling_price;
+      }
       if (data.stock_quantity !== undefined) updateData.stock_quantity = data.stock_quantity;
       if (data.min_stock_level !== undefined) updateData.min_stock_level = data.min_stock_level;
 

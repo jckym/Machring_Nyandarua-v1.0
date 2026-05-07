@@ -187,12 +187,13 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
               </div>
 
               <div className="space-y-2">
-                <Label>Select Farmer *</Label>
-                <Select value={formData.farmerId} onValueChange={(value) => setFormData({ ...formData, farmerId: value })}>
+                <Label>Select Farmer (optional)</Label>
+                <Select value={formData.farmerId || 'walk-in'} onValueChange={(value) => setFormData({ ...formData, farmerId: value === 'walk-in' ? '' : value })}>
                   <SelectTrigger>
-                    <SelectValue placeholder={farmers.length === 0 ? 'No farmers' : 'Choose farmer'} />
+                    <SelectValue placeholder="Walk-in / no farmer" />
                   </SelectTrigger>
                   <SelectContent className="z-[200] max-h-[200px] overflow-y-auto">
+                    <SelectItem value="walk-in">Walk-in (no farmer)</SelectItem>
                     {farmers.map((farmer) => (
                       <SelectItem key={farmer.id} value={farmer.id}>
                         {farmer.name} - {farmer.phone}
@@ -248,12 +249,17 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
                 <div className="bg-muted/50 rounded-lg p-4 space-y-2">
                   <h4 className="font-medium text-sm">Summary</h4>
                   <div className="flex justify-between text-sm">
-                    <span>Total:</span>
+                    <span>Revenue:</span>
                     <span className="font-semibold">{formatCurrency(total)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span>Commission:</span>
-                    <span className="text-emerald-600">+{formatCurrency(commission)}</span>
+                    <span>Profit:</span>
+                    <span className="font-semibold text-emerald-700">{formatCurrency(profit)}</span>
+                  </div>
+                  <div className="border-t border-border pt-2 mt-2 space-y-1 text-xs">
+                    <div className="flex justify-between"><span className="text-muted-foreground">TOT (40%)</span><span className="font-medium">{formatCurrency(totShare)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Regional MR (50%)</span><span className="font-medium">{formatCurrency(regionalShare)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Local MR (10%)</span><span className="font-medium">{formatCurrency(localShare)}</span></div>
                   </div>
                 </div>
               )}

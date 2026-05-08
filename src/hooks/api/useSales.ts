@@ -295,3 +295,38 @@ export function useCancelSale() {
     },
   });
 }
+
+export interface UpdateSaleDto {
+  farmer_id?: string | null;
+  sale_date?: string;
+  payment_method?: string;
+  notes?: string | null;
+  delivery_note_number?: string | null;
+  quantity?: number;
+}
+
+export function useUpdateSale() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: UpdateSaleDto }) => {
+      const payload: Record<string, unknown> = {};
+      if (updates.farmer_id !== undefined) payload.farmer_id = updates.farmer_id || null;
+      if (updates.sale_date) payload.sale_date = updates.sale_date;
+      if (updates.payment_method) payload.payment_method = updates.payment_method;
+      if (updates.notes !== undefined) payload.notes = updates.notes || null;
+      if (updates.delivery_note_number !== undefined) payload.delivery_note_number = updates.delivery_note_number || null;
+      if (updates.quantity !== undefined) payload.quantity = updates.quantity;
+
+      const { error } = await supabase.from('sales').update(payload).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: saleKeys.all });
+      toast.success('Sale updated');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to update sale');
+    },
+  });
+}

@@ -118,6 +118,7 @@ export function useSales(filters: SaleFilters = {}) {
         localMrCommission: Number(s.local_mr_commission) || 0,
         status: s.payment_status,
         date: s.sale_date,
+        deliveryNoteNumber: s.delivery_note_number || '',
       }));
     },
     staleTime: 1000 * 60 * 3,

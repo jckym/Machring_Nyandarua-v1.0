@@ -227,6 +227,7 @@ export function useBulkCreateSales() {
         ...(s.sale_date ? { sale_date: s.sale_date } : {}),
         ...(s.payment_method ? { payment_method: s.payment_method } : {}),
         ...(s.notes ? { notes: s.notes } : {}),
+        ...(s.delivery_note_number ? { delivery_note_number: s.delivery_note_number } : {}),
         unit_price: 0,
         total_amount: 0,
         commission_per_unit: 0,

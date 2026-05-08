@@ -396,6 +396,7 @@ export function Sales() {
                     style={{ animationDelay: `${index * 0.05}s` }}
                   >
                     <td className="py-3 px-4 text-sm">{formatDate(sale.date)}</td>
+                    <td className="py-3 px-4 text-sm font-mono text-xs">{sale.deliveryNoteNumber || '—'}</td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary text-xs font-semibold">

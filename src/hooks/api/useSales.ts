@@ -36,6 +36,7 @@ export interface SaleFilters {
   status?: string;
   startDate?: string;
   endDate?: string;
+  deliveryNoteNumber?: string;
 }
 
 export const saleKeys = {

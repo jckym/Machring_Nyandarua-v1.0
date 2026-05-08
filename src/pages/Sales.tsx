@@ -469,6 +469,11 @@ export function Sales() {
             entityType="sales"
             onUpload={handleBulkUpload}
           />
+          <EditSaleDialog
+            open={!!editingSale}
+            onOpenChange={(o) => { if (!o) setEditingSale(null); }}
+            sale={editingSale}
+          />
         </>
       )}
     </div>

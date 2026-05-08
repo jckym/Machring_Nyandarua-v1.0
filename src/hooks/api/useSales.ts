@@ -71,6 +71,9 @@ export function useSales(filters: SaleFilters = {}) {
       if (filters.endDate) {
         query = query.lte('sale_date', filters.endDate);
       }
+      if (filters.deliveryNoteNumber) {
+        query = query.ilike('delivery_note_number', `%${filters.deliveryNoteNumber}%`);
+      }
 
       const { data, error } = await query;
       if (error) {

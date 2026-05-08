@@ -28,6 +28,7 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
     totId: '',
     quantity: 1,
     date: new Date().toISOString().split('T')[0],
+    deliveryNoteNumber: '',
   });
 
   const { data: farmers = [], isLoading: farmersLoading, error: farmersError, refetch: refetchFarmers } = useFarmers();

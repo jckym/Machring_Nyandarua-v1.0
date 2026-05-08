@@ -13,7 +13,7 @@ import { useNotifications } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Sale } from '@/types';
-import { useSales, useCreateSale, useProducts, useCompleteSale, useCancelSale, useBulkCreateSales } from '@/hooks/api';
+import { useSales, useCreateSale, useProducts, useCompleteSale, useCancelSale, useBulkCreateSales, useUpdateSale } from '@/hooks/api';
 import { useFarmers } from '@/hooks/api/useFarmers';
 import { useUsers } from '@/hooks/api/useUsers';
 import { useLocalMRs } from '@/hooks/api/useLocalMRs';

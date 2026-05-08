@@ -373,6 +373,7 @@ export function Sales() {
               <thead>
                 <tr className="border-b border-border">
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Date</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Delivery #</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Farmer</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Product</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Qty</th>

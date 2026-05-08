@@ -36,8 +36,11 @@ export function Sales() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+  const [editingSale, setEditingSale] = useState<any | null>(null);
   const [productFilter, setProductFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
   const { addNotification } = useNotifications();
   const { user, isAdmin, canEdit } = useAuth();
 

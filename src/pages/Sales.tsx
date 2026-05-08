@@ -425,6 +425,11 @@ export function Sales() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             {sale.status === 'pending' && (
+                              <DropdownMenuItem onClick={() => setEditingSale(sale)}>
+                                Edit
+                              </DropdownMenuItem>
+                            )}
+                            {sale.status === 'pending' && (
                               <DropdownMenuItem onClick={() => handleCompleteSale(sale.id)}>
                                 Complete
                               </DropdownMenuItem>

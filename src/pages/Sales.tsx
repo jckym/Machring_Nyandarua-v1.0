@@ -56,14 +56,21 @@ export function Sales() {
   const cancelSale = useCancelSale();
 
   const completedSales = sales.filter(s => s.status === 'completed');
-  const filteredSales = sales.filter(sale => {
+  const filteredSales = sales.filter((sale: any) => {
     const farmerName = sale.farmerName ?? '';
     const productName = sale.productName ?? '';
-    const matchesSearch = farmerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      productName.toLowerCase().includes(searchQuery.toLowerCase());
+    const dn = (sale.deliveryNoteNumber ?? '').toString();
+    const q = searchQuery.toLowerCase();
+    const matchesSearch = !q ||
+      farmerName.toLowerCase().includes(q) ||
+      productName.toLowerCase().includes(q) ||
+      dn.toLowerCase().includes(q);
     const matchesProduct = productFilter === 'all' || sale.productId === productFilter;
     const matchesStatus = statusFilter === 'all' || sale.status === statusFilter;
-    return matchesSearch && matchesProduct && matchesStatus;
+    const saleDate = sale.date ? new Date(sale.date) : null;
+    const matchesStart = !startDate || (saleDate && saleDate >= new Date(startDate));
+    const matchesEnd = !endDate || (saleDate && saleDate <= new Date(endDate + 'T23:59:59'));
+    return matchesSearch && matchesProduct && matchesStatus && matchesStart && matchesEnd;
   });
 
   const totalRevenue = completedSales.reduce((acc, sale) => acc + sale.total, 0);

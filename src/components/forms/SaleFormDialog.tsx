@@ -249,6 +249,16 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label>Delivery Note Number</Label>
+                <Input
+                  type="text"
+                  placeholder="e.g. DN-00123"
+                  value={formData.deliveryNoteNumber}
+                  onChange={(e) => setFormData({ ...formData, deliveryNoteNumber: e.target.value })}
+                />
+              </div>
+
               {selectedProduct && (
                 <div className="bg-muted/50 rounded-lg p-4 space-y-2">
                   <h4 className="font-medium text-sm">Summary</h4>

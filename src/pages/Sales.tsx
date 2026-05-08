@@ -310,12 +310,12 @@ export function Sales() {
 
       {/* Search and Filter */}
       <Card>
-        <CardContent className="p-4">
+        <CardContent className="p-4 space-y-3">
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search by farmer or product..."
+                placeholder="Search by farmer, product or delivery note..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -343,6 +343,22 @@ export function Sales() {
                 <SelectItem value="cancelled">Cancelled</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-muted-foreground whitespace-nowrap">From</label>
+              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full sm:w-[160px]" />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-muted-foreground whitespace-nowrap">To</label>
+              <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full sm:w-[160px]" />
+            </div>
+            {(startDate || endDate) && (
+              <Button variant="ghost" size="sm" onClick={() => { setStartDate(''); setEndDate(''); }}>
+                Clear dates
+              </Button>
+            )}
+          </div>
           </div>
         </CardContent>
       </Card>

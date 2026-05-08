@@ -190,6 +190,7 @@ export function useCreateSale() {
           ...(data.sale_date ? { sale_date: data.sale_date } : {}),
           ...(data.payment_method ? { payment_method: data.payment_method } : {}),
           ...(data.notes ? { notes: data.notes } : {}),
+          ...(data.delivery_note_number ? { delivery_note_number: data.delivery_note_number } : {}),
           // These will be calculated by the trigger
           unit_price: 0,
           total_amount: 0,

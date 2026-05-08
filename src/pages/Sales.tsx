@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Search, Plus, TrendingUp, Calendar, Download, Package, FileSpreadsheet, FileText, MoreVertical, Upload } from 'lucide-react';
 import { exportSalesToExcel, exportSalesToPDF } from '@/lib/exportUtils';
 import { SaleFormDialog } from '@/components/forms/SaleFormDialog';
+import { EditSaleDialog } from '@/components/forms/EditSaleDialog';
 import { BulkUploadDialog } from '@/components/bulk-upload/BulkUploadDialog';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';

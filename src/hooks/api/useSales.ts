@@ -19,6 +19,7 @@ export interface Sale {
   payment_status: string;
   payment_method: string | null;
   notes: string | null;
+  delivery_note_number: string | null;
   sale_date: string;
   created_at: string;
   updated_at: string;

@@ -28,6 +28,7 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
     totId: '',
     quantity: 1,
     date: new Date().toISOString().split('T')[0],
+    deliveryNoteNumber: '',
   });
 
   const { data: farmers = [], isLoading: farmersLoading, error: farmersError, refetch: refetchFarmers } = useFarmers();
@@ -60,6 +61,7 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
         totId: '',
         quantity: 1,
         date: new Date().toISOString().split('T')[0],
+        deliveryNoteNumber: '',
       });
     }
   }, [open, localMRs]);
@@ -112,6 +114,8 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
       tot_id: formData.totId,
       local_mr_id: formData.localMrId,
       quantity: formData.quantity,
+      sale_date: formData.date ? new Date(formData.date).toISOString() : undefined,
+      delivery_note_number: formData.deliveryNoteNumber.trim() || undefined,
     };
 
     try {
@@ -242,6 +246,16 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
                   value={formData.date}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                   max={new Date().toISOString().split('T')[0]}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Delivery Note Number</Label>
+                <Input
+                  type="text"
+                  placeholder="e.g. DN-00123"
+                  value={formData.deliveryNoteNumber}
+                  onChange={(e) => setFormData({ ...formData, deliveryNoteNumber: e.target.value })}
                 />
               </div>
 

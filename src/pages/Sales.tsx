@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Search, Plus, TrendingUp, Calendar, Download, Package, FileSpreadsheet, FileText, MoreVertical, Upload } from 'lucide-react';
 import { exportSalesToExcel, exportSalesToPDF } from '@/lib/exportUtils';
 import { SaleFormDialog } from '@/components/forms/SaleFormDialog';
+import { EditSaleDialog } from '@/components/forms/EditSaleDialog';
 import { BulkUploadDialog } from '@/components/bulk-upload/BulkUploadDialog';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -35,8 +36,11 @@ export function Sales() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+  const [editingSale, setEditingSale] = useState<any | null>(null);
   const [productFilter, setProductFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
   const { addNotification } = useNotifications();
   const { user, isAdmin, canEdit } = useAuth();
 
@@ -52,14 +56,21 @@ export function Sales() {
   const cancelSale = useCancelSale();
 
   const completedSales = sales.filter(s => s.status === 'completed');
-  const filteredSales = sales.filter(sale => {
+  const filteredSales = sales.filter((sale: any) => {
     const farmerName = sale.farmerName ?? '';
     const productName = sale.productName ?? '';
-    const matchesSearch = farmerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      productName.toLowerCase().includes(searchQuery.toLowerCase());
+    const dn = (sale.deliveryNoteNumber ?? '').toString();
+    const q = searchQuery.toLowerCase();
+    const matchesSearch = !q ||
+      farmerName.toLowerCase().includes(q) ||
+      productName.toLowerCase().includes(q) ||
+      dn.toLowerCase().includes(q);
     const matchesProduct = productFilter === 'all' || sale.productId === productFilter;
     const matchesStatus = statusFilter === 'all' || sale.status === statusFilter;
-    return matchesSearch && matchesProduct && matchesStatus;
+    const saleDate = sale.date ? new Date(sale.date) : null;
+    const matchesStart = !startDate || (saleDate && saleDate >= new Date(startDate));
+    const matchesEnd = !endDate || (saleDate && saleDate <= new Date(endDate + 'T23:59:59'));
+    return matchesSearch && matchesProduct && matchesStatus && matchesStart && matchesEnd;
   });
 
   const totalRevenue = completedSales.reduce((acc, sale) => acc + sale.total, 0);
@@ -299,12 +310,12 @@ export function Sales() {
 
       {/* Search and Filter */}
       <Card>
-        <CardContent className="p-4">
+        <CardContent className="p-4 space-y-3">
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search by farmer or product..."
+                placeholder="Search by farmer, product or delivery note..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -333,6 +344,21 @@ export function Sales() {
               </SelectContent>
             </Select>
           </div>
+          <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-muted-foreground whitespace-nowrap">From</label>
+              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full sm:w-[160px]" />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-muted-foreground whitespace-nowrap">To</label>
+              <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full sm:w-[160px]" />
+            </div>
+            {(startDate || endDate) && (
+              <Button variant="ghost" size="sm" onClick={() => { setStartDate(''); setEndDate(''); }}>
+                Clear dates
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -347,6 +373,7 @@ export function Sales() {
               <thead>
                 <tr className="border-b border-border">
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Date</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Delivery #</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Farmer</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Product</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Qty</th>
@@ -369,6 +396,7 @@ export function Sales() {
                     style={{ animationDelay: `${index * 0.05}s` }}
                   >
                     <td className="py-3 px-4 text-sm">{formatDate(sale.date)}</td>
+                    <td className="py-3 px-4 text-sm font-mono text-xs">{sale.deliveryNoteNumber || '—'}</td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary text-xs font-semibold">
@@ -396,6 +424,11 @@ export function Sales() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            {sale.status === 'pending' && (
+                              <DropdownMenuItem onClick={() => setEditingSale(sale)}>
+                                Edit
+                              </DropdownMenuItem>
+                            )}
                             {sale.status === 'pending' && (
                               <DropdownMenuItem onClick={() => handleCompleteSale(sale.id)}>
                                 Complete
@@ -435,6 +468,11 @@ export function Sales() {
             onOpenChange={setIsBulkUploadOpen}
             entityType="sales"
             onUpload={handleBulkUpload}
+          />
+          <EditSaleDialog
+            open={!!editingSale}
+            onOpenChange={(o) => { if (!o) setEditingSale(null); }}
+            sale={editingSale}
           />
         </>
       )}

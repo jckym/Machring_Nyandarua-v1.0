@@ -19,6 +19,7 @@ export interface Sale {
   payment_status: string;
   payment_method: string | null;
   notes: string | null;
+  delivery_note_number: string | null;
   sale_date: string;
   created_at: string;
   updated_at: string;
@@ -35,6 +36,7 @@ export interface SaleFilters {
   status?: string;
   startDate?: string;
   endDate?: string;
+  deliveryNoteNumber?: string;
 }
 
 export const saleKeys = {
@@ -68,6 +70,9 @@ export function useSales(filters: SaleFilters = {}) {
       }
       if (filters.endDate) {
         query = query.lte('sale_date', filters.endDate);
+      }
+      if (filters.deliveryNoteNumber) {
+        query = query.ilike('delivery_note_number', `%${filters.deliveryNoteNumber}%`);
       }
 
       const { data, error } = await query;
@@ -113,6 +118,7 @@ export function useSales(filters: SaleFilters = {}) {
         localMrCommission: Number(s.local_mr_commission) || 0,
         status: s.payment_status,
         date: s.sale_date,
+        deliveryNoteNumber: s.delivery_note_number || '',
       }));
     },
     staleTime: 1000 * 60 * 3,
@@ -164,6 +170,7 @@ export interface CreateSaleDto {
   sale_date?: string;
   payment_method?: string;
   notes?: string;
+  delivery_note_number?: string;
 }
 
 export function useCreateSale() {
@@ -183,6 +190,7 @@ export function useCreateSale() {
           ...(data.sale_date ? { sale_date: data.sale_date } : {}),
           ...(data.payment_method ? { payment_method: data.payment_method } : {}),
           ...(data.notes ? { notes: data.notes } : {}),
+          ...(data.delivery_note_number ? { delivery_note_number: data.delivery_note_number } : {}),
           // These will be calculated by the trigger
           unit_price: 0,
           total_amount: 0,
@@ -219,6 +227,7 @@ export function useBulkCreateSales() {
         ...(s.sale_date ? { sale_date: s.sale_date } : {}),
         ...(s.payment_method ? { payment_method: s.payment_method } : {}),
         ...(s.notes ? { notes: s.notes } : {}),
+        ...(s.delivery_note_number ? { delivery_note_number: s.delivery_note_number } : {}),
         unit_price: 0,
         total_amount: 0,
         commission_per_unit: 0,
@@ -283,6 +292,41 @@ export function useCancelSale() {
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to cancel sale');
+    },
+  });
+}
+
+export interface UpdateSaleDto {
+  farmer_id?: string | null;
+  sale_date?: string;
+  payment_method?: string;
+  notes?: string | null;
+  delivery_note_number?: string | null;
+  quantity?: number;
+}
+
+export function useUpdateSale() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: UpdateSaleDto }) => {
+      const payload: Record<string, unknown> = {};
+      if (updates.farmer_id !== undefined) payload.farmer_id = updates.farmer_id || null;
+      if (updates.sale_date) payload.sale_date = updates.sale_date;
+      if (updates.payment_method) payload.payment_method = updates.payment_method;
+      if (updates.notes !== undefined) payload.notes = updates.notes || null;
+      if (updates.delivery_note_number !== undefined) payload.delivery_note_number = updates.delivery_note_number || null;
+      if (updates.quantity !== undefined) payload.quantity = updates.quantity;
+
+      const { error } = await supabase.from('sales').update(payload).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: saleKeys.all });
+      toast.success('Sale updated');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to update sale');
     },
   });
 }

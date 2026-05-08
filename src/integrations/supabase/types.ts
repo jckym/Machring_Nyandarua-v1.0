@@ -728,6 +728,7 @@ export type Database = {
           commission_paid_at: string | null
           commission_per_unit: number
           created_at: string
+          delivery_note_number: string | null
           farmer_id: string | null
           id: string
           local_mr_commission: number
@@ -752,6 +753,7 @@ export type Database = {
           commission_paid_at?: string | null
           commission_per_unit: number
           created_at?: string
+          delivery_note_number?: string | null
           farmer_id?: string | null
           id?: string
           local_mr_commission?: number
@@ -776,6 +778,7 @@ export type Database = {
           commission_paid_at?: string | null
           commission_per_unit?: number
           created_at?: string
+          delivery_note_number?: string | null
           farmer_id?: string | null
           id?: string
           local_mr_commission?: number

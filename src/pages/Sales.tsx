@@ -359,7 +359,6 @@ export function Sales() {
               </Button>
             )}
           </div>
-          </div>
         </CardContent>
       </Card>
 

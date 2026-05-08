@@ -170,6 +170,7 @@ export interface CreateSaleDto {
   sale_date?: string;
   payment_method?: string;
   notes?: string;
+  delivery_note_number?: string;
 }
 
 export function useCreateSale() {

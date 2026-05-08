@@ -114,6 +114,8 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
       tot_id: formData.totId,
       local_mr_id: formData.localMrId,
       quantity: formData.quantity,
+      sale_date: formData.date ? new Date(formData.date).toISOString() : undefined,
+      delivery_note_number: formData.deliveryNoteNumber.trim() || undefined,
     };
 
     try {

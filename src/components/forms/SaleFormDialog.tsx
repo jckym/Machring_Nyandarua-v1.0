@@ -10,6 +10,7 @@ import { useFarmers } from '@/hooks/api/useFarmers';
 import { useProducts } from '@/hooks/api/useProducts';
 import { useLocalMRs } from '@/hooks/api/useLocalMRs';
 import { useTotsByLocalMR } from '@/hooks/api/useTotsByLocalMR';
+import { useUsers } from '@/hooks/api/useUsers';
 import { Loader2 } from 'lucide-react';
 import { CreateSaleDto } from '@/hooks/api/useSales';
 

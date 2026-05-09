@@ -317,11 +317,17 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
                     <span>Profit:</span>
                     <span className="font-semibold text-emerald-700">{formatCurrency(profit)}</span>
                   </div>
-                  <div className="border-t border-border pt-2 mt-2 space-y-1 text-xs">
-                    <div className="flex justify-between"><span className="text-muted-foreground">TOT (40%)</span><span className="font-medium">{formatCurrency(totShare)}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Regional MR (50%)</span><span className="font-medium">{formatCurrency(regionalShare)}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Local MR (10%)</span><span className="font-medium">{formatCurrency(localShare)}</span></div>
-                  </div>
+                  {isOfficeSale ? (
+                    <div className="border-t border-border pt-2 mt-2 text-xs text-muted-foreground italic">
+                      Office Employee sale — no commission is paid out for this sale.
+                    </div>
+                  ) : (
+                    <div className="border-t border-border pt-2 mt-2 space-y-1 text-xs">
+                      <div className="flex justify-between"><span className="text-muted-foreground">TOT (40%)</span><span className="font-medium">{formatCurrency(totShare)}</span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Regional MR (50%)</span><span className="font-medium">{formatCurrency(regionalShare)}</span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Local MR (10%)</span><span className="font-medium">{formatCurrency(localShare)}</span></div>
+                    </div>
+                  )}
                 </div>
               )}
             </>

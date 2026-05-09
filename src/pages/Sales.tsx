@@ -429,7 +429,7 @@ export function Sales() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            {sale.status === 'pending' && (
+                            {sale.status !== 'cancelled' && (
                               <DropdownMenuItem onClick={() => setEditingSale(sale)}>
                                 Edit
                               </DropdownMenuItem>

@@ -62,6 +62,7 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
   // Reset form when dialog opens
   useEffect(() => {
     if (open) {
+      setRecorderType('tot');
       setFormData({
         farmerId: '',
         productId: '',
@@ -73,6 +74,11 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
       });
     }
   }, [open, localMRs]);
+
+  // Reset selected user when toggling recorder type
+  useEffect(() => {
+    setFormData((prev) => ({ ...prev, totId: '' }));
+  }, [recorderType]);
 
   // Reset TOT when Local MR changes
   useEffect(() => {

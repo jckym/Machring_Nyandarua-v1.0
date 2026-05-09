@@ -56,20 +56,25 @@ export function Sales() {
   const cancelSale = useCancelSale();
 
   const completedSales = sales.filter(s => s.status === 'completed');
+  const trimmedSearch = searchQuery.trim().toLowerCase();
+  const trimmedStart = startDate.trim();
+  const trimmedEnd = endDate.trim();
+  // Build inclusive local-day boundaries to avoid timezone drift
+  const startBoundary = trimmedStart ? new Date(`${trimmedStart}T00:00:00`) : null;
+  const endBoundary = trimmedEnd ? new Date(`${trimmedEnd}T23:59:59.999`) : null;
   const filteredSales = sales.filter((sale: any) => {
     const farmerName = sale.farmerName ?? '';
     const productName = sale.productName ?? '';
     const dn = (sale.deliveryNoteNumber ?? '').toString();
-    const q = searchQuery.toLowerCase();
-    const matchesSearch = !q ||
-      farmerName.toLowerCase().includes(q) ||
-      productName.toLowerCase().includes(q) ||
-      dn.toLowerCase().includes(q);
+    const matchesSearch = !trimmedSearch ||
+      farmerName.toLowerCase().includes(trimmedSearch) ||
+      productName.toLowerCase().includes(trimmedSearch) ||
+      dn.toLowerCase().includes(trimmedSearch);
     const matchesProduct = productFilter === 'all' || sale.productId === productFilter;
     const matchesStatus = statusFilter === 'all' || sale.status === statusFilter;
     const saleDate = sale.date ? new Date(sale.date) : null;
-    const matchesStart = !startDate || (saleDate && saleDate >= new Date(startDate));
-    const matchesEnd = !endDate || (saleDate && saleDate <= new Date(endDate + 'T23:59:59'));
+    const matchesStart = !startBoundary || (saleDate && saleDate >= startBoundary);
+    const matchesEnd = !endBoundary || (saleDate && saleDate <= endBoundary);
     return matchesSearch && matchesProduct && matchesStatus && matchesStart && matchesEnd;
   });
 
@@ -424,7 +429,7 @@ export function Sales() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            {sale.status === 'pending' && (
+                            {sale.status !== 'cancelled' && (
                               <DropdownMenuItem onClick={() => setEditingSale(sale)}>
                                 Edit
                               </DropdownMenuItem>

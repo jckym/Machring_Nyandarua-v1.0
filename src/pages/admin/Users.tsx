@@ -137,6 +137,7 @@ export function Users() {
       case 'manager': return 'Manager';
       case 'local_mr_coordinator': return 'Coordinator';
       case 'tot': return 'TOT';
+      case 'office_employee': return 'Office Employee';
       default: return role.toUpperCase();
     }
   };
@@ -569,6 +570,7 @@ export function Users() {
                   <SelectItem value="tot">TOT (Technical Officer)</SelectItem>
                   <SelectItem value="local_mr_coordinator">Local MR Coordinator</SelectItem>
                   <SelectItem value="manager">Manager (Regional)</SelectItem>
+                  <SelectItem value="office_employee">Office Employee (no commission)</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
@@ -713,6 +715,7 @@ export function Users() {
                   <SelectItem value="tot">TOT (Technical Officer)</SelectItem>
                   <SelectItem value="local_mr_coordinator">Local MR Coordinator</SelectItem>
                   <SelectItem value="manager">Manager (Regional)</SelectItem>
+                  <SelectItem value="office_employee">Office Employee (no commission)</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>

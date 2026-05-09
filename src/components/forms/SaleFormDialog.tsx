@@ -10,6 +10,7 @@ import { useFarmers } from '@/hooks/api/useFarmers';
 import { useProducts } from '@/hooks/api/useProducts';
 import { useLocalMRs } from '@/hooks/api/useLocalMRs';
 import { useTotsByLocalMR } from '@/hooks/api/useTotsByLocalMR';
+import { useUsers } from '@/hooks/api/useUsers';
 import { Loader2 } from 'lucide-react';
 import { CreateSaleDto } from '@/hooks/api/useSales';
 
@@ -21,6 +22,7 @@ interface SaleFormDialogProps {
 
 export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogProps) {
   const { toast } = useToast();
+  const [recorderType, setRecorderType] = useState<'tot' | 'office_employee'>('tot');
   const [formData, setFormData] = useState({
     farmerId: '',
     productId: '',
@@ -35,6 +37,11 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
   const { data: products = [], isLoading: productsLoading, error: productsError, refetch: refetchProducts } = useProducts();
   const { data: localMRs = [] } = useLocalMRs();
   const { data: tots = [], isLoading: totsLoading } = useTotsByLocalMR(formData.localMrId);
+  const { data: allUsers = [] } = useUsers();
+  const officeEmployees = useMemo(
+    () => (allUsers as any[]).filter((u) => u.role === 'office_employee' && u.status === 'active'),
+    [allUsers]
+  );
 
   const selectedProduct = useMemo(() => products.find((p) => p.id === formData.productId), [formData.productId, products]);
   const selectedFarmer = useMemo(() => farmers.find((f) => f.id === formData.farmerId), [formData.farmerId, farmers]);
@@ -44,9 +51,10 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
   const profitPerUnit = Math.max(sellingPrice - buyingPrice, 0);
   const total = sellingPrice * formData.quantity;
   const profit = profitPerUnit * formData.quantity;
-  const totShare = profit * 0.4;
-  const regionalShare = profit * 0.5;
-  const localShare = profit * 0.1;
+  const isOfficeSale = recorderType === 'office_employee';
+  const totShare = isOfficeSale ? 0 : profit * 0.4;
+  const regionalShare = isOfficeSale ? 0 : profit * 0.5;
+  const localShare = isOfficeSale ? 0 : profit * 0.1;
   const formatCurrency = (value: number) => `KES ${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
   const isLoading = farmersLoading || productsLoading;
   const hasError = farmersError || productsError;
@@ -54,6 +62,7 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
   // Reset form when dialog opens
   useEffect(() => {
     if (open) {
+      setRecorderType('tot');
       setFormData({
         farmerId: '',
         productId: '',
@@ -65,6 +74,11 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
       });
     }
   }, [open, localMRs]);
+
+  // Reset selected user when toggling recorder type
+  useEffect(() => {
+    setFormData((prev) => ({ ...prev, totId: '' }));
+  }, [recorderType]);
 
   // Reset TOT when Local MR changes
   useEffect(() => {
@@ -99,7 +113,7 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
     }
 
     if (!formData.totId) {
-      toast({ title: 'Validation Error', description: 'Please select a TOT who made this sale', variant: 'destructive' });
+      toast({ title: 'Validation Error', description: isOfficeSale ? 'Please select an office employee' : 'Please select a TOT who made this sale', variant: 'destructive' });
       return;
     }
 
@@ -152,6 +166,17 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
           {!isLoading && !hasError && (
             <>
               <div className="space-y-2">
+                <Label>Recorded by *</Label>
+                <Select value={recorderType} onValueChange={(v) => setRecorderType(v as 'tot' | 'office_employee')}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent className="z-[200]">
+                    <SelectItem value="tot">TOT (earns commission)</SelectItem>
+                    <SelectItem value="office_employee">Office Employee (no commission)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
                 <Label>Select Local MR *</Label>
                 <Select value={formData.localMrId} onValueChange={(value) => setFormData({ ...formData, localMrId: value })}>
                   <SelectTrigger>
@@ -165,30 +190,52 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label>Select TOT *</Label>
-                <Select 
-                  value={formData.totId} 
-                  onValueChange={(value) => setFormData({ ...formData, totId: value })}
-                  disabled={!formData.localMrId || totsLoading}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={
-                      !formData.localMrId ? 'Select Local MR first' : 
-                      totsLoading ? 'Loading TOTs...' : 
-                      tots.length === 0 ? 'No TOTs in this MR' : 
-                      'Choose TOT'
-                    } />
-                  </SelectTrigger>
-                  <SelectContent className="z-[200] max-h-[200px] overflow-y-auto">
-                    {tots.map((tot) => (
-                      <SelectItem key={tot.id} value={tot.id}>
-                        {tot.name} ({tot.email})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {recorderType === 'tot' ? (
+                <div className="space-y-2">
+                  <Label>Select TOT *</Label>
+                  <Select 
+                    value={formData.totId} 
+                    onValueChange={(value) => setFormData({ ...formData, totId: value })}
+                    disabled={!formData.localMrId || totsLoading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={
+                        !formData.localMrId ? 'Select Local MR first' : 
+                        totsLoading ? 'Loading TOTs...' : 
+                        tots.length === 0 ? 'No TOTs in this MR' : 
+                        'Choose TOT'
+                      } />
+                    </SelectTrigger>
+                    <SelectContent className="z-[200] max-h-[200px] overflow-y-auto">
+                      {tots.map((tot) => (
+                        <SelectItem key={tot.id} value={tot.id}>
+                          {tot.name} ({tot.email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label>Select Office Employee *</Label>
+                  <Select 
+                    value={formData.totId} 
+                    onValueChange={(value) => setFormData({ ...formData, totId: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={officeEmployees.length === 0 ? 'No office employees registered' : 'Choose office employee'} />
+                    </SelectTrigger>
+                    <SelectContent className="z-[200] max-h-[200px] overflow-y-auto">
+                      {officeEmployees.map((u) => (
+                        <SelectItem key={u.id} value={u.id}>
+                          {u.name} ({u.email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">Office employees do not earn commission on this sale.</p>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label>Select Farmer (optional)</Label>
@@ -270,11 +317,17 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
                     <span>Profit:</span>
                     <span className="font-semibold text-emerald-700">{formatCurrency(profit)}</span>
                   </div>
-                  <div className="border-t border-border pt-2 mt-2 space-y-1 text-xs">
-                    <div className="flex justify-between"><span className="text-muted-foreground">TOT (40%)</span><span className="font-medium">{formatCurrency(totShare)}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Regional MR (50%)</span><span className="font-medium">{formatCurrency(regionalShare)}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Local MR (10%)</span><span className="font-medium">{formatCurrency(localShare)}</span></div>
-                  </div>
+                  {isOfficeSale ? (
+                    <div className="border-t border-border pt-2 mt-2 text-xs text-muted-foreground italic">
+                      Office Employee sale — no commission is paid out for this sale.
+                    </div>
+                  ) : (
+                    <div className="border-t border-border pt-2 mt-2 space-y-1 text-xs">
+                      <div className="flex justify-between"><span className="text-muted-foreground">TOT (40%)</span><span className="font-medium">{formatCurrency(totShare)}</span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Regional MR (50%)</span><span className="font-medium">{formatCurrency(regionalShare)}</span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Local MR (10%)</span><span className="font-medium">{formatCurrency(localShare)}</span></div>
+                    </div>
+                  )}
                 </div>
               )}
             </>

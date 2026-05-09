@@ -22,6 +22,7 @@ interface SaleFormDialogProps {
 
 export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogProps) {
   const { toast } = useToast();
+  const [recorderType, setRecorderType] = useState<'tot' | 'office_employee'>('tot');
   const [formData, setFormData] = useState({
     farmerId: '',
     productId: '',
@@ -36,6 +37,11 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
   const { data: products = [], isLoading: productsLoading, error: productsError, refetch: refetchProducts } = useProducts();
   const { data: localMRs = [] } = useLocalMRs();
   const { data: tots = [], isLoading: totsLoading } = useTotsByLocalMR(formData.localMrId);
+  const { data: allUsers = [] } = useUsers();
+  const officeEmployees = useMemo(
+    () => (allUsers as any[]).filter((u) => u.role === 'office_employee' && u.status === 'active'),
+    [allUsers]
+  );
 
   const selectedProduct = useMemo(() => products.find((p) => p.id === formData.productId), [formData.productId, products]);
   const selectedFarmer = useMemo(() => farmers.find((f) => f.id === formData.farmerId), [formData.farmerId, farmers]);
@@ -45,9 +51,10 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
   const profitPerUnit = Math.max(sellingPrice - buyingPrice, 0);
   const total = sellingPrice * formData.quantity;
   const profit = profitPerUnit * formData.quantity;
-  const totShare = profit * 0.4;
-  const regionalShare = profit * 0.5;
-  const localShare = profit * 0.1;
+  const isOfficeSale = recorderType === 'office_employee';
+  const totShare = isOfficeSale ? 0 : profit * 0.4;
+  const regionalShare = isOfficeSale ? 0 : profit * 0.5;
+  const localShare = isOfficeSale ? 0 : profit * 0.1;
   const formatCurrency = (value: number) => `KES ${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
   const isLoading = farmersLoading || productsLoading;
   const hasError = farmersError || productsError;

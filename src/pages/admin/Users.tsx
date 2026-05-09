@@ -570,6 +570,7 @@ export function Users() {
                   <SelectItem value="tot">TOT (Technical Officer)</SelectItem>
                   <SelectItem value="local_mr_coordinator">Local MR Coordinator</SelectItem>
                   <SelectItem value="manager">Manager (Regional)</SelectItem>
+                  <SelectItem value="office_employee">Office Employee (no commission)</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>

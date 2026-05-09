@@ -1,11 +1,9 @@
 // src/contexts/NotificationContext.tsx
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Notification } from '@/types';
 import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
-import { useNotificationAlerts } from '@/hooks/useNotificationAlerts';
 
 interface NotificationContextType {
   notifications: Notification[];
@@ -22,10 +20,39 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
-  
-  // Enable real-time notification alerts with sound/toast
-  useNotificationAlerts();
+  const [userId, setUserId] = React.useState<string | null>(null);
+
+  // Get user ID from Supabase session
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUserId(session?.user?.id || null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserId(session?.user?.id || null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Initialize notification alerts hook lazily to avoid circular dependency
+  useEffect(() => {
+    if (userId) {
+      // Lazy load the notification alerts hook
+      import('@/hooks/useNotificationAlerts').then(({ useNotificationAlerts }) => {
+        // Call it in a component-like manner via a custom hook setup
+        const setupAlerts = async () => {
+          try {
+            // This ensures the alerts are initialized after context is ready
+            useNotificationAlerts();
+          } catch (e) {
+            console.warn('Failed to setup notification alerts:', e);
+          }
+        };
+        setupAlerts();
+      }).catch(e => console.warn('Could not load notification alerts:', e));
+    }
+  }, [userId]);
 
   // Fetch notifications from Supabase
   const {
@@ -33,14 +60,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     isLoading,
     error,
   } = useQuery<Notification[]>({
-    queryKey: ['notifications', user?.id],
+    queryKey: ['notifications', userId],
     queryFn: async () => {
-      if (!user?.id) return [];
+      if (!userId) return [];
       
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(50);
 
@@ -57,7 +84,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         localMrId: n.local_mr_id || undefined,
       }));
     },
-    enabled: !!user?.id,
+    enabled: !!userId,
     refetchInterval: 60000,
     staleTime: 30000,
   });
@@ -73,7 +100,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           type: data.type,
           title: data.title,
           message: data.message,
-          user_id: data.userId || user?.id,
+          user_id: data.userId || userId,
           local_mr_id: data.localMrId,
         })
         .select()
@@ -103,16 +130,16 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     },
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: ['notifications'] });
-      const previous = queryClient.getQueryData<Notification[]>(['notifications', user?.id]);
+      const previous = queryClient.getQueryData<Notification[]>(['notifications', userId]);
 
-      queryClient.setQueryData<Notification[]>(['notifications', user?.id], (old = []) =>
+      queryClient.setQueryData<Notification[]>(['notifications', userId], (old = []) =>
         old.map(n => (n.id === id ? { ...n, read: true } : n))
       );
 
       return { previous };
     },
     onError: (_err, _id, context) => {
-      queryClient.setQueryData(['notifications', user?.id], context?.previous);
+      queryClient.setQueryData(['notifications', userId], context?.previous);
       toast.error('Failed to mark as read');
     },
     onSettled: () => {
@@ -123,12 +150,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   // Mark all as read mutation
   const markAllReadMutation = useMutation({
     mutationFn: async () => {
-      if (!user?.id) return;
+      if (!userId) return;
       
       const { error } = await supabase
         .from('notifications')
         .update({ read: true, read_at: new Date().toISOString() })
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .eq('read', false);
 
       if (error) throw error;

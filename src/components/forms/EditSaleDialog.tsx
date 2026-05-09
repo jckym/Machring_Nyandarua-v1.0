@@ -52,17 +52,17 @@ export function EditSaleDialog({ open, onOpenChange, sale }: EditSaleDialogProps
     onOpenChange(false);
   };
 
-  const isLocked = sale && (sale.status === 'completed' || sale.status === 'cancelled');
+  const isCancelled = sale && sale.status === 'cancelled';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Edit Sale</DialogTitle>
+          <DialogTitle>Edit Sale {sale?.status === 'completed' && <span className="text-xs text-muted-foreground font-normal ml-2">(completed — financial fields locked)</span>}</DialogTitle>
         </DialogHeader>
-        {isLocked ? (
+        {isCancelled ? (
           <div className="py-6 text-sm text-muted-foreground">
-            This sale is {sale.status}. Editing is only allowed while the sale is pending.
+            This sale has been cancelled and cannot be edited.
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">

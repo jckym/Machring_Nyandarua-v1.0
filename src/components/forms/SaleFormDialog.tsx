@@ -166,6 +166,17 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
           {!isLoading && !hasError && (
             <>
               <div className="space-y-2">
+                <Label>Recorded by *</Label>
+                <Select value={recorderType} onValueChange={(v) => setRecorderType(v as 'tot' | 'office_employee')}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent className="z-[200]">
+                    <SelectItem value="tot">TOT (earns commission)</SelectItem>
+                    <SelectItem value="office_employee">Office Employee (no commission)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
                 <Label>Select Local MR *</Label>
                 <Select value={formData.localMrId} onValueChange={(value) => setFormData({ ...formData, localMrId: value })}>
                   <SelectTrigger>
@@ -179,30 +190,52 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label>Select TOT *</Label>
-                <Select 
-                  value={formData.totId} 
-                  onValueChange={(value) => setFormData({ ...formData, totId: value })}
-                  disabled={!formData.localMrId || totsLoading}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={
-                      !formData.localMrId ? 'Select Local MR first' : 
-                      totsLoading ? 'Loading TOTs...' : 
-                      tots.length === 0 ? 'No TOTs in this MR' : 
-                      'Choose TOT'
-                    } />
-                  </SelectTrigger>
-                  <SelectContent className="z-[200] max-h-[200px] overflow-y-auto">
-                    {tots.map((tot) => (
-                      <SelectItem key={tot.id} value={tot.id}>
-                        {tot.name} ({tot.email})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {recorderType === 'tot' ? (
+                <div className="space-y-2">
+                  <Label>Select TOT *</Label>
+                  <Select 
+                    value={formData.totId} 
+                    onValueChange={(value) => setFormData({ ...formData, totId: value })}
+                    disabled={!formData.localMrId || totsLoading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={
+                        !formData.localMrId ? 'Select Local MR first' : 
+                        totsLoading ? 'Loading TOTs...' : 
+                        tots.length === 0 ? 'No TOTs in this MR' : 
+                        'Choose TOT'
+                      } />
+                    </SelectTrigger>
+                    <SelectContent className="z-[200] max-h-[200px] overflow-y-auto">
+                      {tots.map((tot) => (
+                        <SelectItem key={tot.id} value={tot.id}>
+                          {tot.name} ({tot.email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label>Select Office Employee *</Label>
+                  <Select 
+                    value={formData.totId} 
+                    onValueChange={(value) => setFormData({ ...formData, totId: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={officeEmployees.length === 0 ? 'No office employees registered' : 'Choose office employee'} />
+                    </SelectTrigger>
+                    <SelectContent className="z-[200] max-h-[200px] overflow-y-auto">
+                      {officeEmployees.map((u) => (
+                        <SelectItem key={u.id} value={u.id}>
+                          {u.name} ({u.email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">Office employees do not earn commission on this sale.</p>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label>Select Farmer (optional)</Label>

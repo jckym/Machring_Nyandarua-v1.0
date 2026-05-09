@@ -137,6 +137,7 @@ export function Users() {
       case 'manager': return 'Manager';
       case 'local_mr_coordinator': return 'Coordinator';
       case 'tot': return 'TOT';
+      case 'office_employee': return 'Office Employee';
       default: return role.toUpperCase();
     }
   };

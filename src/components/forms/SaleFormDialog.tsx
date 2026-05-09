@@ -113,7 +113,7 @@ export function SaleFormDialog({ open, onOpenChange, onSubmit }: SaleFormDialogP
     }
 
     if (!formData.totId) {
-      toast({ title: 'Validation Error', description: 'Please select a TOT who made this sale', variant: 'destructive' });
+      toast({ title: 'Validation Error', description: isOfficeSale ? 'Please select an office employee' : 'Please select a TOT who made this sale', variant: 'destructive' });
       return;
     }
 

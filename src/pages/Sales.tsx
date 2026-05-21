@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -62,7 +62,13 @@ export function Sales() {
   // Build inclusive local-day boundaries to avoid timezone drift
   const startBoundary = trimmedStart ? new Date(`${trimmedStart}T00:00:00`) : null;
   const endBoundary = trimmedEnd ? new Date(`${trimmedEnd}T23:59:59.999`) : null;
-  const filteredSales = sales.filter((sale: any) => {
+  const getSaleSortTime = (sale: any) => {
+    const primaryTime = sale.date ? new Date(sale.date).getTime() : 0;
+    const fallbackTime = sale.created_at ? new Date(sale.created_at).getTime() : 0;
+    return Number.isNaN(primaryTime) || primaryTime === 0 ? fallbackTime : primaryTime;
+  };
+
+  const filteredSales = useMemo(() => sales.filter((sale: any) => {
     const farmerName = sale.farmerName ?? '';
     const productName = sale.productName ?? '';
     const dn = (sale.deliveryNoteNumber ?? '').toString();
@@ -76,7 +82,14 @@ export function Sales() {
     const matchesStart = !startBoundary || (saleDate && saleDate >= startBoundary);
     const matchesEnd = !endBoundary || (saleDate && saleDate <= endBoundary);
     return matchesSearch && matchesProduct && matchesStatus && matchesStart && matchesEnd;
-  });
+  }).sort((a: any, b: any) => {
+    const dateDifference = getSaleSortTime(b) - getSaleSortTime(a);
+    if (dateDifference !== 0) return dateDifference;
+
+    const createdA = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const createdB = b.created_at ? new Date(b.created_at).getTime() : 0;
+    return createdB - createdA;
+  }), [endBoundary, productFilter, sales, startBoundary, statusFilter, trimmedSearch]);
 
   const totalRevenue = completedSales.reduce((acc, sale) => acc + sale.total, 0);
   const totalCommission = completedSales.reduce((acc, sale) => acc + sale.commissionAmount, 0);

@@ -172,6 +172,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await supabase.auth.signOut();
           return { error: new Error('Your account has been deactivated. Please contact an administrator.') };
         }
+
+        const userData = await fetchUserData(data.user.id);
+        if (!userData) {
+          await supabase.auth.signOut();
+          setUser(null);
+          setSession(null);
+          return { error: new Error('Unable to load your user profile. Please contact an administrator.') };
+        }
+
+        setSession(data.session);
+        setUser(userData);
+        setIsLoading(false);
       }
       
       return { error: null };
@@ -207,9 +219,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    setIsLoading(true);
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
+    setIsLoading(false);
   };
 
   // Admin is the ONLY role that can create/edit/delete data

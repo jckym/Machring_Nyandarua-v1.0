@@ -4,6 +4,7 @@ import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { FloatingActions } from './FloatingActions';
 import { OfflineBanner } from './OfflineBanner';
+import { RouteTransition } from './RouteTransition';
 import { useAuth } from '@/contexts/AuthContext';
 
 export function DashboardLayout() {
@@ -55,7 +56,9 @@ export function DashboardLayout() {
           aria-label="Main content"
         >
           <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
-            <Outlet />
+            <RouteTransition>
+              <Outlet />
+            </RouteTransition>
           </div>
 
           <footer className="py-3 px-4 text-center text-xs text-muted-foreground border-t border-border bg-card/50">

@@ -30,7 +30,7 @@ import {
   Shield,
   Bell,
   AlertCircle,
-  
+  Sparkles,
 } from 'lucide-react';
 import { toast } from 'sonner';
 

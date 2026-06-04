@@ -24,6 +24,7 @@ import { LocalMRPerformanceTable } from "@/components/dashboard/LocalMRPerforman
 import { TOTPerformanceOverview } from "@/components/dashboard/TOTPerformanceOverview";
 import { OverdueFollowUps } from "@/components/dashboard/OverdueFollowUps";
 import { PerformanceSummary } from "@/components/dashboard/PerformanceSummary";
+import { ExecutiveBriefing } from "@/components/dashboard/ExecutiveBriefing";
 
 import {
   useSupabaseAdminStats,

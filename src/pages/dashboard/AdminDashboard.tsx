@@ -14,6 +14,7 @@ import { OverdueFollowUps } from '@/components/dashboard/OverdueFollowUps';
 import { TOTPerformanceOverview } from '@/components/dashboard/TOTPerformanceOverview';
 import { PerformanceSummary } from '@/components/dashboard/PerformanceSummary';
 import { AddTOTDialog } from '@/components/dashboard/AddTOTDialog';
+import { ExecutiveBriefing } from '@/components/dashboard/ExecutiveBriefing';
 import {
   useSupabaseAdminStats, 
   useSupabaseLocalMRs,

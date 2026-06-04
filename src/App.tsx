@@ -168,6 +168,11 @@ const App = () => (
                         <SystemLogs />
                       </ProtectedRoute>
                     )} />
+                    <Route path="/fia" element={withRouteBoundary('FIA - Farm Intelligence Agent',
+                      <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                        <FIA />
+                      </ProtectedRoute>
+                    )} />
                   </Route>
                   
                   <Route path="*" element={withRouteBoundary('Not found page', <NotFound />)} />

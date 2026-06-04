@@ -44,6 +44,7 @@ const TOTManagement = lazy(() => import("@/pages/TOTManagement").then(m => ({ de
 const Notifications = lazy(() => import("@/pages/Notifications").then(m => ({ default: m.Notifications })));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const Install = lazy(() => import("@/pages/Install"));
+const FIA = lazy(() => import("@/pages/FIA").then(m => ({ default: m.FIA })));
 
 // Loading fallback component
 const PageLoader = () => (

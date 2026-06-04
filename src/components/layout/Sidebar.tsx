@@ -88,6 +88,7 @@ const managerNavItems: NavItem[] = [
 // Admin: Full data entry and management access
 const adminNavItems: NavItem[] = [
   { to: '/dashboard/admin', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/fia', icon: Sparkles, label: 'FIA Assistant' },
   { to: '/users', icon: UserCog, label: 'User Management' },
   { to: '/tots', icon: UserCog, label: 'All TOTs' },
   { to: '/local-mrs', icon: Building2, label: 'Local MRs' },

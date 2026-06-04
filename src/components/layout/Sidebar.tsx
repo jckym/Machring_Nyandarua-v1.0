@@ -71,6 +71,7 @@ const coordinatorNavItems: NavItem[] = [
 // Manager: Read-only, organization-wide access
 const managerNavItems: NavItem[] = [
   { to: '/dashboard/manager', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/fia', icon: Sparkles, label: 'FIA Assistant' },
   { to: '/local-mrs', icon: Building2, label: 'Local MRs' },
   { to: '/tots', icon: UserCog, label: 'All TOTs' },
   { to: '/farmers', icon: Users, label: 'All Farmers' },

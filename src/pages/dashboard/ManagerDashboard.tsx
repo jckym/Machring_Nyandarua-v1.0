@@ -24,6 +24,7 @@ import { LocalMRPerformanceTable } from "@/components/dashboard/LocalMRPerforman
 import { TOTPerformanceOverview } from "@/components/dashboard/TOTPerformanceOverview";
 import { OverdueFollowUps } from "@/components/dashboard/OverdueFollowUps";
 import { PerformanceSummary } from "@/components/dashboard/PerformanceSummary";
+import { ExecutiveBriefing } from "@/components/dashboard/ExecutiveBriefing";
 
 import {
   useSupabaseAdminStats,
@@ -206,6 +207,8 @@ export function ManagerDashboard() {
           </Badge>
         </div>
       </div>
+
+      <ExecutiveBriefing />
 
       {/* Stats Grid - Organization-wide KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 stagger-children">

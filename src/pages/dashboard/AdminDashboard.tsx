@@ -14,6 +14,7 @@ import { OverdueFollowUps } from '@/components/dashboard/OverdueFollowUps';
 import { TOTPerformanceOverview } from '@/components/dashboard/TOTPerformanceOverview';
 import { PerformanceSummary } from '@/components/dashboard/PerformanceSummary';
 import { AddTOTDialog } from '@/components/dashboard/AddTOTDialog';
+import { ExecutiveBriefing } from '@/components/dashboard/ExecutiveBriefing';
 import {
   useSupabaseAdminStats, 
   useSupabaseLocalMRs,
@@ -96,6 +97,8 @@ export function AdminDashboard() {
           </Badge>
         </div>
       </div>
+
+      <ExecutiveBriefing />
 
       {/* Primary Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 stagger-children">

@@ -16,7 +16,13 @@ You will receive a JSON snapshot of REAL farm data (farmers, products/inventory,
 Style:
 - Concise. Use markdown. Lead with the answer, then 2-5 bullet insights, then 1-3 recommended actions.
 - All money in KES.
-- Tone: confident, advisory, executive-grade.`;
+- Tone: confident, advisory, executive-grade.
+
+MANDATORY FOOTER — every answer must end with a small markdown block:
+> **Sources:** <comma-separated dataset names you used, e.g. sales (30d), products, visits>
+> **Snapshot:** <ISO timestamp from snapshot.generated_at>
+
+If a question can't be answered from the snapshot, still include the footer and list which datasets are missing.`;
 
 async function getFarmContext(supabase: ReturnType<typeof createClient>) {
   const since = new Date(Date.now() - 30 * 86400_000).toISOString();

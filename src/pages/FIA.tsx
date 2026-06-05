@@ -120,16 +120,26 @@ export function FIA() {
       <Card className="flex-1 overflow-hidden flex flex-col">
         <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.length === 0 && (
-            <div className="text-center py-8 space-y-4">
-              <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                <Sparkles className="h-8 w-8 text-primary" />
+            <div className="py-6 space-y-5 max-w-3xl mx-auto">
+              <div className="text-center space-y-3">
+                <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                  <Sparkles className="h-8 w-8 text-primary" />
+                </div>
+                <h2 className="text-lg font-semibold">How can FIA help you today?</h2>
+                <p className="text-xs text-muted-foreground">Pick a quick filter or ask anything. Every answer cites the datasets used and snapshot time.</p>
               </div>
-              <h2 className="text-lg font-semibold">How can FIA help you today?</h2>
-              <div className="flex flex-wrap gap-2 justify-center max-w-2xl mx-auto">
-                {SUGGESTIONS.map((s) => (
-                  <Badge key={s} variant="secondary" className="cursor-pointer hover:bg-primary/10 px-3 py-2 text-xs" onClick={() => send(s)}>
-                    {s}
-                  </Badge>
+              <div className="space-y-3">
+                {SUGGESTION_GROUPS.map((g) => (
+                  <div key={g.label} className="space-y-1.5">
+                    <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{g.label}</div>
+                    <div className="flex flex-wrap gap-2">
+                      {g.questions.map((q) => (
+                        <Badge key={q} variant="secondary" className="cursor-pointer hover:bg-primary/10 px-3 py-1.5 text-xs font-normal" onClick={() => send(q)}>
+                          {q}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>

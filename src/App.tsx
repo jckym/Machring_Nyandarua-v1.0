@@ -45,6 +45,7 @@ const Notifications = lazy(() => import("@/pages/Notifications").then(m => ({ de
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const Install = lazy(() => import("@/pages/Install"));
 const FIA = lazy(() => import("@/pages/FIA").then(m => ({ default: m.FIA })));
+const Insights = lazy(() => import("@/pages/Insights").then(m => ({ default: m.Insights })));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -171,6 +172,11 @@ const App = () => (
                     <Route path="/fia" element={withRouteBoundary('FIA - Farm Intelligence Agent',
                       <ProtectedRoute allowedRoles={['admin', 'manager']}>
                         <FIA />
+                      </ProtectedRoute>
+                    )} />
+                    <Route path="/insights" element={withRouteBoundary('AI Insights',
+                      <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                        <Insights />
                       </ProtectedRoute>
                     )} />
                   </Route>

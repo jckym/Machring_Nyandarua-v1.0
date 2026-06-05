@@ -31,6 +31,7 @@ import {
   Bell,
   AlertCircle,
   Sparkles,
+  Activity,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -72,6 +73,7 @@ const coordinatorNavItems: NavItem[] = [
 const managerNavItems: NavItem[] = [
   { to: '/dashboard/manager', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/fia', icon: Sparkles, label: 'FIA Assistant' },
+  { to: '/insights', icon: Activity, label: 'AI Insights' },
   { to: '/local-mrs', icon: Building2, label: 'Local MRs' },
   { to: '/tots', icon: UserCog, label: 'All TOTs' },
   { to: '/farmers', icon: Users, label: 'All Farmers' },
@@ -89,6 +91,7 @@ const managerNavItems: NavItem[] = [
 const adminNavItems: NavItem[] = [
   { to: '/dashboard/admin', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/fia', icon: Sparkles, label: 'FIA Assistant' },
+  { to: '/insights', icon: Activity, label: 'AI Insights' },
   { to: '/users', icon: UserCog, label: 'User Management' },
   { to: '/tots', icon: UserCog, label: 'All TOTs' },
   { to: '/local-mrs', icon: Building2, label: 'Local MRs' },

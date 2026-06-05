@@ -10,13 +10,31 @@ import { toast } from 'sonner';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
-const SUGGESTIONS = [
-  'Give me an executive summary of this month',
-  'Which products are running low on stock?',
-  'Which Local MR is performing best?',
-  'How can we reduce operational costs?',
-  'Predict revenue for the next 30 days',
-  'What risks should I act on today?',
+const SUGGESTION_GROUPS: { label: string; questions: string[] }[] = [
+  { label: 'Sales', questions: [
+    'Give me an executive summary of sales this month',
+    'Which products drove the most revenue in the last 30 days?',
+    'Predict revenue for the next 30 days based on trend',
+  ]},
+  { label: 'Inventory', questions: [
+    'Which products are below minimum stock?',
+    'What is my current inventory value at cost?',
+    'Recommend a restock plan for low-stock items',
+  ]},
+  { label: 'Mechanisation', questions: [
+    'How many mechanisation jobs are pending or scheduled?',
+    'What is the completion rate of mechanisation jobs this month?',
+    'Which service types generated the most revenue?',
+  ]},
+  { label: 'Workforce', questions: [
+    'Which Local MR is performing best?',
+    'How many overdue follow-up visits do we have?',
+    'Are any TOTs inactive in the last 30 days?',
+  ]},
+  { label: 'Weather / External', questions: [
+    'What weather data do we currently track? What should we add?',
+    'How could market prices be integrated to improve decisions?',
+  ]},
 ];
 
 export function FIA() {

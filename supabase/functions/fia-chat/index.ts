@@ -119,12 +119,19 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const messages = Array.isArray(body?.messages) ? body.messages : [];
+    const mode: "dashboard" | "general" = body?.mode === "general" ? "general" : "dashboard";
 
-    const ctx = await getFarmContext(supabase);
-    const contextMessage = {
-      role: "system",
-      content: `Current farm data snapshot (JSON):\n\n${JSON.stringify(ctx)}\n\nUse this data to answer the next user question.`,
-    };
+    const systemMessages: { role: string; content: string }[] = [
+      { role: "system", content: mode === "general" ? GENERAL_PROMPT : DASHBOARD_PROMPT },
+    ];
+
+    if (mode === "dashboard") {
+      const ctx = await getFarmContext(supabase);
+      systemMessages.push({
+        role: "system",
+        content: `Current farm data snapshot (JSON):\n\n${JSON.stringify(ctx)}\n\nUse this data to answer the next user question.`,
+      });
+    }
 
     const upstream = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -135,11 +142,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         stream: true,
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          contextMessage,
-          ...messages,
-        ],
+        messages: [...systemMessages, ...messages],
       }),
     });
 

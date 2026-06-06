@@ -82,6 +82,8 @@ const managerNavItems = [
 // Admin: Full data entry and management access
 const adminNavItems = [
   { to: '/dashboard/admin', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/fia', icon: Sparkles, label: 'FIA Assistant' },
+  { to: '/insights', icon: Activity, label: 'AI Insights' },
   { to: '/users', icon: UserCog, label: 'User Management' },
   { to: '/tots', icon: UserCog, label: 'All TOTs' },
   { to: '/local-mrs', icon: Building2, label: 'Local MRs' },

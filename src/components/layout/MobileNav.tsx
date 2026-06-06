@@ -30,6 +30,8 @@ import {
   Shield,
   Bell,
   AlertCircle,
+  Sparkles,
+  Activity,
 } from 'lucide-react';
 import { toast } from 'sonner';
 

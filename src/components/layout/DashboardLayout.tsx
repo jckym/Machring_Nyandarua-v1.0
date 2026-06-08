@@ -3,6 +3,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { FloatingActions } from './FloatingActions';
+import { FloatingFIAButton } from './FloatingFIAButton';
 import { OfflineBanner } from './OfflineBanner';
 import { RouteTransition } from './RouteTransition';
 import { useAuth } from '@/contexts/AuthContext';
@@ -69,6 +70,7 @@ export function DashboardLayout() {
           </footer>
         </main>
       </div>
+      <FloatingFIAButton />
     </div>
   );
 }

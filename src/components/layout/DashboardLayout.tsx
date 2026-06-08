@@ -70,6 +70,8 @@ export function DashboardLayout() {
           </footer>
         </main>
       </div>
+      <FloatingActions />
+      <FloatingFIAButton />
     </div>
   );
 }

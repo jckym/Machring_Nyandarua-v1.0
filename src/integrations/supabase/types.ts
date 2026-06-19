@@ -98,7 +98,7 @@ export type Database = {
           period_start: string
           sales_count?: number
           status?: string
-          tenant_id: string
+          tenant_id?: string
           tot_id: string
           updated_at?: string
         }
@@ -143,7 +143,7 @@ export type Database = {
           date_of_birth?: string | null
           farmer_id: string
           id_number?: string | null
-          tenant_id: string
+          tenant_id?: string
           updated_at?: string
         }
         Update: {
@@ -213,7 +213,7 @@ export type Database = {
           registered_by?: string | null
           status?: string
           sub_county?: string | null
-          tenant_id: string
+          tenant_id?: string
           trainings_attended?: number
           updated_at?: string
           village?: string | null
@@ -288,7 +288,7 @@ export type Database = {
           region: string
           status?: string
           sub_county?: string | null
-          tenant_id: string
+          tenant_id?: string
           updated_at?: string
           ward?: string | null
         }
@@ -349,7 +349,7 @@ export type Database = {
           next_service_date?: string | null
           registration_number?: string | null
           status?: string
-          tenant_id: string
+          tenant_id?: string
           updated_at?: string
         }
         Update: {
@@ -421,7 +421,7 @@ export type Database = {
           start_date: string
           start_time?: string | null
           status?: string
-          tenant_id: string
+          tenant_id?: string
           tot_id?: string | null
           updated_at?: string
         }
@@ -519,7 +519,7 @@ export type Database = {
           performed_by?: string | null
           service_date: string
           service_type: string
-          tenant_id: string
+          tenant_id?: string
           updated_at?: string
         }
         Update: {
@@ -592,7 +592,7 @@ export type Database = {
           scheduled_time?: string | null
           service_type: string
           status?: string
-          tenant_id: string
+          tenant_id?: string
           tot_commission?: number | null
           tot_id: string
           total_cost?: number
@@ -670,7 +670,7 @@ export type Database = {
           id?: string
           push_notifications?: boolean
           sms_notifications?: boolean
-          tenant_id: string
+          tenant_id?: string
           updated_at?: string
           user_id: string
           weekly_reports?: boolean
@@ -717,7 +717,7 @@ export type Database = {
           message: string
           read?: boolean
           read_at?: string | null
-          tenant_id: string
+          tenant_id?: string
           title: string
           type?: string
           user_id?: string | null
@@ -781,7 +781,7 @@ export type Database = {
           selling_price?: number
           status?: string
           stock_quantity?: number
-          tenant_id: string
+          tenant_id?: string
           unit?: string
           unit_price?: number
           updated_at?: string
@@ -833,7 +833,7 @@ export type Database = {
           name: string
           phone?: string | null
           status?: string
-          tenant_id: string
+          tenant_id?: string
           updated_at?: string
         }
         Update: {
@@ -903,7 +903,7 @@ export type Database = {
           quantity: number
           regional_mr_commission?: number
           sale_date?: string
-          tenant_id: string
+          tenant_id?: string
           tot_commission?: number
           tot_id: string
           total_amount: number
@@ -1178,7 +1178,7 @@ export type Database = {
           id?: string
           local_mr_id: string
           status?: string
-          tenant_id: string
+          tenant_id?: string
           tot_id: string
         }
         Update: {
@@ -1222,7 +1222,7 @@ export type Database = {
           farmer_id?: string | null
           id?: string
           profile_id?: string | null
-          tenant_id: string
+          tenant_id?: string
           training_id: string
         }
         Update: {
@@ -1296,7 +1296,7 @@ export type Database = {
           scheduled_date: string
           scheduled_time?: string | null
           status?: string
-          tenant_id: string
+          tenant_id?: string
           title: string
           trainer?: string | null
           trainer_id: string
@@ -1352,7 +1352,7 @@ export type Database = {
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
-          tenant_id: string
+          tenant_id?: string
           user_id: string
         }
         Update: {
@@ -1402,7 +1402,7 @@ export type Database = {
           parent_visit_id?: string | null
           profile_id?: string | null
           purpose: string
-          tenant_id: string
+          tenant_id?: string
           tot_id: string
           updated_at?: string
           visit_date?: string

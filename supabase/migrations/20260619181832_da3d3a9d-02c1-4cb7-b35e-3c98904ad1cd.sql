@@ -1,0 +1,20 @@
+
+ALTER TABLE public.profiles                  ALTER COLUMN tenant_id SET DEFAULT public.get_user_tenant_id(auth.uid());
+ALTER TABLE public.user_roles                ALTER COLUMN tenant_id SET DEFAULT public.get_user_tenant_id(auth.uid());
+ALTER TABLE public.farmers                   ALTER COLUMN tenant_id SET DEFAULT public.get_user_tenant_id(auth.uid());
+ALTER TABLE public.farmer_private_data       ALTER COLUMN tenant_id SET DEFAULT public.get_user_tenant_id(auth.uid());
+ALTER TABLE public.local_mrs                 ALTER COLUMN tenant_id SET DEFAULT public.get_user_tenant_id(auth.uid());
+ALTER TABLE public.machinery                 ALTER COLUMN tenant_id SET DEFAULT public.get_user_tenant_id(auth.uid());
+ALTER TABLE public.machinery_bookings        ALTER COLUMN tenant_id SET DEFAULT public.get_user_tenant_id(auth.uid());
+ALTER TABLE public.machinery_service_history ALTER COLUMN tenant_id SET DEFAULT public.get_user_tenant_id(auth.uid());
+ALTER TABLE public.mechanisation_jobs        ALTER COLUMN tenant_id SET DEFAULT public.get_user_tenant_id(auth.uid());
+ALTER TABLE public.sales                     ALTER COLUMN tenant_id SET DEFAULT public.get_user_tenant_id(auth.uid());
+ALTER TABLE public.products                  ALTER COLUMN tenant_id SET DEFAULT public.get_user_tenant_id(auth.uid());
+ALTER TABLE public.trainings                 ALTER COLUMN tenant_id SET DEFAULT public.get_user_tenant_id(auth.uid());
+ALTER TABLE public.training_attendees        ALTER COLUMN tenant_id SET DEFAULT public.get_user_tenant_id(auth.uid());
+ALTER TABLE public.visits                    ALTER COLUMN tenant_id SET DEFAULT public.get_user_tenant_id(auth.uid());
+ALTER TABLE public.tot_assignments           ALTER COLUMN tenant_id SET DEFAULT public.get_user_tenant_id(auth.uid());
+ALTER TABLE public.commission_payouts        ALTER COLUMN tenant_id SET DEFAULT public.get_user_tenant_id(auth.uid());
+ALTER TABLE public.notifications             ALTER COLUMN tenant_id SET DEFAULT public.get_user_tenant_id(auth.uid());
+ALTER TABLE public.notification_settings     ALTER COLUMN tenant_id SET DEFAULT public.get_user_tenant_id(auth.uid());
+ALTER TABLE public.audit_logs                ALTER COLUMN tenant_id SET DEFAULT public.get_user_tenant_id(auth.uid());

@@ -26,6 +26,7 @@ export type Database = {
           entity_id: string | null
           id: string
           ip_address: string | null
+          tenant_id: string | null
           user_agent: string | null
         }
         Insert: {
@@ -39,6 +40,7 @@ export type Database = {
           entity_id?: string | null
           id?: string
           ip_address?: string | null
+          tenant_id?: string | null
           user_agent?: string | null
         }
         Update: {
@@ -52,9 +54,18 @@ export type Database = {
           entity_id?: string | null
           id?: string
           ip_address?: string | null
+          tenant_id?: string | null
           user_agent?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       commission_payouts: {
         Row: {
@@ -70,6 +81,7 @@ export type Database = {
           period_start: string
           sales_count: number
           status: string
+          tenant_id: string
           tot_id: string
           updated_at: string
         }
@@ -86,6 +98,7 @@ export type Database = {
           period_start: string
           sales_count?: number
           status?: string
+          tenant_id: string
           tot_id: string
           updated_at?: string
         }
@@ -102,10 +115,19 @@ export type Database = {
           period_start?: string
           sales_count?: number
           status?: string
+          tenant_id?: string
           tot_id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "commission_payouts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       farmer_private_data: {
         Row: {
@@ -113,6 +135,7 @@ export type Database = {
           date_of_birth: string | null
           farmer_id: string
           id_number: string | null
+          tenant_id: string
           updated_at: string
         }
         Insert: {
@@ -120,6 +143,7 @@ export type Database = {
           date_of_birth?: string | null
           farmer_id: string
           id_number?: string | null
+          tenant_id: string
           updated_at?: string
         }
         Update: {
@@ -127,6 +151,7 @@ export type Database = {
           date_of_birth?: string | null
           farmer_id?: string
           id_number?: string | null
+          tenant_id?: string
           updated_at?: string
         }
         Relationships: [
@@ -135,6 +160,13 @@ export type Database = {
             columns: ["farmer_id"]
             isOneToOne: true
             referencedRelation: "farmers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "farmer_private_data_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -157,6 +189,7 @@ export type Database = {
           registered_by: string | null
           status: string
           sub_county: string | null
+          tenant_id: string
           trainings_attended: number
           updated_at: string
           village: string | null
@@ -180,6 +213,7 @@ export type Database = {
           registered_by?: string | null
           status?: string
           sub_county?: string | null
+          tenant_id: string
           trainings_attended?: number
           updated_at?: string
           village?: string | null
@@ -203,6 +237,7 @@ export type Database = {
           registered_by?: string | null
           status?: string
           sub_county?: string | null
+          tenant_id?: string
           trainings_attended?: number
           updated_at?: string
           village?: string | null
@@ -215,6 +250,13 @@ export type Database = {
             columns: ["local_mr_id"]
             isOneToOne: false
             referencedRelation: "local_mrs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "farmers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -231,6 +273,7 @@ export type Database = {
           region: string
           status: string
           sub_county: string | null
+          tenant_id: string
           updated_at: string
           ward: string | null
         }
@@ -245,6 +288,7 @@ export type Database = {
           region: string
           status?: string
           sub_county?: string | null
+          tenant_id: string
           updated_at?: string
           ward?: string | null
         }
@@ -259,10 +303,19 @@ export type Database = {
           region?: string
           status?: string
           sub_county?: string | null
+          tenant_id?: string
           updated_at?: string
           ward?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "local_mrs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       machinery: {
         Row: {
@@ -279,6 +332,7 @@ export type Database = {
           next_service_date: string | null
           registration_number: string | null
           status: string
+          tenant_id: string
           updated_at: string
         }
         Insert: {
@@ -295,6 +349,7 @@ export type Database = {
           next_service_date?: string | null
           registration_number?: string | null
           status?: string
+          tenant_id: string
           updated_at?: string
         }
         Update: {
@@ -311,6 +366,7 @@ export type Database = {
           next_service_date?: string | null
           registration_number?: string | null
           status?: string
+          tenant_id?: string
           updated_at?: string
         }
         Relationships: [
@@ -319,6 +375,13 @@ export type Database = {
             columns: ["local_mr_id"]
             isOneToOne: false
             referencedRelation: "local_mrs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "machinery_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -339,6 +402,7 @@ export type Database = {
           start_date: string
           start_time: string | null
           status: string
+          tenant_id: string
           tot_id: string | null
           updated_at: string
         }
@@ -357,6 +421,7 @@ export type Database = {
           start_date: string
           start_time?: string | null
           status?: string
+          tenant_id: string
           tot_id?: string | null
           updated_at?: string
         }
@@ -375,6 +440,7 @@ export type Database = {
           start_date?: string
           start_time?: string | null
           status?: string
+          tenant_id?: string
           tot_id?: string | null
           updated_at?: string
         }
@@ -408,6 +474,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "machinery_bookings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "machinery_bookings_tot_id_fkey"
             columns: ["tot_id"]
             isOneToOne: false
@@ -430,6 +503,7 @@ export type Database = {
           performed_by: string | null
           service_date: string
           service_type: string
+          tenant_id: string
           updated_at: string
         }
         Insert: {
@@ -445,6 +519,7 @@ export type Database = {
           performed_by?: string | null
           service_date: string
           service_type: string
+          tenant_id: string
           updated_at?: string
         }
         Update: {
@@ -460,6 +535,7 @@ export type Database = {
           performed_by?: string | null
           service_date?: string
           service_type?: string
+          tenant_id?: string
           updated_at?: string
         }
         Relationships: [
@@ -468,6 +544,13 @@ export type Database = {
             columns: ["machinery_id"]
             isOneToOne: false
             referencedRelation: "machinery"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "machinery_service_history_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -488,6 +571,7 @@ export type Database = {
           scheduled_time: string | null
           service_type: string
           status: string
+          tenant_id: string
           tot_commission: number | null
           tot_id: string
           total_cost: number
@@ -508,6 +592,7 @@ export type Database = {
           scheduled_time?: string | null
           service_type: string
           status?: string
+          tenant_id: string
           tot_commission?: number | null
           tot_id: string
           total_cost?: number
@@ -528,6 +613,7 @@ export type Database = {
           scheduled_time?: string | null
           service_type?: string
           status?: string
+          tenant_id?: string
           tot_commission?: number | null
           tot_id?: string
           total_cost?: number
@@ -555,6 +641,13 @@ export type Database = {
             referencedRelation: "machinery"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "mechanisation_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       notification_settings: {
@@ -565,6 +658,7 @@ export type Database = {
           id: string
           push_notifications: boolean
           sms_notifications: boolean
+          tenant_id: string
           updated_at: string
           user_id: string
           weekly_reports: boolean
@@ -576,6 +670,7 @@ export type Database = {
           id?: string
           push_notifications?: boolean
           sms_notifications?: boolean
+          tenant_id: string
           updated_at?: string
           user_id: string
           weekly_reports?: boolean
@@ -587,11 +682,20 @@ export type Database = {
           id?: string
           push_notifications?: boolean
           sms_notifications?: boolean
+          tenant_id?: string
           updated_at?: string
           user_id?: string
           weekly_reports?: boolean
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "notification_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {
@@ -601,6 +705,7 @@ export type Database = {
           message: string
           read: boolean
           read_at: string | null
+          tenant_id: string
           title: string
           type: string
           user_id: string | null
@@ -612,6 +717,7 @@ export type Database = {
           message: string
           read?: boolean
           read_at?: string | null
+          tenant_id: string
           title: string
           type?: string
           user_id?: string | null
@@ -623,6 +729,7 @@ export type Database = {
           message?: string
           read?: boolean
           read_at?: string | null
+          tenant_id?: string
           title?: string
           type?: string
           user_id?: string | null
@@ -633,6 +740,13 @@ export type Database = {
             columns: ["local_mr_id"]
             isOneToOne: false
             referencedRelation: "local_mrs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -650,6 +764,7 @@ export type Database = {
           selling_price: number
           status: string
           stock_quantity: number
+          tenant_id: string
           unit: string
           unit_price: number
           updated_at: string
@@ -666,6 +781,7 @@ export type Database = {
           selling_price?: number
           status?: string
           stock_quantity?: number
+          tenant_id: string
           unit?: string
           unit_price?: number
           updated_at?: string
@@ -682,11 +798,20 @@ export type Database = {
           selling_price?: number
           status?: string
           stock_quantity?: number
+          tenant_id?: string
           unit?: string
           unit_price?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "products_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -697,6 +822,7 @@ export type Database = {
           name: string
           phone: string | null
           status: string
+          tenant_id: string
           updated_at: string
         }
         Insert: {
@@ -707,6 +833,7 @@ export type Database = {
           name: string
           phone?: string | null
           status?: string
+          tenant_id: string
           updated_at?: string
         }
         Update: {
@@ -717,9 +844,18 @@ export type Database = {
           name?: string
           phone?: string | null
           status?: string
+          tenant_id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sales: {
         Row: {
@@ -741,6 +877,7 @@ export type Database = {
           quantity: number
           regional_mr_commission: number
           sale_date: string
+          tenant_id: string
           tot_commission: number
           tot_id: string
           total_amount: number
@@ -766,6 +903,7 @@ export type Database = {
           quantity: number
           regional_mr_commission?: number
           sale_date?: string
+          tenant_id: string
           tot_commission?: number
           tot_id: string
           total_amount: number
@@ -791,6 +929,7 @@ export type Database = {
           quantity?: number
           regional_mr_commission?: number
           sale_date?: string
+          tenant_id?: string
           tot_commission?: number
           tot_id?: string
           total_amount?: number
@@ -819,7 +958,211 @@ export type Database = {
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "sales_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      subscription_plans: {
+        Row: {
+          annual_price_kes: number
+          created_at: string
+          display_name: string
+          features: Json
+          id: string
+          max_machines: number
+          max_users: number
+          monthly_price_kes: number
+          plan_type: Database["public"]["Enums"]["subscription_plan_type"]
+          updated_at: string
+        }
+        Insert: {
+          annual_price_kes?: number
+          created_at?: string
+          display_name: string
+          features?: Json
+          id?: string
+          max_machines: number
+          max_users: number
+          monthly_price_kes?: number
+          plan_type: Database["public"]["Enums"]["subscription_plan_type"]
+          updated_at?: string
+        }
+        Update: {
+          annual_price_kes?: number
+          created_at?: string
+          display_name?: string
+          features?: Json
+          id?: string
+          max_machines?: number
+          max_users?: number
+          monthly_price_kes?: number
+          plan_type?: Database["public"]["Enums"]["subscription_plan_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tenant_registration_requests: {
+        Row: {
+          address: string | null
+          admin_email: string
+          admin_full_name: string
+          branch_name: string | null
+          contact_person: string
+          county: string | null
+          created_at: string
+          created_tenant_id: string | null
+          email: string
+          id: string
+          organization_name: string
+          phone: string
+          registration_number: string | null
+          rejection_reason: string | null
+          requested_plan: Database["public"]["Enums"]["subscription_plan_type"]
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["registration_status"]
+          terms_accepted: boolean
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          admin_email: string
+          admin_full_name: string
+          branch_name?: string | null
+          contact_person: string
+          county?: string | null
+          created_at?: string
+          created_tenant_id?: string | null
+          email: string
+          id?: string
+          organization_name: string
+          phone: string
+          registration_number?: string | null
+          rejection_reason?: string | null
+          requested_plan?: Database["public"]["Enums"]["subscription_plan_type"]
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["registration_status"]
+          terms_accepted?: boolean
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          admin_email?: string
+          admin_full_name?: string
+          branch_name?: string | null
+          contact_person?: string
+          county?: string | null
+          created_at?: string
+          created_tenant_id?: string | null
+          email?: string
+          id?: string
+          organization_name?: string
+          phone?: string
+          registration_number?: string | null
+          rejection_reason?: string | null
+          requested_plan?: Database["public"]["Enums"]["subscription_plan_type"]
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["registration_status"]
+          terms_accepted?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_registration_requests_created_tenant_id_fkey"
+            columns: ["created_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenants: {
+        Row: {
+          address: string | null
+          branch_name: string | null
+          contact_person: string | null
+          county: string | null
+          created_at: string
+          currency: string
+          email: string
+          id: string
+          language: string
+          logo_url: string | null
+          max_machines: number
+          max_users: number
+          organization_name: string
+          phone: string | null
+          registration_number: string | null
+          status: Database["public"]["Enums"]["tenant_status"]
+          subscription_ends_at: string | null
+          subscription_plan: Database["public"]["Enums"]["subscription_plan_type"]
+          subscription_started_at: string | null
+          tenant_code: string
+          theme_color: string | null
+          timezone: string
+          trial_ends_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          branch_name?: string | null
+          contact_person?: string | null
+          county?: string | null
+          created_at?: string
+          currency?: string
+          email: string
+          id?: string
+          language?: string
+          logo_url?: string | null
+          max_machines?: number
+          max_users?: number
+          organization_name: string
+          phone?: string | null
+          registration_number?: string | null
+          status?: Database["public"]["Enums"]["tenant_status"]
+          subscription_ends_at?: string | null
+          subscription_plan?: Database["public"]["Enums"]["subscription_plan_type"]
+          subscription_started_at?: string | null
+          tenant_code: string
+          theme_color?: string | null
+          timezone?: string
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          branch_name?: string | null
+          contact_person?: string | null
+          county?: string | null
+          created_at?: string
+          currency?: string
+          email?: string
+          id?: string
+          language?: string
+          logo_url?: string | null
+          max_machines?: number
+          max_users?: number
+          organization_name?: string
+          phone?: string | null
+          registration_number?: string | null
+          status?: Database["public"]["Enums"]["tenant_status"]
+          subscription_ends_at?: string | null
+          subscription_plan?: Database["public"]["Enums"]["subscription_plan_type"]
+          subscription_started_at?: string | null
+          tenant_code?: string
+          theme_color?: string | null
+          timezone?: string
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       tot_assignments: {
         Row: {
@@ -827,6 +1170,7 @@ export type Database = {
           id: string
           local_mr_id: string
           status: string
+          tenant_id: string
           tot_id: string
         }
         Insert: {
@@ -834,6 +1178,7 @@ export type Database = {
           id?: string
           local_mr_id: string
           status?: string
+          tenant_id: string
           tot_id: string
         }
         Update: {
@@ -841,6 +1186,7 @@ export type Database = {
           id?: string
           local_mr_id?: string
           status?: string
+          tenant_id?: string
           tot_id?: string
         }
         Relationships: [
@@ -849,6 +1195,13 @@ export type Database = {
             columns: ["local_mr_id"]
             isOneToOne: false
             referencedRelation: "local_mrs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tot_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -860,6 +1213,7 @@ export type Database = {
           farmer_id: string | null
           id: string
           profile_id: string | null
+          tenant_id: string
           training_id: string
         }
         Insert: {
@@ -868,6 +1222,7 @@ export type Database = {
           farmer_id?: string | null
           id?: string
           profile_id?: string | null
+          tenant_id: string
           training_id: string
         }
         Update: {
@@ -876,6 +1231,7 @@ export type Database = {
           farmer_id?: string | null
           id?: string
           profile_id?: string | null
+          tenant_id?: string
           training_id?: string
         }
         Relationships: [
@@ -891,6 +1247,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_attendees_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
           {
@@ -914,6 +1277,7 @@ export type Database = {
           scheduled_date: string
           scheduled_time: string | null
           status: string
+          tenant_id: string
           title: string
           trainer: string | null
           trainer_id: string
@@ -932,6 +1296,7 @@ export type Database = {
           scheduled_date: string
           scheduled_time?: string | null
           status?: string
+          tenant_id: string
           title: string
           trainer?: string | null
           trainer_id: string
@@ -950,6 +1315,7 @@ export type Database = {
           scheduled_date?: string
           scheduled_time?: string | null
           status?: string
+          tenant_id?: string
           title?: string
           trainer?: string | null
           trainer_id?: string
@@ -965,6 +1331,13 @@ export type Database = {
             referencedRelation: "local_mrs"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "trainings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       user_roles: {
@@ -972,21 +1345,32 @@ export type Database = {
           created_at: string
           id: string
           role: Database["public"]["Enums"]["app_role"]
+          tenant_id: string
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          tenant_id: string
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          tenant_id?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       visits: {
         Row: {
@@ -1001,6 +1385,7 @@ export type Database = {
           parent_visit_id: string | null
           profile_id: string | null
           purpose: string
+          tenant_id: string
           tot_id: string
           updated_at: string
           visit_date: string
@@ -1017,6 +1402,7 @@ export type Database = {
           parent_visit_id?: string | null
           profile_id?: string | null
           purpose: string
+          tenant_id: string
           tot_id: string
           updated_at?: string
           visit_date?: string
@@ -1033,6 +1419,7 @@ export type Database = {
           parent_visit_id?: string | null
           profile_id?: string | null
           purpose?: string
+          tenant_id?: string
           tot_id?: string
           updated_at?: string
           visit_date?: string
@@ -1066,6 +1453,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "visits_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
@@ -1073,6 +1467,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_add_machine_to_tenant: {
+        Args: { _tenant_id: string }
+        Returns: boolean
+      }
+      can_add_user_to_tenant: { Args: { _tenant_id: string }; Returns: boolean }
       check_and_notify_overdue_followups: { Args: never; Returns: undefined }
       get_local_mr_performance: {
         Args: { _local_mr_id?: string }
@@ -1153,6 +1552,7 @@ export type Database = {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      get_user_tenant_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1164,6 +1564,7 @@ export type Database = {
         Args: { _local_mr_id: string; _user_id: string }
         Returns: boolean
       }
+      is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
       log_audit: {
         Args: {
           _action: string
@@ -1184,6 +1585,9 @@ export type Database = {
         | "office_employee"
         | "platform_super_admin"
         | "tenant_admin"
+      registration_status: "pending" | "approved" | "rejected"
+      subscription_plan_type: "starter" | "standard" | "enterprise"
+      tenant_status: "active" | "suspended" | "expired" | "pending"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1320,6 +1724,9 @@ export const Constants = {
         "platform_super_admin",
         "tenant_admin",
       ],
+      registration_status: ["pending", "approved", "rejected"],
+      subscription_plan_type: ["starter", "standard", "enterprise"],
+      tenant_status: ["active", "suspended", "expired", "pending"],
     },
   },
 } as const

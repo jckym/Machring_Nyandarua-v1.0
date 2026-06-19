@@ -1182,6 +1182,8 @@ export type Database = {
         | "local_mr_coordinator"
         | "tot"
         | "office_employee"
+        | "platform_super_admin"
+        | "tenant_admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1315,6 +1317,8 @@ export const Constants = {
         "local_mr_coordinator",
         "tot",
         "office_employee",
+        "platform_super_admin",
+        "tenant_admin",
       ],
     },
   },

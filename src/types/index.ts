@@ -3,7 +3,7 @@
 // -----------------------------
 // User Roles & Users
 // -----------------------------
-export type UserRole = 'admin' | 'manager' | 'local_mr_coordinator' | 'tot' | 'office_employee';
+export type UserRole = 'platform_super_admin' | 'tenant_admin' | 'admin' | 'manager' | 'local_mr_coordinator' | 'tot' | 'office_employee';
 
 export interface User {
   id: string;

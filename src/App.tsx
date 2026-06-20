@@ -10,6 +10,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { PlatformRoute } from "@/components/auth/PlatformRoute";
 import { RouteErrorBoundary } from "@/components/errors/RouteErrorBoundary";
 
 // Lazy load pages for code splitting
@@ -46,6 +47,13 @@ const NotFound = lazy(() => import("@/pages/NotFound"));
 const Install = lazy(() => import("@/pages/Install"));
 const FIA = lazy(() => import("@/pages/FIA").then(m => ({ default: m.FIA })));
 const Insights = lazy(() => import("@/pages/Insights").then(m => ({ default: m.Insights })));
+const Register = lazy(() => import("@/pages/Register"));
+const PlatformLayout = lazy(() => import("@/components/layout/PlatformLayout").then(m => ({ default: m.PlatformLayout })));
+const PlatformDashboard = lazy(() => import("@/pages/platform/PlatformDashboard"));
+const PlatformRegistrationRequests = lazy(() => import("@/pages/platform/RegistrationRequests"));
+const PlatformTenants = lazy(() => import("@/pages/platform/Tenants"));
+const PlatformAuditLogs = lazy(() => import("@/pages/platform/PlatformAuditLogs"));
+const PlatformSettings = lazy(() => import("@/pages/platform/PlatformSettings"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -84,8 +92,18 @@ const App = () => (
                   <Route path="/forgot-password" element={withRouteBoundary('Forgot password', <ForgotPassword />)} />
                   <Route path="/reset-password" element={withRouteBoundary('Reset password', <ResetPassword />)} />
                   <Route path="/install" element={withRouteBoundary('App installation', <Install />)} />
+                  <Route path="/register" element={withRouteBoundary('Tenant registration', <Register />)} />
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                  
+
+                  {/* Platform Super Admin routes */}
+                  <Route element={<PlatformRoute>{withRouteBoundary('Platform layout', <PlatformLayout />)}</PlatformRoute>}>
+                    <Route path="/platform" element={withRouteBoundary('Platform dashboard', <PlatformDashboard />)} />
+                    <Route path="/platform/requests" element={withRouteBoundary('Registration requests', <PlatformRegistrationRequests />)} />
+                    <Route path="/platform/tenants" element={withRouteBoundary('Tenants', <PlatformTenants />)} />
+                    <Route path="/platform/audit" element={withRouteBoundary('Platform audit logs', <PlatformAuditLogs />)} />
+                    <Route path="/platform/settings" element={withRouteBoundary('Platform settings', <PlatformSettings />)} />
+                  </Route>
+
                   {/* Protected routes */}
                   <Route element={<ProtectedRoute>{withRouteBoundary('Application layout', <DashboardLayout />)}</ProtectedRoute>}>
                     <Route path="/dashboard" element={withRouteBoundary('Dashboard', <Dashboard />)} />

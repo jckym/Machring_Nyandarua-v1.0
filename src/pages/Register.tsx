@@ -13,7 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 import { Database } from '@/integrations/supabase/types';
 
-type PlanType = Database['public']['Enums']['subscription_plan'];
+type PlanType = Database['public']['Enums']['subscription_plan_type'];
 
 const schema = z.object({
   organization_name: z.string().trim().min(2).max(150),

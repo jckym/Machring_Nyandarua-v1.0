@@ -1467,6 +1467,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_tenant_request: { Args: { _request_id: string }; Returns: string }
       can_add_machine_to_tenant: {
         Args: { _tenant_id: string }
         Returns: boolean
@@ -1574,6 +1575,10 @@ export type Database = {
           _entity_id: string
         }
         Returns: string
+      }
+      reject_tenant_request: {
+        Args: { _reason: string; _request_id: string }
+        Returns: undefined
       }
     }
     Enums: {

@@ -132,8 +132,8 @@ export function Auth() {
               </Button>
               
               <p className="text-xs text-center text-muted-foreground pt-2">
-                User accounts are created by system administrators.
-                Contact your admin if you need access.
+                Want to onboard your Machinery Ring?{' '}
+                <a href="/register" className="font-medium text-primary hover:underline">Register your organization</a>
               </p>
             </form>
           </CardContent>

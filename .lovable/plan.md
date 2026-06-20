@@ -1,99 +1,49 @@
-# Transform MR Nyandarua → Multi-Tenant SaaS Platform
+# Phase 1 — Multi-Tenant SaaS Conversion
 
-This is a major architectural change. The current app is built as a single-organization system: every table, RLS policy, role hierarchy, dashboard, and edge function assumes one Machinery Ring. Converting it to a multi-tenant SaaS touches **every table, every page, every policy, and every edge function**. It cannot be done in one pass — I'm proposing a phased rollout.
+This is a large, multi-step refactor. I'll deliver it in 4 sequential migration+code waves so each wave is reviewable and never breaks the running app. Foundation already exists (tenants, tenant_registration_requests, subscription_plans, tenant_id on 19 tables, helper functions, platform_super_admin role).
 
-Before I start, I need decisions on a few key questions (see "Open Questions" at the bottom).
+## Wave A — Data model finalization (DB migration)
+- Add missing columns to `tenant_registration_requests`: `branch_name`, `county`, `address`, `subscription_plan` (text), `terms_accepted` (bool).
+- Add missing columns to `tenants`: ensure `branch_name`, `county`, `address`, `logo_url`, `contact_person` exist (add if missing).
+- Add RLS policy: anyone (anon) can `INSERT` into `tenant_registration_requests`; only `platform_super_admin` can `SELECT/UPDATE`.
+- Add `approve_tenant_request(request_id, plan_id)` SECURITY DEFINER function: creates tenant with auto code `MR-00001`, returns tenant_id. (User account creation happens via edge function after approval since it needs auth admin API.)
+- Add `reject_tenant_request(request_id, reason)` function.
+- Auto-generate `tenant_code` via sequence + trigger.
+- Audit triggers on tenants & requests.
 
----
+## Wave B — Public registration + Approval edge function
+- `src/pages/Register.tsx` — public SaaS onboarding form (4 sections, zod validation, inserts into `tenant_registration_requests`, shows pending-review confirmation). No auth, no user/tenant creation.
+- Edge function `approve-tenant-request`: validates caller is platform_super_admin, calls `approve_tenant_request` SQL fn, creates auth user with admin API, assigns `tenant_admin` role, links to tenant, sends email via Resend.
+- Edge function `reject-tenant-request`: requires reason, updates request, sends rejection email.
+- Add `/register` route in `App.tsx` (public).
 
-## Scope Overview
+## Wave C — Auth context + route guards
+- Extend `AuthContext` to load `tenant` + expose `tenantId`, `isPlatformAdmin`, `isTenantAdmin`. Block login if tenant `status != 'active'` (except platform admins). Show suspension screen.
+- New guards: `PlatformRoute` (platform_super_admin only), `TenantRoute` (active tenant required). Keep existing `ProtectedRoute` working.
+- Update `DashboardLayout` redirect: platform admins → `/platform`.
 
-**Add:** `tenants` table, `platform_super_admin` role, tenant onboarding flow, tenant-scoped RLS on every business table, platform admin dashboard, subscription management, tenant settings, branding per tenant.
+## Wave D — Platform Super Admin UI
+- Layout: `src/components/layout/PlatformLayout.tsx` + sidebar (Dashboard, Requests, Tenants, Audit Logs, Settings).
+- Pages under `src/pages/platform/`:
+  - `PlatformDashboard.tsx` — metric cards (requests, pending, active/suspended tenants, users, machinery, revenue) + simple charts using existing Recharts.
+  - `RegistrationRequests.tsx` — table + view/approve/reject modals (calls edge functions).
+  - `Tenants.tsx` — table with suspend/activate/edit actions (direct table updates restricted by RLS to platform admin).
+  - `PlatformAuditLogs.tsx` — reuses existing `audit_logs` table filtered to tenant/platform actions.
+  - `PlatformSettings.tsx` — manage subscription plans.
+- Wire routes in `App.tsx` under `/platform/*` behind `PlatformRoute`.
 
-**Refactor:** Every existing table gets `tenant_id`. Every RLS policy rewritten. Every query scoped. Existing data migrated into a "default" tenant.
+## Wave E — RLS hardening (final wave)
+- Rewrite policies on all 19 tenant-scoped tables to enforce `tenant_id = get_user_tenant_id(auth.uid()) OR is_platform_admin(auth.uid())` in addition to existing role checks. Existing in-tenant queries continue to work because `tenant_id` was backfilled and defaulted.
+- Add platform-admin override policies to `tenants` and `tenant_registration_requests`.
 
-**Defer (phase 2+):** GPS/fleet tracking, 2FA, SMS notifications, billing integration (Stripe), workspace subdomains, advanced fuel monitoring.
+## What stays untouched
+- Existing dashboards, sidebar, business pages, hooks. The seed tenant ("Machinery Ring Nyandarua") carries all current data, so the existing UI keeps working identically for current users.
 
----
+## Technical notes
+- Tenant code generation: Postgres sequence `tenant_code_seq` + `LPAD(nextval()::text, 5, '0')` prefixed `MR-`.
+- Approval flow: SQL fn creates tenant + updates request in a transaction; edge fn then provisions auth user — if user creation fails, edge fn rolls back by deleting tenant and reverting request.
+- Plan limits already enforced via `can_add_user_to_tenant` / `can_add_machine_to_tenant`.
+- Emails use existing Resend integration.
 
-## Phased Plan
-
-### Phase 1 — Foundation (this plan covers Phase 1 only)
-Goal: working multi-tenant data model with isolation, onboarding, and platform admin.
-
-1. **DB migration**
-   - Create `tenants` (id, tenant_code, organization_name, branch_name, logo_url, email, phone, county, address, status [active/suspended/expired], subscription_plan [starter/standard/enterprise], trial_ends_at, created_at).
-   - Create `subscription_plans` reference table with user/machine limits.
-   - Add `platform_super_admin` to `app_role` enum.
-   - Add nullable `tenant_id uuid` to every business table: `profiles`, `farmers`, `local_mrs`, `machinery`, `machinery_bookings`, `machinery_service_history`, `mechanisation_jobs`, `sales`, `products`, `trainings`, `training_attendees`, `visits`, `tot_assignments`, `commission_payouts`, `notifications`, `notification_settings`, `audit_logs`, `user_roles`.
-   - Backfill all existing rows with a single "MR Nyandarua (default)" tenant.
-   - Set `tenant_id` NOT NULL after backfill.
-   - Add `get_user_tenant_id(_user_id)` security-definer function.
-   - Add `is_platform_admin(_user_id)` security-definer function.
-   - Rewrite every RLS policy to add `tenant_id = get_user_tenant_id(auth.uid())` (or platform admin bypass).
-   - Add `GRANT` statements for the new tables.
-
-2. **Edge functions**
-   - New `create-tenant` function: creates tenant row, creates admin auth user, assigns `tenant_admin` role, seeds tenant defaults.
-   - Update `create-user`, `delete-user`, `purge-farmer`, `bootstrap-admin`, `fia-*`, `followup-reminders`, `send-notification-email` to be tenant-aware.
-
-3. **Auth & routing**
-   - Extend `AuthContext` to load `tenantId`, `tenantName`, `tenantLogo`, `isPlatformAdmin`.
-   - New public route `/register` — tenant onboarding form (organization info, admin info, plan selection, T&C).
-   - Login stays single portal; redirect logic: platform_super_admin → `/platform`, tenant users → existing `/dashboard`.
-   - `ProtectedRoute` enforces tenant scope and blocks suspended tenants.
-
-4. **Platform Super Admin area** (`/platform/*`)
-   - Dashboard: total tenants, active, machines, operators, farmers, monthly revenue, expiring subscriptions.
-   - Tenants list: table with view/edit/suspend/activate/delete actions.
-   - Tenant detail page.
-   - System logs viewer (reuse audit_logs filtered platform-wide).
-
-5. **Tenant Settings** (existing `/settings` extended)
-   - Organization profile (name, logo upload, contacts, address).
-   - Branding (theme color, dashboard logo) — applied via CSS variables.
-   - Preferences (currency, timezone — feature-flagged for phase 1).
-   - Subscription status card (read-only in phase 1).
-
-6. **Tenant scoping in app code**
-   - Audit every `useQuery`/Supabase call and rely on RLS for isolation (no client-side `.eq('tenant_id', …)` needed since RLS enforces it, but include it as defense-in-depth on writes).
-   - Update insert paths to set `tenant_id` from auth context.
-
-7. **Branding application**
-   - Tenant logo replaces hardcoded `/mrlogo.png` in `Sidebar`, `Header`, `Auth`, `NotFound`.
-   - Hardcoded "Machinery Ring Nyandarua" string replaced with `tenant.organization_name`.
-
-### Phase 2 (separate plan, after Phase 1 ships)
-- Subscription enforcement (block creates when over plan limits).
-- Stripe billing integration.
-- Email notifications for onboarding, subscription expiry.
-- Per-tenant subdomain routing (`mr-0001.platform.com`).
-- 2FA, rate limiting hardening.
-
-### Phase 3
-- Fleet/GPS tracking, fuel monitoring, geofencing, route history.
-- SMS notifications channel.
-- Advanced platform analytics (tenant growth charts, revenue trends).
-
----
-
-## Technical Notes
-
-- **Data isolation strategy:** shared schema + `tenant_id` column + RLS. Simplest path on Supabase; no per-tenant schema or DB.
-- **No subdomains in phase 1** — all tenants share one URL; tenant resolved from JWT/profile. Subdomain routing added in phase 2 if desired.
-- **Existing data:** wrapped into one seed tenant so nothing breaks for current users on day one.
-- **Two new roles:** `platform_super_admin` (cross-tenant) and `tenant_admin` (replaces current `admin` semantics inside a tenant). Existing `admin`/`manager`/`local_mr_coordinator`/`tot` roles stay but become tenant-scoped.
-- **Onboarding email confirmation:** project rule requires email verification — new tenant admins must verify before first login. Confirmed via existing auth config.
-- **Rate limiting:** Lovable Cloud has no standard rate-limiting primitive. Flagged as Phase 2.
-
----
-
-## Open Questions (need answers before I start)
-
-1. **Existing data:** confirm I should migrate all current MR Nyandarua data into a single seed tenant named "Machinery Ring Nyandarua"?
-2. **Platform Super Admin account:** who is the first platform admin? Use the existing bootstrap admin (`BOOTSTRAP_ADMIN_EMAIL`) and promote them, or create a new email?
-3. **Self-serve registration:** should `/register` be open to anyone on the internet (with email verification gating activation), or admin-approval-required?
-4. **Subscription plans in Phase 1:** store plan choice + show status only, or also enforce limits (e.g. block 21st user on Starter)?
-5. **Custom branding scope:** tenant logo + org name in Phase 1 is straightforward. Should I also do per-tenant theme color now, or defer?
-
-Once you answer those, I'll execute Phase 1 end-to-end (migration, edge functions, onboarding page, platform admin area, tenant settings, branding).
+## Execution order
+I'll start with **Wave A migration** (single SQL migration). After approval & types regen I'll proceed wave by wave, pausing only if you ask. Confirm to begin Wave A.

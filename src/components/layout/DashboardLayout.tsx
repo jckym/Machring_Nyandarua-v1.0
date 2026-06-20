@@ -17,6 +17,12 @@ export function DashboardLayout() {
   useEffect(() => {
     if (!user) return;
 
+    // Platform admins always belong on /platform
+    if (user.role === 'platform_super_admin') {
+      navigate('/platform', { replace: true });
+      return;
+    }
+
     const currentPath = location.pathname;
     const isAtRootDashboard = currentPath === '/dashboard' || currentPath === '/dashboard/';
 
@@ -34,6 +40,7 @@ export function DashboardLayout() {
           redirectPath = '/dashboard/manager';
           break;
         case 'admin':
+        case 'tenant_admin':
           redirectPath = '/dashboard/admin';
           break;
       }

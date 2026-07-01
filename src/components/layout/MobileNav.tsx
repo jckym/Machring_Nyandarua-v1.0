@@ -157,19 +157,21 @@ export function MobileNav() {
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 p-1.5 flex items-center justify-center bg-white rounded-lg">
               <img
-                src="/mrlogo.png"
-                alt="Machinery Ring Logo"
+                src={tenant?.logo_url || '/mrlogo.png'}
+                alt={tenant?.organization_name || 'MR Connect'}
                 className="w-full h-full object-contain"
+                onError={(e) => { (e.target as HTMLImageElement).src = '/mrlogo.png'; }}
               />
             </div>
-            <div>
-              <SheetTitle className="text-sidebar-foreground font-heading text-lg">
-                Machinery Ring
+            <div className="min-w-0">
+              <SheetTitle className="text-sidebar-foreground font-heading text-lg truncate">
+                {tenant?.organization_name || 'MR Connect'}
               </SheetTitle>
-              <p className="text-xs text-sidebar-foreground/70">Nyandarua</p>
+              <p className="text-xs text-sidebar-foreground/70 truncate">{tenant?.branch_name || tenant?.tagline || 'Machinery Ring'}</p>
             </div>
           </div>
         </SheetHeader>
+
 
         {/* User Profile */}
         <div className="p-5 border-b border-sidebar-border">

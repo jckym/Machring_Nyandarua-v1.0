@@ -10,14 +10,17 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, CheckCircle2 } from 'lucide-react';
+import { Loader2, CheckCircle2, Building2 } from 'lucide-react';
 import { Database } from '@/integrations/supabase/types';
 
 type PlanType = Database['public']['Enums']['subscription_plan_type'];
 
 const schema = z.object({
-  organization_name: z.string().trim().min(2).max(150),
+  organization_name: z.string().trim().min(2, 'Organization name is required').max(150),
   branch_name: z.string().trim().max(150).optional().or(z.literal('')),
+  tagline: z.string().trim().max(160).optional().or(z.literal('')),
+  logo_url: z.string().trim().url('Logo URL must be a valid URL').max(500).optional().or(z.literal('')),
+  theme_color: z.string().trim().regex(/^#([0-9a-fA-F]{6})$/, 'Use a hex color like #2E7D32').optional().or(z.literal('')),
   registration_number: z.string().trim().max(80).optional().or(z.literal('')),
   contact_person: z.string().trim().min(2).max(120),
   phone: z.string().trim().min(7).max(30),
@@ -26,19 +29,15 @@ const schema = z.object({
   address: z.string().trim().min(2).max(300),
   admin_full_name: z.string().trim().min(2).max(120),
   admin_email: z.string().trim().email().max(255),
-  password: z.string().min(8, 'Password must be at least 8 characters').max(72),
-  confirm_password: z.string(),
   requested_plan: z.enum(['starter', 'professional', 'enterprise']),
   terms_accepted: z.literal(true, { errorMap: () => ({ message: 'You must accept the terms' }) }),
-}).refine((d) => d.password === d.confirm_password, {
-  message: 'Passwords do not match', path: ['confirm_password'],
 });
 
 export default function Register() {
   const [form, setForm] = useState({
-    organization_name: '', branch_name: '', registration_number: '',
-    contact_person: '', phone: '', email: '', county: '', address: '',
-    admin_full_name: '', admin_email: '', password: '', confirm_password: '',
+    organization_name: '', branch_name: '', tagline: '', logo_url: '', theme_color: '#2E7D32',
+    registration_number: '', contact_person: '', phone: '', email: '', county: '', address: '',
+    admin_full_name: '', admin_email: '',
     requested_plan: 'starter' as PlanType, terms_accepted: false,
   });
   const [plans, setPlans] = useState<Array<{ plan_type: PlanType; display_name: string; max_users: number; max_machines: number; monthly_price_kes: number | null }>>([]);
@@ -65,6 +64,9 @@ export default function Register() {
     const { error } = await supabase.from('tenant_registration_requests').insert({
       organization_name: form.organization_name.trim(),
       branch_name: form.branch_name.trim() || null,
+      tagline: form.tagline.trim() || null,
+      logo_url: form.logo_url.trim() || null,
+      theme_color: form.theme_color.trim() || null,
       registration_number: form.registration_number.trim() || null,
       contact_person: form.contact_person.trim(),
       phone: form.phone.trim(),
@@ -78,10 +80,7 @@ export default function Register() {
       status: 'pending',
     });
     setSubmitting(false);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
+    if (error) { toast.error(error.message); return; }
     setSubmitted(true);
   };
 
@@ -95,8 +94,8 @@ export default function Register() {
             </div>
             <CardTitle>Registration submitted</CardTitle>
             <CardDescription>
-              Your organization registration has been submitted successfully and is awaiting review by the Platform Administrator.
-              You'll receive an email at <strong>{form.admin_email}</strong> once a decision is made.
+              Your organization registration has been submitted and is awaiting Platform Administrator review.
+              You'll receive an email at <strong>{form.admin_email}</strong> with your login password once approved.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -111,31 +110,61 @@ export default function Register() {
     <div className="min-h-screen bg-muted/30 py-8 px-4">
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold">Register your Machinery Ring</h1>
-          <p className="text-muted-foreground">Submit your organization for platform onboarding.</p>
+          <Link to="/" className="inline-flex items-center gap-2 mb-3">
+            <img src="/mrlogo.png" alt="MR Connect" className="h-10 w-10" />
+            <span className="font-bold text-lg">MR Connect</span>
+          </Link>
+          <h1 className="text-3xl font-bold">Onboard your organization</h1>
+          <p className="text-muted-foreground">Submit your Machinery Ring / cooperative for platform review.</p>
         </div>
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <Card>
             <CardHeader><CardTitle>Organization information</CardTitle></CardHeader>
             <CardContent className="grid sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2"><Label>Organization name *</Label><Input value={form.organization_name} onChange={(e) => update('organization_name')(e.target.value)} /></div>
-              <div><Label>Branch name</Label><Input value={form.branch_name} onChange={(e) => update('branch_name')(e.target.value)} /></div>
+              <div><Label>Branch name</Label><Input value={form.branch_name} onChange={(e) => update('branch_name')(e.target.value)} placeholder="e.g. Nyandarua" /></div>
               <div><Label>Registration number</Label><Input value={form.registration_number} onChange={(e) => update('registration_number')(e.target.value)} /></div>
               <div><Label>Contact person *</Label><Input value={form.contact_person} onChange={(e) => update('contact_person')(e.target.value)} /></div>
               <div><Label>Phone *</Label><Input value={form.phone} onChange={(e) => update('phone')(e.target.value)} /></div>
-              <div><Label>Email *</Label><Input type="email" value={form.email} onChange={(e) => update('email')(e.target.value)} /></div>
+              <div><Label>Organization email *</Label><Input type="email" value={form.email} onChange={(e) => update('email')(e.target.value)} /></div>
               <div><Label>County *</Label><Input value={form.county} onChange={(e) => update('county')(e.target.value)} /></div>
               <div className="sm:col-span-2"><Label>Physical address *</Label><Textarea rows={2} value={form.address} onChange={(e) => update('address')(e.target.value)} /></div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader><CardTitle>Administrator account</CardTitle><CardDescription>This person will be your tenant admin after approval.</CardDescription></CardHeader>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Building2 className="h-5 w-5 text-primary" /> Branding</CardTitle>
+              <CardDescription>How your organization appears inside MR Connect after approval.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid sm:grid-cols-2 gap-4">
+              <div className="sm:col-span-2"><Label>Tagline</Label><Input value={form.tagline} onChange={(e) => update('tagline')(e.target.value)} placeholder="e.g. Empowering smallholder farmers" maxLength={160} /></div>
+              <div><Label>Logo URL</Label><Input value={form.logo_url} onChange={(e) => update('logo_url')(e.target.value)} placeholder="https://…/logo.png" /></div>
+              <div>
+                <Label>Brand color</Label>
+                <div className="flex items-center gap-2">
+                  <Input type="color" value={form.theme_color} onChange={(e) => update('theme_color')(e.target.value)} className="w-14 h-10 p-1" />
+                  <Input value={form.theme_color} onChange={(e) => update('theme_color')(e.target.value)} placeholder="#2E7D32" />
+                </div>
+              </div>
+              {form.logo_url && (
+                <div className="sm:col-span-2 flex items-center gap-3 p-3 rounded-lg border bg-muted/30">
+                  <img src={form.logo_url} alt="Preview" className="h-12 w-12 object-contain rounded" onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')} />
+                  <div className="text-sm">
+                    <div className="font-semibold">{form.organization_name || 'Your Organization'}</div>
+                    {form.tagline && <div className="text-xs text-muted-foreground">{form.tagline}</div>}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle>Administrator account</CardTitle><CardDescription>This person will be the tenant admin after approval. The platform administrator will issue a password by email.</CardDescription></CardHeader>
             <CardContent className="grid sm:grid-cols-2 gap-4">
               <div><Label>Full name *</Label><Input value={form.admin_full_name} onChange={(e) => update('admin_full_name')(e.target.value)} /></div>
               <div><Label>Admin email *</Label><Input type="email" value={form.admin_email} onChange={(e) => update('admin_email')(e.target.value)} /></div>
-              <div><Label>Password *</Label><Input type="password" value={form.password} onChange={(e) => update('password')(e.target.value)} /></div>
-              <div><Label>Confirm password *</Label><Input type="password" value={form.confirm_password} onChange={(e) => update('confirm_password')(e.target.value)} /></div>
             </CardContent>
           </Card>
 

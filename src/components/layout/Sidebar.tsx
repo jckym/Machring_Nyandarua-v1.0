@@ -158,21 +158,23 @@ export function Sidebar() {
         {/* Logo */}
         <div className="h-20 px-4 flex items-center border-b border-sidebar-border">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 p-1 flex items-center justify-center">
+            <div className="w-12 h-12 p-1 flex items-center justify-center bg-white/10 rounded">
               <img
-                src="/mrlogo.png"
-                alt="Machinery Ring Logo"
+                src={tenant?.logo_url || '/mrlogo.png'}
+                alt={tenant?.organization_name || 'MR Connect'}
                 className="w-full h-full object-contain"
+                onError={(e) => { (e.target as HTMLImageElement).src = '/mrlogo.png'; }}
               />
             </div>
             {!collapsed && (
-              <div>
-                <p className="font-bold text-sm">Machinery Ring</p>
-                <p className="text-xs opacity-70">Nyandarua</p>
+              <div className="min-w-0">
+                <p className="font-bold text-sm truncate">{tenant?.organization_name || 'MR Connect'}</p>
+                <p className="text-xs opacity-70 truncate">{tenant?.branch_name || tenant?.tagline || 'Machinery Ring'}</p>
               </div>
             )}
           </div>
         </div>
+
 
         {/* User */}
         <div className="p-4 border-b border-sidebar-border">

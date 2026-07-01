@@ -2,6 +2,7 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
+import Suspended from '@/pages/Suspended';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -9,10 +10,9 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading, user, tenant } = useAuth();
   const location = useLocation();
 
-  // Show loading spinner while auth is initializing
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
@@ -21,15 +21,20 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     );
   }
 
-  // Redirect unauthenticated users to login
   if (!isAuthenticated) {
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
-  // Check role-based access
+  // Tenant status guard — platform admins bypass
+  if (user && user.role !== 'platform_super_admin' && tenant && tenant.status !== 'active') {
+    return <Suspended />;
+  }
+
+  // Role-based access
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
     return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;
 }
+

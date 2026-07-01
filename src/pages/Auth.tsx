@@ -77,10 +77,10 @@ export function Auth() {
             <img src="/mrlogo.png" alt="Machinery Ring Logo" className="w-16 h-16 object-contain" />
           </div>
           <h1 className="text-2xl font-heading font-bold text-foreground">
-            Machinery Ring Nyandarua
+            MR Connect
           </h1>
           <p className="text-muted-foreground mt-1">
-            Operations Management Dashboard
+            Sign in to your Machinery Ring workspace
           </p>
         </div>
 

@@ -1018,6 +1018,7 @@ export type Database = {
           created_tenant_id: string | null
           email: string
           id: string
+          logo_url: string | null
           organization_name: string
           phone: string
           registration_number: string | null
@@ -1026,7 +1027,9 @@ export type Database = {
           reviewed_at: string | null
           reviewed_by: string | null
           status: Database["public"]["Enums"]["registration_status"]
+          tagline: string | null
           terms_accepted: boolean
+          theme_color: string | null
           updated_at: string
         }
         Insert: {
@@ -1040,6 +1043,7 @@ export type Database = {
           created_tenant_id?: string | null
           email: string
           id?: string
+          logo_url?: string | null
           organization_name: string
           phone: string
           registration_number?: string | null
@@ -1048,7 +1052,9 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: Database["public"]["Enums"]["registration_status"]
+          tagline?: string | null
           terms_accepted?: boolean
+          theme_color?: string | null
           updated_at?: string
         }
         Update: {
@@ -1062,6 +1068,7 @@ export type Database = {
           created_tenant_id?: string | null
           email?: string
           id?: string
+          logo_url?: string | null
           organization_name?: string
           phone?: string
           registration_number?: string | null
@@ -1070,7 +1077,9 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: Database["public"]["Enums"]["registration_status"]
+          tagline?: string | null
           terms_accepted?: boolean
+          theme_color?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1104,6 +1113,7 @@ export type Database = {
           subscription_ends_at: string | null
           subscription_plan: Database["public"]["Enums"]["subscription_plan_type"]
           subscription_started_at: string | null
+          tagline: string | null
           tenant_code: string
           theme_color: string | null
           timezone: string
@@ -1130,6 +1140,7 @@ export type Database = {
           subscription_ends_at?: string | null
           subscription_plan?: Database["public"]["Enums"]["subscription_plan_type"]
           subscription_started_at?: string | null
+          tagline?: string | null
           tenant_code: string
           theme_color?: string | null
           timezone?: string
@@ -1156,6 +1167,7 @@ export type Database = {
           subscription_ends_at?: string | null
           subscription_plan?: Database["public"]["Enums"]["subscription_plan_type"]
           subscription_started_at?: string | null
+          tagline?: string | null
           tenant_code?: string
           theme_color?: string | null
           timezone?: string

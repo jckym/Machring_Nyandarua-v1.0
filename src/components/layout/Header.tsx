@@ -10,7 +10,7 @@ import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { useAuth } from '@/contexts/AuthContext';
 
 export function Header() {
-  const { user } = useAuth();
+  const { user, tenant } = useAuth();
   const navigate = useNavigate();
   const isOnline = navigator.onLine;
 
@@ -68,11 +68,12 @@ export function Header() {
         {/* Mobile title */}
         <div className="sm:hidden flex items-center gap-2">
           <div className="w-2 h-8 bg-gradient-to-b from-forest to-emerald-600 rounded-full" />
-          <div>
-            <h2 className="font-heading text-base font-semibold text-foreground">MR Nyandarua</h2>
+          <div className="min-w-0">
+            <h2 className="font-heading text-base font-semibold text-foreground truncate">{tenant?.organization_name || 'MR Connect'}</h2>
             <p className="text-xs text-muted-foreground">{getRoleTitle()}</p>
           </div>
         </div>
+
       </div>
 
       {/* Right: Search + Status + Notifications + Settings */}

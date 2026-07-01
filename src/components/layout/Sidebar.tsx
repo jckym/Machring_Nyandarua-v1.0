@@ -112,7 +112,7 @@ const adminNavItems: NavItem[] = [
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
-  const { user, signOut } = useAuth();
+  const { user, signOut, tenant } = useAuth();
   const navigate = useNavigate();
 
   const navItems =

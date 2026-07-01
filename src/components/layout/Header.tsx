@@ -10,7 +10,7 @@ import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { useAuth } from '@/contexts/AuthContext';
 
 export function Header() {
-  const { user } = useAuth();
+  const { user, tenant } = useAuth();
   const navigate = useNavigate();
   const isOnline = navigator.onLine;
 

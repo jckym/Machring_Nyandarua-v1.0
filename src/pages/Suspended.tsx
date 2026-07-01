@@ -4,7 +4,7 @@ import { ShieldAlert } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function Suspended() {
-  const { tenant, logout } = useAuth();
+  const { tenant, signOut } = useAuth();
   const status = tenant?.status ?? 'suspended';
   const isSuspended = status === 'suspended';
   return (
@@ -20,7 +20,7 @@ export default function Suspended() {
               ? `Your organization${tenant?.organization_name ? ` (${tenant.organization_name})` : ''} has been suspended. Please contact the platform administrator to restore access.`
               : `Your organization status is "${status}" and cannot access MR Connect right now.`}
           </p>
-          <Button onClick={logout} variant="outline" className="w-full">Sign out</Button>
+          <Button onClick={() => signOut()} variant="outline" className="w-full">Sign out</Button>
         </CardContent>
       </Card>
     </div>

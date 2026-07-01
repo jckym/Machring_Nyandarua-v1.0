@@ -102,7 +102,7 @@ const adminNavItems = [
 
 export function MobileNav() {
   const [open, setOpen] = useState(false);
-  const { user, signOut } = useAuth();
+  const { user, signOut, tenant } = useAuth();
   const navigate = useNavigate();
 
   const navItems =

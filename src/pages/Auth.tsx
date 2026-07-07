@@ -133,7 +133,7 @@ export function Auth() {
               
               <p className="text-xs text-center text-muted-foreground pt-2">
                 Want to onboard your Machinery Ring?{' '}
-                <a href="/register" className="font-medium text-primary hover:underline">Register your organization</a>
+                <a href="/signup" className="font-medium text-primary hover:underline">Sign up your organization</a>
               </p>
             </form>
           </CardContent>

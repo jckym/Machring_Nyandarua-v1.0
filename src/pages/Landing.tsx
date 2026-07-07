@@ -36,7 +36,7 @@ export default function Landing() {
           </Link>
           <nav className="flex items-center gap-2">
             <Link to="/auth"><Button variant="ghost" size="sm">Sign in</Button></Link>
-            <Link to="/register"><Button size="sm">Register organization</Button></Link>
+            <Link to="/signup"><Button size="sm">Sign up</Button></Link>
           </nav>
         </div>
       </header>

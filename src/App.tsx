@@ -48,6 +48,7 @@ const Install = lazy(() => import("@/pages/Install"));
 const FIA = lazy(() => import("@/pages/FIA").then(m => ({ default: m.FIA })));
 const Insights = lazy(() => import("@/pages/Insights").then(m => ({ default: m.Insights })));
 const Register = lazy(() => import("@/pages/Register"));
+const Signup = lazy(() => import("@/pages/Signup"));
 const Landing = lazy(() => import("@/pages/Landing"));
 const PlatformLayout = lazy(() => import("@/components/layout/PlatformLayout").then(m => ({ default: m.PlatformLayout })));
 const PlatformDashboard = lazy(() => import("@/pages/platform/PlatformDashboard"));
@@ -94,7 +95,9 @@ const App = () => (
                   <Route path="/reset-password" element={withRouteBoundary('Reset password', <ResetPassword />)} />
                   <Route path="/install" element={withRouteBoundary('App installation', <Install />)} />
                   <Route path="/register" element={withRouteBoundary('Tenant registration', <Register />)} />
+                  <Route path="/signup" element={withRouteBoundary('Sign up', <Signup />)} />
                   <Route path="/" element={withRouteBoundary('Landing', <Landing />)} />
+
 
                   {/* Platform Super Admin routes */}
                   <Route element={<PlatformRoute>{withRouteBoundary('Platform layout', <PlatformLayout />)}</PlatformRoute>}>

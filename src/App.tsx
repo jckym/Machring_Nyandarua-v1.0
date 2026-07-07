@@ -48,6 +48,7 @@ const Install = lazy(() => import("@/pages/Install"));
 const FIA = lazy(() => import("@/pages/FIA").then(m => ({ default: m.FIA })));
 const Insights = lazy(() => import("@/pages/Insights").then(m => ({ default: m.Insights })));
 const Register = lazy(() => import("@/pages/Register"));
+const Signup = lazy(() => import("@/pages/Signup"));
 const Landing = lazy(() => import("@/pages/Landing"));
 const PlatformLayout = lazy(() => import("@/components/layout/PlatformLayout").then(m => ({ default: m.PlatformLayout })));
 const PlatformDashboard = lazy(() => import("@/pages/platform/PlatformDashboard"));

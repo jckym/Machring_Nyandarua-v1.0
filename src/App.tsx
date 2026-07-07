@@ -95,7 +95,9 @@ const App = () => (
                   <Route path="/reset-password" element={withRouteBoundary('Reset password', <ResetPassword />)} />
                   <Route path="/install" element={withRouteBoundary('App installation', <Install />)} />
                   <Route path="/register" element={withRouteBoundary('Tenant registration', <Register />)} />
+                  <Route path="/signup" element={withRouteBoundary('Sign up', <Signup />)} />
                   <Route path="/" element={withRouteBoundary('Landing', <Landing />)} />
+
 
                   {/* Platform Super Admin routes */}
                   <Route element={<PlatformRoute>{withRouteBoundary('Platform layout', <PlatformLayout />)}</PlatformRoute>}>

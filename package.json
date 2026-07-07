@@ -5,10 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite --config frontend/vite.config.ts",
-    "build": "vite build --config frontend/vite.config.ts",
-    "build:dev": "vite build --mode development --config frontend/vite.config.ts",
+    "build": "vite build --config frontend/vite.config.ts --outDir ../dist --emptyOutDir",
+    "build:dev": "vite build --mode development --config frontend/vite.config.ts --outDir ../dist --emptyOutDir",
     "lint": "npm --prefix frontend run lint",
-    "preview": "vite preview --config frontend/vite.config.ts",
+    "preview": "vite preview --config frontend/vite.config.ts --outDir ../dist",
     "frontend:dev": "npm --prefix frontend run dev",
     "frontend:build": "npm --prefix frontend run build",
     "frontend:lint": "npm --prefix frontend run lint",

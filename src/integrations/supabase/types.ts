@@ -1011,6 +1011,7 @@ export type Database = {
           address: string | null
           admin_email: string
           admin_full_name: string
+          admin_user_id: string | null
           branch_name: string | null
           contact_person: string
           county: string | null
@@ -1036,6 +1037,7 @@ export type Database = {
           address?: string | null
           admin_email: string
           admin_full_name: string
+          admin_user_id?: string | null
           branch_name?: string | null
           contact_person: string
           county?: string | null
@@ -1061,6 +1063,7 @@ export type Database = {
           address?: string | null
           admin_email?: string
           admin_full_name?: string
+          admin_user_id?: string | null
           branch_name?: string | null
           contact_person?: string
           county?: string | null

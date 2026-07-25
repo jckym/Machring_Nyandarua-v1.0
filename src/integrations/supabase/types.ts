@@ -1573,6 +1573,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      has_role_in_tenant: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _tenant_id: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_coordinator_of: {
         Args: { _local_mr_id: string; _user_id: string }
         Returns: boolean

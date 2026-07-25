@@ -133,6 +133,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await supabase.auth.signOut();
           return { error: new Error('Your account has been deactivated.') };
         }
+        if (profile?.status === 'pending') {
+          await supabase.auth.signOut();
+          return { error: new Error('Your organization registration is awaiting platform approval. You will be notified by email once approved.') };
+        }
 
         const { user, tenant } = await fetchUserData(data.user.id);
         if (!user) {

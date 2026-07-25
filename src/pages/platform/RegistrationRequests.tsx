@@ -18,7 +18,6 @@ export default function RegistrationRequests() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Req | null>(null);
   const [action, setAction] = useState<'view' | 'approve' | 'reject' | null>(null);
-  const [password, setPassword] = useState('');
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -32,18 +31,18 @@ export default function RegistrationRequests() {
   useEffect(() => { load(); }, []);
 
   const handleApprove = async () => {
-    if (!selected || password.length < 8) { toast.error('Password must be at least 8 characters'); return; }
+    if (!selected) return;
     setBusy(true);
     const { data, error } = await supabase.functions.invoke('approve-tenant-request', {
-      body: { request_id: selected.id, password },
+      body: { request_id: selected.id },
     });
     setBusy(false);
     if (error || (data as any)?.error) {
       toast.error((data as any)?.error || error?.message || 'Approval failed');
       return;
     }
-    toast.success('Tenant approved and admin account created');
-    setSelected(null); setAction(null); setPassword('');
+    toast.success('Tenant approved. The admin can now sign in with the password they chose.');
+    setSelected(null); setAction(null);
     load();
   };
 
@@ -149,20 +148,19 @@ export default function RegistrationRequests() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!selected && action === 'approve'} onOpenChange={(o) => !o && (setSelected(null), setAction(null), setPassword(''))}>
+      <Dialog open={!!selected && action === 'approve'} onOpenChange={(o) => !o && (setSelected(null), setAction(null))}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Approve {selected?.organization_name}</DialogTitle>
-            <DialogDescription>Set an initial password for the tenant admin ({selected?.admin_email}). Share it securely.</DialogDescription>
+            <DialogDescription>
+              This will activate the organization and grant tenant admin access to <strong>{selected?.admin_email}</strong>.
+              They will sign in using the password they chose during registration.
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2">
-            <Label>Initial admin password</Label>
-            <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters" />
-          </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setSelected(null); setAction(null); setPassword(''); }}>Cancel</Button>
+            <Button variant="outline" onClick={() => { setSelected(null); setAction(null); }}>Cancel</Button>
             <Button onClick={handleApprove} disabled={busy}>
-              {busy && <Loader2 className="h-4 w-4 animate-spin mr-2" />}Approve & create tenant
+              {busy && <Loader2 className="h-4 w-4 animate-spin mr-2" />}Approve & activate
             </Button>
           </DialogFooter>
         </DialogContent>

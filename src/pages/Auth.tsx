@@ -23,16 +23,18 @@ export function Auth() {
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [isLoginLoading, setIsLoginLoading] = useState(false);
 
-  const { signIn, isAuthenticated, isLoading } = useAuth();
+  const { signIn, isAuthenticated, isLoading, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname || '/dashboard';
+  const requestedFrom = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
 
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate(from, { replace: true });
+    if (isAuthenticated && user) {
+      const dest = requestedFrom
+        || (user.role === 'platform_super_admin' ? '/platform' : '/dashboard');
+      navigate(dest, { replace: true });
     }
-  }, [from, isAuthenticated, navigate]);
+  }, [isAuthenticated, user, requestedFrom, navigate]);
 
   if (isLoading) {
     return (
@@ -59,7 +61,7 @@ export function Auth() {
         toast.error(error.message || 'Login failed. Please try again.');
       } else {
         toast.success('Welcome back!');
-        navigate(from, { replace: true });
+        // Navigation handled by useEffect above (routes by role)
       }
     } catch (err: any) {
       toast.error('Login failed. Please try again.');
